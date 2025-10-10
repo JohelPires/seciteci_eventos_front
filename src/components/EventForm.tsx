@@ -17,6 +17,8 @@ interface Event {
    category: string
    capacity: number
    image?: string
+   lat?: number
+   lng?: number
 }
 
 interface EventFormProps {
@@ -35,6 +37,8 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
       category: '',
       capacity: '',
       image: '',
+      lat: '',
+      lng: '',
    })
 
    useEffect(() => {
@@ -48,6 +52,8 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
             category: editingEvent.category,
             capacity: editingEvent.capacity.toString(),
             image: editingEvent.image || '',
+            lat: editingEvent.lat?.toString() || '',
+            lng: editingEvent.lng?.toString() || '',
          })
       }
    }, [editingEvent])
@@ -63,6 +69,8 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
          category: formData.category,
          capacity: parseInt(formData.capacity),
          image: formData.image || undefined,
+         lat: formData.lat ? parseFloat(formData.lat) : undefined,
+         lng: formData.lng ? parseFloat(formData.lng) : undefined,
       })
 
       setFormData({
@@ -74,6 +82,8 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
          category: '',
          capacity: '',
          image: '',
+         lat: '',
+         lng: '',
       })
    }
 
@@ -116,7 +126,7 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
                </div>
 
                {/* Form Content */}
-               <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+               <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-90px)]">
                   {/* Image Preview */}
                   {formData.image && (
                      <motion.div
@@ -228,6 +238,34 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                            required
                         />
+                     </div>
+
+                     {/* Latitude */}
+                     <div className="space-y-2">
+                        <Label htmlFor="lat">Latitude (opcional)</Label>
+                        <Input
+                           id="lat"
+                           type="number"
+                           step="any"
+                           placeholder="Ex: -23.5505"
+                           value={formData.lat}
+                           onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Para visualização no mapa</p>
+                     </div>
+
+                     {/* Longitude */}
+                     <div className="space-y-2">
+                        <Label htmlFor="lng">Longitude (opcional)</Label>
+                        <Input
+                           id="lng"
+                           type="number"
+                           step="any"
+                           placeholder="Ex: -46.6333"
+                           value={formData.lng}
+                           onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Para visualização no mapa</p>
                      </div>
 
                      {/* Image URL - Full Width */}

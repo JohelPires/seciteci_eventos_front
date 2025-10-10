@@ -13,6 +13,8 @@ import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
 import { getEventos } from '@/data/data'
+import { AuthDialog } from '@/components/AuthDialog'
+import { MapView } from '@/components/MapView'
 
 interface Event {
    id: string
@@ -24,41 +26,95 @@ interface Event {
    category: string
    capacity: number
    image?: string
+   lat?: number
+   lng?: number
 }
 
 const initialEvents: Event[] = [
    {
       id: '1',
-      title: 'Tech Summit 2025',
-      description: 'O maior evento de tecnologia do ano com palestras sobre IA, Web3 e inovação.',
-      date: '2025-10-15',
+      title: 'Tech Agro Amazônia 2025',
+      description:
+         'Um evento que conecta tecnologia e sustentabilidade no coração do agronegócio mato-grossense. Palestras sobre IA, monitoramento por satélite e agricultura de precisão.',
+      date: '2025-11-18',
       time: '09:00',
-      location: 'Centro de Convenções - São Paulo, SP',
-      category: 'Tecnologia',
-      capacity: 500,
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25mZXJlbmNlJTIwZXZlbnR8ZW58MXx8fHwxNzU5MzE5Nzk5fDA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: 'https://images.unsplash.com/photo-1598887142483-231c3f3b8d51?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      location: 'Parque de Exposições - Sinop, MT',
+      category: 'Agronegócio',
+      capacity: 700,
+      lat: -11.8576,
+      lng: -55.5091,
    },
    {
       id: '2',
-      title: 'Workshop de Desenvolvimento Web',
-      description: 'Aprenda as melhores práticas de desenvolvimento frontend com React e TypeScript.',
-      date: '2025-10-20',
-      time: '14:00',
-      location: 'Espaço Inovação - Rio de Janeiro, RJ',
-      category: 'Educação',
-      capacity: 50,
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwd29ya3Nob3B8ZW58MXx8fHwxNzU5MzYxNDk3fDA&ixlib=rb-4.1.0&q=80&w=1080',
+      title: 'InovaNorte 2025',
+      description:
+         'Fórum de tecnologia e negócios do norte mato-grossense, com foco em transformação digital, energias renováveis e cidades inteligentes.',
+      date: '2025-12-09',
+      time: '08:00',
+      image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      location: 'Auditório da Unemat - Alta Floresta, MT',
+      category: 'Inovação',
+      capacity: 400,
+      lat: -9.8667,
+      lng: -56.0833,
    },
    {
       id: '3',
-      title: 'Networking Empresarial',
-      description: 'Conecte-se com líderes e empreendedores em um ambiente de negócios dinâmico.',
+      title: 'GreenTech Cerrado 2025',
+      description:
+         'Conferência sobre soluções tecnológicas para preservação ambiental e gestão sustentável dos recursos naturais do Cerrado mato-grossense.',
+      date: '2025-11-25',
+      time: '09:30',
+      image: 'https://images.unsplash.com/photo-1503264116251-35a269479413?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      location: 'Centro Cultural de Rondonópolis - Rondonópolis, MT',
+      category: 'Tecnologia',
+      capacity: 500,
+      lat: -16.4673,
+      lng: -54.6372,
+   },
+
+   {
+      id: '4',
+      title: 'AgroTech Conference 2025',
+      description:
+         'Evento voltado para inovação tecnológica no agronegócio, com palestras sobre IoT, drones e sustentabilidade.',
       date: '2025-11-05',
-      time: '18:00',
-      location: 'Hotel Business Plaza - Brasília, DF',
-      category: 'Negócios',
-      capacity: 150,
-      image: 'https://images.unsplash.com/photo-1606836591695-4d58a73eba1e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG1lZXRpbmd8ZW58MXx8fHwxNzU5MjgxNDU0fDA&ixlib=rb-4.1.0&q=80&w=1080',
+      time: '08:30',
+      image: 'https://images.unsplash.com/photo-1581093588401-22f6363f1d3b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      location: 'Centro de Eventos do Pantanal - Cuiabá, MT',
+      category: 'Agronegócio',
+      capacity: 800,
+      lat: -15.601,
+      lng: -56.0974,
+   },
+   {
+      id: '5',
+      title: 'InovaVG 2025',
+      description:
+         'Encontro de startups, investidores e entusiastas da inovação em Várzea Grande, com workshops e networking.',
+      date: '2025-12-02',
+      time: '10:00',
+      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      location: 'Fiemt Senai - Várzea Grande, MT',
+      category: 'Inovação',
+      capacity: 300,
+      lat: -15.6469,
+      lng: -56.1325,
+   },
+   {
+      id: '6',
+      title: 'Cuiabá Dev Summit 2025',
+      description:
+         'Conferência de desenvolvedores e entusiastas de tecnologia com trilhas sobre Elixir, Phoenix, IA e segurança digital.',
+      date: '2025-10-28',
+      time: '09:00',
+      image: 'https://images.unsplash.com/photo-1551836022-4c4c79ecde51?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      location: 'Teatro Zulmira Canavarros - Cuiabá, MT',
+      category: 'Tecnologia',
+      capacity: 600,
+      lat: -15.5977,
+      lng: -56.0978,
    },
 ]
 
@@ -70,6 +126,8 @@ export default function App() {
    const [categoryFilter, setCategoryFilter] = useState('all')
    const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+
+   const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
    useEffect(() => {
       async function fetchData() {
@@ -140,7 +198,7 @@ export default function App() {
          <Toaster />
 
          {/* Navigation Bar */}
-         <Navbar />
+         <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
 
          {/* Header */}
          <header className="border-b border-border bg-card">
@@ -231,7 +289,7 @@ export default function App() {
                         />
                      </div>
 
-                     <div className="flex gap-2 bg-muted rounded-lg p-1">
+                     {/* <div className="flex gap-2 bg-muted rounded-lg p-1">
                         <Button
                            variant={viewMode === 'grid' ? 'default' : 'ghost'}
                            size="sm"
@@ -250,7 +308,7 @@ export default function App() {
                            <CalendarDays className="w-4 h-4" />
                            Calendário
                         </Button>
-                     </div>
+                     </div> */}
                   </div>
 
                   {viewMode === 'grid' && (
@@ -258,12 +316,12 @@ export default function App() {
                         <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto bg-muted">
                            <TabsTrigger value="all">Todas</TabsTrigger>
                            <TabsTrigger value="Tecnologia">Tecnologia</TabsTrigger>
+                           <TabsTrigger value="Inovação">Inovação</TabsTrigger>
                            <TabsTrigger value="Negócios">Negócios</TabsTrigger>
-                           <TabsTrigger value="Educação">Educação</TabsTrigger>
-                           <TabsTrigger value="Entretenimento">Entretenimento</TabsTrigger>
-                           <TabsTrigger value="Esportes">Esportes</TabsTrigger>
-                           <TabsTrigger value="Cultura">Cultura</TabsTrigger>
-                           <TabsTrigger value="Saúde">Saúde</TabsTrigger>
+                           <TabsTrigger value="Agro">Agro</TabsTrigger>
+                           <TabsTrigger value="IA">IA</TabsTrigger>
+                           {/* {/* <TabsTrigger value="Esportes">Esportes</TabsTrigger> */}
+                           {/* <TabsTrigger value="Saúde">Saúde</TabsTrigger> */}
                         </TabsList>
                      </Tabs>
                   )}
@@ -273,61 +331,62 @@ export default function App() {
 
          {/* Main Content */}
          <main className="container mx-auto px-4 py-10">
-            {viewMode === 'calendar' ? (
-               <CalendarView events={events} onEventClick={handleEventClick} />
-            ) : (
-               <>
-                  {filteredEvents.length === 0 ? (
+            {/* {viewMode === 'calendar' ? ( */}
+            <CalendarView events={events} onEventClick={handleEventClick} />
+            <MapView events={events} onEventClick={handleEventClick} />
+            {/* ) : ( */}
+            <>
+               {filteredEvents.length === 0 ? (
+                  <motion.div
+                     initial={{ opacity: 0, scale: 0.95 }}
+                     animate={{ opacity: 1, scale: 1 }}
+                     className="text-center py-20"
+                  >
+                     <div className="max-w-md mx-auto">
+                        <div className="mb-6 w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
+                           <Calendar className="w-10 h-10 text-muted-foreground" />
+                        </div>
+                        <h3 className="mb-2">Nenhum evento encontrado</h3>
+                        <p className="text-muted-foreground mb-6">
+                           {searchTerm || categoryFilter !== 'all'
+                              ? 'Tente ajustar os filtros de busca'
+                              : 'Comece criando seu primeiro evento'}
+                        </p>
+                        {!searchTerm && categoryFilter === 'all' && (
+                           <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
+                              <Plus className="w-4 h-4" />
+                              Criar Primeiro Evento
+                           </Button>
+                        )}
+                     </div>
+                  </motion.div>
+               ) : (
+                  <>
                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="text-center py-20"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center justify-between mb-6"
                      >
-                        <div className="max-w-md mx-auto">
-                           <div className="mb-6 w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
-                              <Calendar className="w-10 h-10 text-muted-foreground" />
-                           </div>
-                           <h3 className="mb-2">Nenhum evento encontrado</h3>
-                           <p className="text-muted-foreground mb-6">
-                              {searchTerm || categoryFilter !== 'all'
-                                 ? 'Tente ajustar os filtros de busca'
-                                 : 'Comece criando seu primeiro evento'}
-                           </p>
-                           {!searchTerm && categoryFilter === 'all' && (
-                              <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
-                                 <Plus className="w-4 h-4" />
-                                 Criar Primeiro Evento
-                              </Button>
-                           )}
-                        </div>
+                        <p className="text-muted-foreground">
+                           {filteredEvents.length} {filteredEvents.length === 1 ? 'evento' : 'eventos'}
+                        </p>
                      </motion.div>
-                  ) : (
-                     <>
-                        <motion.div
-                           initial={{ opacity: 0 }}
-                           animate={{ opacity: 1 }}
-                           className="flex items-center justify-between mb-6"
-                        >
-                           <p className="text-muted-foreground">
-                              {filteredEvents.length} {filteredEvents.length === 1 ? 'evento' : 'eventos'}
-                           </p>
-                        </motion.div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                           {filteredEvents.map((event, index) => (
-                              <EventCard
-                                 key={event.id}
-                                 event={event}
-                                 onDelete={handleDeleteEvent}
-                                 onEdit={handleEditEvent}
-                                 index={index}
-                              />
-                           ))}
-                        </div>
-                     </>
-                  )}
-               </>
-            )}
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredEvents.map((event, index) => (
+                           <EventCard
+                              key={event.id}
+                              event={event}
+                              onDelete={handleDeleteEvent}
+                              onEdit={handleEditEvent}
+                              index={index}
+                           />
+                        ))}
+                     </div>
+                  </>
+               )}
+            </>
+            {/* )} */}
          </main>
 
          {/* Event Form Modal */}
@@ -342,6 +401,15 @@ export default function App() {
                onDelete={handleDeleteEvent}
             />
          )}
+         <AuthDialog
+            open={authDialogOpen}
+            onClose={() => setAuthDialogOpen(false)}
+            //   onLogin={handleLogin}
+            //   onRegister={handleRegister}
+            // onClose={() => {}}
+            onLogin={() => {}}
+            onRegister={() => {}}
+         />
       </div>
    )
 }

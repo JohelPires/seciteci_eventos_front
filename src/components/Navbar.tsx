@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Image from 'next/image'
 
-export function Navbar() {
+export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
    const [activeTab, setActiveTab] = useState('eventos')
 
@@ -62,7 +62,11 @@ export function Navbar() {
 
                {/* Login Button */}
                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="hidden lg:block">
-                  <Button variant="default" className="bg-slate-800 hover:bg-slate-900">
+                  <Button
+                     onClick={onOpenAuth}
+                     variant="default"
+                     className="bg-slate-800 hover:bg-slate-900 cursor-pointer"
+                  >
                      Entrar
                   </Button>
                </motion.div>
