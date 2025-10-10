@@ -31,7 +31,8 @@
       "src/components/ui/command.tsx.del",
       "src/components/ui/chart.tsx.del",
       "src/components/ui/resizable.tsx.del",
-      "src/components/ui/input-otp.tsx.del"
+      "src/components/ui/input-otp.tsx.del",
+      "next.config.mjs"
    ],
    "exclude": ["node_modules"]
 }
