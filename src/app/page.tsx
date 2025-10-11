@@ -38,7 +38,7 @@ const initialEvents: Event[] = [
          'Um evento que conecta tecnologia e sustentabilidade no coração do agronegócio mato-grossense. Palestras sobre IA, monitoramento por satélite e agricultura de precisão.',
       date: '2025-11-18',
       time: '09:00',
-      image: 'https://images.unsplash.com/photo-1598887142483-231c3f3b8d51?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      image: 'https://veolink.com.br/wp-content/uploads/2022/01/6.jpg',
       location: 'Parque de Exposições - Sinop, MT',
       category: 'Agronegócio',
       capacity: 700,
@@ -81,7 +81,7 @@ const initialEvents: Event[] = [
          'Evento voltado para inovação tecnológica no agronegócio, com palestras sobre IoT, drones e sustentabilidade.',
       date: '2025-11-05',
       time: '08:30',
-      image: 'https://images.unsplash.com/photo-1581093588401-22f6363f1d3b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      image: 'https://www.gov.br/agricultura/pt-br/assuntos/noticias/seis-agritechs-vencem-agronordeste-digital-desafio-de-startups-do-agro/agriculturadigitaliStock.jpg/@@images/06e5dd2e-fd9b-498c-9f58-024500a8c75c.jpeg',
       location: 'Centro de Eventos do Pantanal - Cuiabá, MT',
       category: 'Agronegócio',
       capacity: 800,
@@ -332,8 +332,6 @@ export default function App() {
          {/* Main Content */}
          <main className="container mx-auto px-4 py-10">
             {/* {viewMode === 'calendar' ? ( */}
-            <CalendarView events={events} onEventClick={handleEventClick} />
-            <MapView events={events} onEventClick={handleEventClick} />
             {/* ) : ( */}
             <>
                {filteredEvents.length === 0 ? (
@@ -387,6 +385,8 @@ export default function App() {
                )}
             </>
             {/* )} */}
+            <CalendarView events={events} onEventClick={handleEventClick} />
+            <MapView events={events} onEventClick={handleEventClick} />
          </main>
 
          {/* Event Form Modal */}
