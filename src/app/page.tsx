@@ -194,7 +194,7 @@ export default function App() {
    const categories = [...new Set(events.map((e) => e.category))]
 
    return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gray-50">
          <Toaster />
 
          {/* Navigation Bar */}
