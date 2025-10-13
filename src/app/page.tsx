@@ -16,110 +16,195 @@ import { getEventos } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 
-interface Event {
-   id: string
-   title: string
-   description: string
-   date: string
-   time: string
-   location: string
-   category: string
-   capacity: number
-   image?: string
-   lat?: number
-   lng?: number
+export interface Local {
+   id: number
+   nome: string
+   endereco: string
+   numero: string
+   complemento?: string
+   bairro: string
+   cidade: string
+   estado: string
+   cep: string
+   capacidade: number
+   latitude: number
+   longitude: number
 }
 
-const initialEvents: Event[] = [
-   {
-      id: '1',
-      title: 'Tech Agro Amazônia 2025',
-      description:
-         'Um evento que conecta tecnologia e sustentabilidade no coração do agronegócio mato-grossense. Palestras sobre IA, monitoramento por satélite e agricultura de precisão.',
-      date: '2025-11-18',
-      time: '09:00',
-      image: 'https://veolink.com.br/wp-content/uploads/2022/01/6.jpg',
-      location: 'Parque de Exposições - Sinop, MT',
-      category: 'Agronegócio',
-      capacity: 700,
-      lat: -11.8576,
-      lng: -55.5091,
-   },
-   {
-      id: '2',
-      title: 'InovaNorte 2025',
-      description:
-         'Fórum de tecnologia e negócios do norte mato-grossense, com foco em transformação digital, energias renováveis e cidades inteligentes.',
-      date: '2025-12-09',
-      time: '08:00',
-      image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-      location: 'Auditório da Unemat - Alta Floresta, MT',
-      category: 'Inovação',
-      capacity: 400,
-      lat: -9.8667,
-      lng: -56.0833,
-   },
-   {
-      id: '3',
-      title: 'GreenTech Cerrado 2025',
-      description:
-         'Conferência sobre soluções tecnológicas para preservação ambiental e gestão sustentável dos recursos naturais do Cerrado mato-grossense.',
-      date: '2025-11-25',
-      time: '09:30',
-      image: 'https://images.unsplash.com/photo-1503264116251-35a269479413?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-      location: 'Centro Cultural de Rondonópolis - Rondonópolis, MT',
-      category: 'Tecnologia',
-      capacity: 500,
-      lat: -16.4673,
-      lng: -54.6372,
-   },
+export interface Categoria {
+   id: number
+   nome: string
+   cor: string
+}
 
+export interface Event {
+   id: string
+   titulo: string
+   descricao: string
+   categoriaId: number
+   localId: number
+   local: Local | null
+   categoria: Categoria | null
+   dataInicio: string
+   dataFim: string
+   horarioAbertura: string
+   horarioEncerramento: string
+   capacidadeMaxima: number
+   tipoEvento: 'presencial' | 'online' | 'hibrido'
+   linkOnline?: string
+   imagemCapa?: string
+   status: 'rascunho' | 'publicado' | 'cancelado'
+   publicoAlvo?: string
+   requisitos?: string
+}
+
+const categorias: Categoria[] = [
+   { id: 1, nome: 'Tecnologia', cor: 'bg-blue-600' },
+   { id: 2, nome: 'Negócios', cor: 'bg-slate-700' },
+   { id: 3, nome: 'Educação', cor: 'bg-indigo-600' },
+   { id: 4, nome: 'Entretenimento', cor: 'bg-purple-600' },
+   { id: 5, nome: 'Esportes', cor: 'bg-orange-600' },
+   { id: 6, nome: 'Cultura', cor: 'bg-teal-600' },
+   { id: 7, nome: 'Saúde', cor: 'bg-green-600' },
+]
+
+const locais: Local[] = [
    {
-      id: '4',
-      title: 'AgroTech Conference 2025',
-      description:
-         'Evento voltado para inovação tecnológica no agronegócio, com palestras sobre IoT, drones e sustentabilidade.',
-      date: '2025-11-05',
-      time: '08:30',
-      image: 'https://www.gov.br/agricultura/pt-br/assuntos/noticias/seis-agritechs-vencem-agronordeste-digital-desafio-de-startups-do-agro/agriculturadigitaliStock.jpg/@@images/06e5dd2e-fd9b-498c-9f58-024500a8c75c.jpeg',
-      location: 'Centro de Eventos do Pantanal - Cuiabá, MT',
-      category: 'Agronegócio',
-      capacity: 800,
-      lat: -15.601,
-      lng: -56.0974,
+      id: 1,
+      nome: 'Auditório Principal',
+      endereco: 'Av. Paulista',
+      numero: '1000',
+      complemento: 'Sala 101',
+      bairro: 'Bela Vista',
+      cidade: 'São Paulo',
+      estado: 'SP',
+      cep: '01310-100',
+      capacidade: 500,
+      latitude: -23.5505,
+      longitude: -46.6333,
    },
    {
-      id: '5',
-      title: 'InovaVG 2025',
-      description:
-         'Encontro de startups, investidores e entusiastas da inovação em Várzea Grande, com workshops e networking.',
-      date: '2025-12-02',
-      time: '10:00',
-      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-      location: 'Fiemt Senai - Várzea Grande, MT',
-      category: 'Inovação',
-      capacity: 300,
-      lat: -15.6469,
-      lng: -56.1325,
+      id: 2,
+      nome: 'Espaço Inovação',
+      endereco: 'Rua da Assembleia',
+      numero: '100',
+      complemento: '3º andar',
+      bairro: 'Centro',
+      cidade: 'Rio de Janeiro',
+      estado: 'RJ',
+      cep: '20011-000',
+      capacidade: 100,
+      latitude: -22.9068,
+      longitude: -43.1729,
    },
    {
-      id: '6',
-      title: 'Cuiabá Dev Summit 2025',
-      description:
-         'Conferência de desenvolvedores e entusiastas de tecnologia com trilhas sobre Elixir, Phoenix, IA e segurança digital.',
-      date: '2025-10-28',
-      time: '09:00',
-      image: 'https://images.unsplash.com/photo-1551836022-4c4c79ecde51?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-      location: 'Teatro Zulmira Canavarros - Cuiabá, MT',
-      category: 'Tecnologia',
-      capacity: 600,
-      lat: -15.5977,
-      lng: -56.0978,
+      id: 3,
+      nome: 'Centro de Convenções',
+      endereco: 'SHN Quadra 5',
+      numero: 'Bloco A',
+      complemento: '',
+      bairro: 'Asa Norte',
+      cidade: 'Brasília',
+      estado: 'DF',
+      cep: '70705-050',
+      capacidade: 1000,
+      latitude: -15.7942,
+      longitude: -47.8822,
+   },
+   {
+      id: 4,
+      nome: 'Arena Cultural',
+      endereco: 'Av. Historiador Rubens de Mendonça',
+      numero: '3300',
+      complemento: '',
+      bairro: 'Centro Político Administrativo',
+      cidade: 'Cuiabá',
+      estado: 'MT',
+      cep: '78049-940',
+      capacidade: 300,
+      latitude: -15.6014,
+      longitude: -56.0979,
    },
 ]
 
+// const initialEvents: Event[] = [
+//    {
+//       id: '1',
+//       titulo: 'Tech Summit 2025',
+//       descricao: 'O maior evento de tecnologia do ano com palestras sobre IA, Web3 e inovação.',
+//       categoriaId: 1,
+//       localId: 1,
+//       dataInicio: '2025-10-15T09:00:00Z',
+//       dataFim: '2025-10-15T18:00:00Z',
+//       horarioAbertura: '08:30:00',
+//       horarioEncerramento: '19:00:00',
+//       capacidadeMaxima: 500,
+//       tipoEvento: 'presencial',
+//       imagemCapa:
+//          'https://images.unsplash.com/photo-1540575467063-178a50c2df87?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25mZXJlbmNlJTIwZXZlbnR8ZW58MXx8fHwxNzU5MzE5Nzk5fDA&ixlib=rb-4.1.0&q=80&w=1080',
+//       status: 'publicado',
+//       publicoAlvo: 'Desenvolvedores, engenheiros de software e entusiastas de tecnologia',
+//       requisitos: 'Conhecimento básico em programação',
+//    },
+//    {
+//       id: '2',
+//       titulo: 'Workshop de Node.js',
+//       descricao: 'Aprenda Node.js do zero ao avançado com projetos práticos e exemplos reais.',
+//       categoriaId: 3,
+//       localId: 2,
+//       dataInicio: '2025-10-20T14:00:00Z',
+//       dataFim: '2025-10-20T18:00:00Z',
+//       horarioAbertura: '13:30:00',
+//       horarioEncerramento: '18:30:00',
+//       capacidadeMaxima: 50,
+//       tipoEvento: 'hibrido',
+//       linkOnline: 'https://meet.google.com/abc-defg-hij',
+//       imagemCapa:
+//          'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwd29ya3Nob3B8ZW58MXx8fHwxNzU5MzYxNDk3fDA&ixlib=rb-4.1.0&q=80&w=1080',
+//       status: 'publicado',
+//       publicoAlvo: 'Desenvolvedores iniciantes e intermediários',
+//       requisitos: 'Notebook próprio e conhecimento básico de JavaScript',
+//    },
+//    {
+//       id: '3',
+//       titulo: 'Networking Empresarial',
+//       descricao: 'Conecte-se com líderes e empreendedores em um ambiente de negócios dinâmico.',
+//       categoriaId: 2,
+//       localId: 3,
+//       dataInicio: '2025-11-05T18:00:00Z',
+//       dataFim: '2025-11-05T22:00:00Z',
+//       horarioAbertura: '17:30:00',
+//       horarioEncerramento: '22:30:00',
+//       capacidadeMaxima: 150,
+//       tipoEvento: 'presencial',
+//       imagemCapa:
+//          'https://images.unsplash.com/photo-1606836591695-4d58a73eba1e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG1lZXRpbmd8ZW58MXx8fHwxNzU5MjgxNDU0fDA&ixlib=rb-4.1.0&q=80&w=1080',
+//       status: 'publicado',
+//       publicoAlvo: 'Empresários, gestores e profissionais de negócios',
+//       requisitos: 'Traje social',
+//    },
+//    {
+//       id: '4',
+//       titulo: 'Festival Cultural de Cuiabá',
+//       descricao: 'Celebração da cultura local com apresentações artísticas, música e gastronomia típica.',
+//       categoriaId: 6,
+//       localId: 4,
+//       dataInicio: '2025-10-25T16:00:00Z',
+//       dataFim: '2025-10-25T23:00:00Z',
+//       horarioAbertura: '15:30:00',
+//       horarioEncerramento: '23:30:00',
+//       capacidadeMaxima: 300,
+//       tipoEvento: 'presencial',
+//       imagemCapa:
+//          'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjdWx0dXJhbCUyMGZlc3RpdmFsfGVufDB8fHx8MTczMzc3MDAwMHww&ixlib=rb-4.1.0&q=80&w=1080',
+//       status: 'publicado',
+//       publicoAlvo: 'Famílias e amantes da cultura',
+//       requisitos: 'Entrada gratuita',
+//    },
+// ]
+
 export default function App() {
-   const [events, setEvents] = useState<Event[]>(initialEvents)
+   const [events, setEvents] = useState<Event[]>([])
    const [showForm, setShowForm] = useState(false)
    const [editingEvent, setEditingEvent] = useState<Event | null>(null)
    const [searchTerm, setSearchTerm] = useState('')
@@ -129,15 +214,19 @@ export default function App() {
 
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
+   // Helper functions
+   const getCategoria = (id: number) => categorias.find((c) => c.id === id)
+   const getLocal = (id: number) => locais.find((l) => l.id === id)
+
    useEffect(() => {
       async function fetchData() {
          try {
             const response = await getEventos()
             console.log(response)
+            setEvents(response.eventos)
          } catch (error) {
             console.log(error)
          }
-         console.log('teste')
       }
 
       fetchData()
@@ -184,14 +273,14 @@ export default function App() {
 
    const filteredEvents = events.filter((event) => {
       const matchesSearch =
-         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         event.description.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter
+         event.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         event.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesCategory = categoryFilter === 'all' || event.categoriaId.toString() === categoryFilter
       return matchesSearch && matchesCategory
    })
 
-   const totalCapacity = events.reduce((sum, event) => sum + event.capacity, 0)
-   const categories = [...new Set(events.map((e) => e.category))]
+   const totalCapacity = events.reduce((sum, event) => sum + event.capacidadeMaxima, 0)
+   const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
 
    return (
       <div className="min-h-screen bg-gray-50">
@@ -262,7 +351,7 @@ export default function App() {
                      <div className="flex items-center justify-between">
                         <div>
                            <p className="text-sm text-muted-foreground mb-1">Categorias Ativas</p>
-                           <p className="text-foreground text-3xl font-semibold">{categories.length}</p>
+                           <p className="text-foreground text-3xl font-semibold">{categorias.length}</p>
                         </div>
                         <div className="p-3 bg-purple-100 dark:bg-purple-950 rounded-lg">
                            <Tag className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -370,11 +459,13 @@ export default function App() {
                         </p>
                      </motion.div>
 
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
                         {filteredEvents.map((event, index) => (
                            <EventCard
                               key={event.id}
                               event={event}
+                              categoria={getCategoria(event.categoriaId)}
+                              local={getLocal(event.localId)}
                               onDelete={handleDeleteEvent}
                               onEdit={handleEditEvent}
                               index={index}
@@ -385,17 +476,27 @@ export default function App() {
                )}
             </>
             {/* )} */}
-            <CalendarView events={events} onEventClick={handleEventClick} />
-            <MapView events={events} onEventClick={handleEventClick} />
+            <CalendarView events={events} categorias={categorias} locais={locais} onEventClick={handleEventClick} />
+            <MapView events={events} categorias={categorias} locais={locais} onEventClick={handleEventClick} />
          </main>
 
          {/* Event Form Modal */}
-         {showForm && <EventForm onSubmit={handleCreateEvent} onClose={handleCloseForm} editingEvent={editingEvent} />}
+         {showForm && (
+            <EventForm
+               onSubmit={handleCreateEvent}
+               onClose={handleCloseForm}
+               editingEvent={editingEvent}
+               categorias={categorias}
+               locais={locais}
+            />
+         )}
 
          {/* Event Details Modal */}
          {selectedEvent && (
             <EventDetails
                event={selectedEvent}
+               categoria={getCategoria(selectedEvent.categoriaId)}
+               local={getLocal(selectedEvent.localId)}
                onClose={handleCloseEventDetails}
                onEdit={handleEditEvent}
                onDelete={handleDeleteEvent}

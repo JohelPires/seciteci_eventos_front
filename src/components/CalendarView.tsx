@@ -4,36 +4,19 @@ import { Button } from './ui/button'
 import { Card } from './ui/card'
 import { Badge } from './ui/badge'
 import { motion } from 'framer-motion'
-
-interface Event {
-   id: string
-   title: string
-   description: string
-   date: string
-   time: string
-   location: string
-   category: string
-   capacity: number
-   image?: string
-}
+import type { Event, Categoria, Local } from '@/app/page'
 
 interface CalendarViewProps {
    events: Event[]
+   categorias: Categoria[]
+   locais: Local[]
    onEventClick: (event: Event) => void
 }
 
-export function CalendarView({ events, onEventClick }: CalendarViewProps) {
+export function CalendarView({ events, categorias, locais, onEventClick }: CalendarViewProps) {
    const [currentDate, setCurrentDate] = useState(new Date())
 
-   const categoryStyles: Record<string, string> = {
-      Tecnologia: 'bg-blue-600',
-      Negócios: 'bg-slate-700',
-      Educação: 'bg-indigo-600',
-      Entretenimento: 'bg-purple-600',
-      Esportes: 'bg-orange-600',
-      Cultura: 'bg-teal-600',
-      Saúde: 'bg-green-600',
-   }
+   const getCategoria = (id: number) => categorias.find((c) => c.id === id)
 
    const getDaysInMonth = (date: Date) => {
       const year = date.getFullYear()
@@ -49,9 +32,13 @@ export function CalendarView({ events, onEventClick }: CalendarViewProps) {
    const getEventsForDay = (day: number) => {
       const year = currentDate.getFullYear()
       const month = currentDate.getMonth()
-      const dateString = new Date(year, month, day).toISOString().split('T')[0]
+      const targetDate = new Date(year, month, day)
+      const dateString = targetDate.toISOString().split('T')[0]
 
-      return events.filter((event) => event.date === dateString)
+      return events.filter((event) => {
+         const eventDate = new Date(event.dataInicio).toISOString().split('T')[0]
+         return eventDate === dateString
+      })
    }
 
    const navigateMonth = (direction: 'prev' | 'next') => {
@@ -100,21 +87,24 @@ export function CalendarView({ events, onEventClick }: CalendarViewProps) {
          </div>
 
          {/* Calendar Grid */}
-         <Card className="p-4 bg-card border border-border">
-            <div className="grid grid-cols-7 gap-2">
-               {/* Week Day Headers */}
+         <Card className="p-6">
+            {/* Week Days Header */}
+            <div className="grid grid-cols-7 gap-2 mb-4">
                {weekDays.map((day) => (
-                  <div key={day} className="text-center text-sm text-muted-foreground py-2">
+                  <div key={day} className="text-center text-sm text-muted-foreground p-2">
                      {day}
                   </div>
                ))}
+            </div>
 
-               {/* Empty cells for days before month starts */}
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-2">
+               {/* Empty cells before first day of month */}
                {Array.from({ length: startingDayOfWeek }).map((_, index) => (
-                  <div key={`empty-${index}`} className="min-h-[100px] bg-muted/30 rounded-lg" />
+                  <div key={`empty-${index}`} className="aspect-square" />
                ))}
 
-               {/* Calendar Days */}
+               {/* Days of the month */}
                {Array.from({ length: daysInMonth }).map((_, index) => {
                   const day = index + 1
                   const dayEvents = getEventsForDay(day)
@@ -123,48 +113,40 @@ export function CalendarView({ events, onEventClick }: CalendarViewProps) {
                   return (
                      <motion.div
                         key={day}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.01 }}
-                        className={`min-h-[100px] p-2 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors ${
-                           isToday ? 'ring-2 ring-primary' : ''
-                        }`}
+                        className={`
+                  aspect-square p-2 rounded-lg border border-border
+                  ${isToday ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50'}
+                  transition-colors cursor-pointer
+                `}
                      >
-                        <div className="flex items-start justify-between mb-2">
-                           <span
-                              className={`text-sm ${
-                                 isToday
-                                    ? 'w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center'
-                                    : 'text-foreground'
-                              }`}
-                           >
-                              {day}
-                           </span>
-                           {dayEvents.length > 0 && (
-                              <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                                 {dayEvents.length}
-                              </Badge>
-                           )}
-                        </div>
+                        <div className="h-full flex flex-col">
+                           <span className={`text-sm mb-2 ${isToday ? 'text-primary' : 'text-foreground'}`}>{day}</span>
+                           <div className="flex-1 space-y-1 overflow-hidden">
+                              {dayEvents.slice(0, 3).map((event) => {
+                                 const categoria = getCategoria(event.categoriaId)
+                                 const categoryStyle = categoria?.cor || 'bg-slate-600'
 
-                        <div className="space-y-1">
-                           {dayEvents.slice(0, 3).map((event) => {
-                              const style = categoryStyles[event.category] || 'bg-slate-600'
-                              return (
-                                 <button
-                                    key={event.id}
-                                    onClick={() => onEventClick(event)}
-                                    className={`w-full text-left px-2 py-1 rounded text-xs text-white truncate ${style} hover:opacity-80 transition-opacity`}
-                                 >
-                                    {event.time} - {event.title}
-                                 </button>
-                              )
-                           })}
-                           {dayEvents.length > 3 && (
-                              <div className="text-xs text-muted-foreground text-center pt-1">
-                                 +{dayEvents.length - 3} mais
-                              </div>
-                           )}
+                                 return (
+                                    <motion.div
+                                       key={event.id}
+                                       whileHover={{ scale: 1.05 }}
+                                       onClick={() => onEventClick(event)}
+                                    >
+                                       <Badge
+                                          className={`${categoryStyle} text-white border-0 text-xs w-full justify-start truncate cursor-pointer`}
+                                       >
+                                          {event.titulo}
+                                       </Badge>
+                                    </motion.div>
+                                 )
+                              })}
+                              {dayEvents.length > 3 && (
+                                 <p className="text-xs text-muted-foreground">+{dayEvents.length - 3} mais</p>
+                              )}
+                           </div>
                         </div>
                      </motion.div>
                   )
@@ -172,19 +154,17 @@ export function CalendarView({ events, onEventClick }: CalendarViewProps) {
             </div>
          </Card>
 
-         {/* Legend */}
-         <div className="flex flex-wrap gap-3 items-center justify-center">
-            {Object.entries(categoryStyles).map(([category, style]) => {
-               const hasEvents = events.some((e) => e.category === category)
-               if (!hasEvents) return null
-
-               return (
-                  <div key={category} className="flex items-center gap-2">
-                     <div className={`w-3 h-3 rounded-full ${style}`} />
-                     <span className="text-sm text-muted-foreground">{category}</span>
-                  </div>
-               )
-            })}
+         {/* Event Count Summary */}
+         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span>
+               {
+                  events.filter((e) => {
+                     const eventDate = new Date(e.dataInicio)
+                     return eventDate.getMonth() === month && eventDate.getFullYear() === year
+                  }).length
+               }{' '}
+               eventos em {monthName}
+            </span>
          </div>
       </div>
    )

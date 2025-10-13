@@ -1,40 +1,54 @@
-import { Calendar, MapPin, Clock, Users, Trash2, Edit } from 'lucide-react'
+import { Calendar, MapPin, Video, Globe, Clock, Users, Trash2, Edit } from 'lucide-react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { motion } from 'framer-motion'
-
-interface Event {
-   id: string
-   title: string
-   description: string
-   date: string
-   time: string
-   location: string
-   category: string
-   capacity: number
-   image?: string
-}
+import type { Event, Categoria, Local } from '@/app/page'
 
 interface EventCardProps {
    event: Event
+   categoria?: Categoria
+   local?: Local
    onDelete: (id: string) => void
    onEdit: (event: Event) => void
    index: number
 }
 
-export function EventCard({ event, onDelete, onEdit, index }: EventCardProps) {
-   const categoryStyles: Record<string, string> = {
-      Tecnologia: 'bg-blue-600',
-      Negócios: 'bg-slate-700',
-      Educação: 'bg-indigo-600',
-      Entretenimento: 'bg-purple-600',
-      Esportes: 'bg-orange-600',
-      Cultura: 'bg-teal-600',
-      Saúde: 'bg-green-600',
+export function EventCard({ event, categoria, local, onDelete, onEdit, index }: EventCardProps) {
+   const categoryStyle = event.categoria?.cor || 'bg-slate-600'
+
+   const formatDate = (dateString: string) => {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('pt-BR', {
+         day: 'numeric',
+         month: 'short',
+         year: 'numeric',
+      })
    }
 
-   const style = categoryStyles[event.category] || 'bg-slate-600'
+   const formatTime = (timeString: string) => {
+      return timeString.substring(11, 16) // HH:MM
+   }
+
+   const getStatusBadge = (status: string) => {
+      const styles = {
+         publicado: 'bg-green-600',
+         rascunho: 'bg-yellow-600',
+         cancelado: 'bg-red-600',
+      }
+      return styles[status as keyof typeof styles] || 'bg-gray-600'
+   }
+
+   const getTipoEventoIcon = (tipo: string) => {
+      switch (tipo) {
+         case 'online':
+            return <Video className="w-4 h-4" />
+         case 'hibrido':
+            return <Globe className="w-4 h-4" />
+         default:
+            return <MapPin className="w-4 h-4" />
+      }
+   }
 
    return (
       <motion.div
@@ -47,11 +61,11 @@ export function EventCard({ event, onDelete, onEdit, index }: EventCardProps) {
          <Card className="group overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-xl border border-border bg-card">
             {/* Image Section */}
             <div className="relative h-52 overflow-hidden bg-muted">
-               {event.image ? (
+               {event.imagemCapa ? (
                   <>
                      <motion.img
-                        src={event.image}
-                        alt={event.title}
+                        src={event.imagemCapa}
+                        alt={event.titulo}
                         className="w-full h-full object-cover"
                         whileHover={{ scale: 1.05 }}
                         transition={{ duration: 0.4 }}
@@ -59,32 +73,37 @@ export function EventCard({ event, onDelete, onEdit, index }: EventCardProps) {
                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   </>
                ) : (
-                  <div className={`w-full h-full flex items-center justify-center ${style}`}>
+                  <div className={`w-full h-full flex items-center justify-center ${categoryStyle}`}>
                      <Calendar className="w-16 h-16 text-white/40" />
                   </div>
                )}
 
-               {/* Category Badge */}
-               <div className="absolute top-3 right-3">
-                  <Badge className={`${style} text-white border-0 shadow-md`}>{event.category}</Badge>
+               {/* Category and Status Badges */}
+               <div className="absolute top-3 right-3 flex flex-col gap-2">
+                  {event.categoria && (
+                     <Badge className={`${categoryStyle} text-white border-0 shadow-md`}>{event.categoria.nome}</Badge>
+                  )}
+                  <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
+                     {event.status}
+                  </Badge>
                </div>
 
                {/* Date Badge */}
                <div className="absolute top-3 left-3 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 shadow-md">
                   <div className="text-center">
                      <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                        {new Date(event.date).toLocaleDateString('pt-BR', { month: 'short' })}
+                        {new Date(event.dataInicio).toLocaleDateString('pt-BR', { month: 'short' })}
                      </div>
                      <div className="mt-0.5">
-                        {new Date(event.date).toLocaleDateString('pt-BR', { day: 'numeric' })}
+                        {new Date(event.dataInicio).toLocaleDateString('pt-BR', { day: 'numeric' })}
                      </div>
                   </div>
                </div>
             </div>
 
             <CardContent className="p-6 flex-1 flex flex-col">
-               <h3 className="mb-2 line-clamp-2">{event.title}</h3>
-               <p className="text-muted-foreground mb-6 line-clamp-2 flex-1">{event.description}</p>
+               <h3 className="mb-2 line-clamp-2">{event.titulo}</h3>
+               <p className="text-muted-foreground mb-6 line-clamp-2 flex-1">{event.descricao}</p>
 
                {/* Info Section */}
                <div className="space-y-3 mb-6">
@@ -94,7 +113,9 @@ export function EventCard({ event, onDelete, onEdit, index }: EventCardProps) {
                      </div>
                      <div>
                         <p className="text-xs text-muted-foreground">Horário</p>
-                        <p className="text-foreground">{event.time}</p>
+                        <p className="text-foreground">
+                           {formatTime(event.horarioAbertura)} - {formatTime(event.horarioEncerramento)}
+                        </p>
                      </div>
                   </div>
 
@@ -104,17 +125,19 @@ export function EventCard({ event, onDelete, onEdit, index }: EventCardProps) {
                      </div>
                      <div>
                         <p className="text-xs text-muted-foreground">Capacidade</p>
-                        <p className="text-foreground">{event.capacity} pessoas</p>
+                        <p className="text-foreground">{event.capacidadeMaxima} pessoas</p>
                      </div>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
-                     <div className="p-2 rounded-md bg-muted">
-                        <MapPin className="w-4 h-4 text-foreground/70" />
-                     </div>
+                     <div className="p-2 rounded-md bg-muted">{getTipoEventoIcon(event.tipoEvento)}</div>
                      <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">Local</p>
-                        <p className="text-foreground truncate">{event.location}</p>
+                        <p className="text-foreground truncate">
+                           {event.local
+                              ? `${event.local.nome} - ${event.local.cidade}, ${event.local.estado}`
+                              : 'Local não especificado'}
+                        </p>
                      </div>
                   </div>
                </div>

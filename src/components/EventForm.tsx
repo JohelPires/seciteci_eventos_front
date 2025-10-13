@@ -7,95 +7,103 @@ import { Textarea } from './ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { motion, AnimatePresence } from 'framer-motion'
 
-interface Event {
-   id: string
-   title: string
-   description: string
-   date: string
-   time: string
-   location: string
-   category: string
-   capacity: number
-   image?: string
-   lat?: number
-   lng?: number
-}
+import type { Event, Categoria, Local } from '@/app/page'
 
 interface EventFormProps {
    onSubmit: (event: Omit<Event, 'id'>) => void
    onClose: () => void
    editingEvent?: Event | null
+   categorias: Categoria[]
+   locais: Local[]
 }
 
-export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
+export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais }: EventFormProps) {
    const [formData, setFormData] = useState({
-      title: '',
-      description: '',
-      date: '',
-      time: '',
-      location: '',
-      category: '',
-      capacity: '',
-      image: '',
-      lat: '',
-      lng: '',
+      titulo: '',
+      descricao: '',
+      categoriaId: '',
+      localId: '',
+      dataInicio: '',
+      dataFim: '',
+      horarioAbertura: '',
+      horarioEncerramento: '',
+      capacidadeMaxima: '',
+      tipoEvento: 'presencial' as 'presencial' | 'online' | 'hibrido',
+      linkOnline: '',
+      imagemCapa: '',
+      status: 'rascunho' as 'rascunho' | 'publicado' | 'cancelado',
+      publicoAlvo: '',
+      requisitos: '',
    })
 
    useEffect(() => {
       if (editingEvent) {
          setFormData({
-            title: editingEvent.title,
-            description: editingEvent.description,
-            date: editingEvent.date,
-            time: editingEvent.time,
-            location: editingEvent.location,
-            category: editingEvent.category,
-            capacity: editingEvent.capacity.toString(),
-            image: editingEvent.image || '',
-            lat: editingEvent.lat?.toString() || '',
-            lng: editingEvent.lng?.toString() || '',
+            titulo: editingEvent.titulo,
+            descricao: editingEvent.descricao,
+            categoriaId: editingEvent.categoriaId.toString(),
+            localId: editingEvent.localId.toString(),
+            dataInicio: editingEvent.dataInicio.substring(0, 16), // Format for datetime-local
+            dataFim: editingEvent.dataFim.substring(0, 16),
+            horarioAbertura: editingEvent.horarioAbertura,
+            horarioEncerramento: editingEvent.horarioEncerramento,
+            capacidadeMaxima: editingEvent.capacidadeMaxima.toString(),
+            tipoEvento: editingEvent.tipoEvento,
+            linkOnline: editingEvent.linkOnline || '',
+            imagemCapa: editingEvent.imagemCapa || '',
+            status: editingEvent.status,
+            publicoAlvo: editingEvent.publicoAlvo || '',
+            requisitos: editingEvent.requisitos || '',
          })
       }
    }, [editingEvent])
 
    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault()
-      onSubmit({
-         title: formData.title,
-         description: formData.description,
-         date: formData.date,
-         time: formData.time,
-         location: formData.location,
-         category: formData.category,
-         capacity: parseInt(formData.capacity),
-         image: formData.image || undefined,
-         lat: formData.lat ? parseFloat(formData.lat) : undefined,
-         lng: formData.lng ? parseFloat(formData.lng) : undefined,
-      })
+
+      const eventData: Omit<Event, 'id'> = {
+         titulo: formData.titulo,
+         descricao: formData.descricao,
+         categoriaId: parseInt(formData.categoriaId),
+         localId: parseInt(formData.localId),
+         dataInicio: new Date(formData.dataInicio).toISOString(),
+         dataFim: new Date(formData.dataFim).toISOString(),
+         horarioAbertura: formData.horarioAbertura,
+         horarioEncerramento: formData.horarioEncerramento,
+         capacidadeMaxima: parseInt(formData.capacidadeMaxima),
+         tipoEvento: formData.tipoEvento,
+         status: formData.status,
+         local: null,
+         categoria: null,
+         // Os campos abaixo são opcionais na interface 'Event'.
+         // A forma mais limpa de lidar com eles é incluir no objeto
+         // apenas se tiverem um valor.
+         ...(formData.linkOnline && { linkOnline: formData.linkOnline }),
+         ...(formData.imagemCapa && { imagemCapa: formData.imagemCapa }),
+         ...(formData.publicoAlvo && { publicoAlvo: formData.publicoAlvo }),
+         ...(formData.requisitos && { requisitos: formData.requisitos }),
+      }
+
+      onSubmit(eventData) // Agora o tipo deve ser compatível.
 
       setFormData({
-         title: '',
-         description: '',
-         date: '',
-         time: '',
-         location: '',
-         category: '',
-         capacity: '',
-         image: '',
-         lat: '',
-         lng: '',
+         titulo: '',
+         descricao: '',
+         categoriaId: '',
+         localId: '',
+         dataInicio: '',
+         dataFim: '',
+         horarioAbertura: '',
+         horarioEncerramento: '',
+         capacidadeMaxima: '',
+         tipoEvento: 'presencial',
+         linkOnline: '',
+         imagemCapa: '',
+         status: 'rascunho',
+         publicoAlvo: '',
+         requisitos: '',
       })
    }
-
-   const categories = [
-      { value: 'Tecnologia', color: 'bg-blue-600' },
-      { value: 'Negócios', color: 'bg-slate-700' },
-      { value: 'Educação', color: 'bg-indigo-600' },
-      { value: 'Entretenimento', color: 'bg-purple-600' },
-      { value: 'Esportes', color: 'bg-orange-600' },
-      { value: 'Cultura', color: 'bg-teal-600' },
-      { value: 'Saúde', color: 'bg-green-600' },
-   ]
 
    return (
       <AnimatePresence>
@@ -105,7 +113,7 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
                animate={{ opacity: 1, scale: 1, y: 0 }}
                exit={{ opacity: 0, scale: 0.95, y: 20 }}
                transition={{ duration: 0.2, ease: 'easeOut' }}
-               className="bg-card rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-border"
+               className="bg-card rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-border"
             >
                {/* Header */}
                <div className="px-6 py-5 border-b border-border bg-muted/30">
@@ -126,15 +134,15 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
                </div>
 
                {/* Form Content */}
-               <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-90px)]">
+               <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
                   {/* Image Preview */}
-                  {formData.image && (
+                  {formData.imagemCapa && (
                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         className="relative rounded-lg overflow-hidden h-48 border border-border"
                      >
-                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                        <img src={formData.imagemCapa} alt="Preview" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                      </motion.div>
                   )}
@@ -142,24 +150,24 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      {/* Title - Full Width */}
                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="title">Título do Evento*</Label>
+                        <Label htmlFor="titulo">Título do Evento*</Label>
                         <Input
-                           id="title"
-                           placeholder="Ex: Conferência Anual de Tecnologia"
-                           value={formData.title}
-                           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                           id="titulo"
+                           placeholder="Ex: Workshop de Node.js"
+                           value={formData.titulo}
+                           onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                            required
                         />
                      </div>
 
                      {/* Description - Full Width */}
                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="description">Descrição*</Label>
+                        <Label htmlFor="descricao">Descrição*</Label>
                         <Textarea
-                           id="description"
+                           id="descricao"
                            placeholder="Descreva os principais pontos do evento..."
-                           value={formData.description}
-                           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                           value={formData.descricao}
+                           onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                            required
                            rows={4}
                            className="resize-none"
@@ -168,21 +176,21 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
 
                      {/* Category */}
                      <div className="space-y-2">
-                        <Label htmlFor="category">Categoria*</Label>
+                        <Label htmlFor="categoriaId">Categoria*</Label>
                         <Select
-                           value={formData.category}
-                           onValueChange={(value) => setFormData({ ...formData, category: value })}
+                           value={formData.categoriaId}
+                           onValueChange={(value) => setFormData({ ...formData, categoriaId: value })}
                            required
                         >
-                           <SelectTrigger id="category">
+                           <SelectTrigger id="categoriaId">
                               <SelectValue placeholder="Selecione uma categoria" />
                            </SelectTrigger>
                            <SelectContent>
-                              {categories.map((cat) => (
-                                 <SelectItem key={cat.value} value={cat.value}>
+                              {categorias.map((cat) => (
+                                 <SelectItem key={cat.id} value={cat.id.toString()}>
                                     <div className="flex items-center gap-2">
-                                       <div className={`w-3 h-3 rounded-full ${cat.color}`} />
-                                       {cat.value}
+                                       <div className={`w-3 h-3 rounded-full ${cat.cor}`} />
+                                       {cat.nome}
                                     </div>
                                  </SelectItem>
                               ))}
@@ -190,96 +198,181 @@ export function EventForm({ onSubmit, onClose, editingEvent }: EventFormProps) {
                         </Select>
                      </div>
 
+                     {/* Local */}
+                     <div className="space-y-2">
+                        <Label htmlFor="localId">Local*</Label>
+                        <Select
+                           value={formData.localId}
+                           onValueChange={(value) => setFormData({ ...formData, localId: value })}
+                           required
+                        >
+                           <SelectTrigger id="localId">
+                              <SelectValue placeholder="Selecione um local" />
+                           </SelectTrigger>
+                           <SelectContent>
+                              {locais.map((local) => (
+                                 <SelectItem key={local.id} value={local.id.toString()}>
+                                    {local.nome} - {local.cidade}, {local.estado}
+                                 </SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
+                     </div>
+
+                     {/* Start Date */}
+                     <div className="space-y-2">
+                        <Label htmlFor="dataInicio">Data e Hora de Início*</Label>
+                        <Input
+                           id="dataInicio"
+                           type="datetime-local"
+                           value={formData.dataInicio}
+                           onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
+                           required
+                        />
+                     </div>
+
+                     {/* End Date */}
+                     <div className="space-y-2">
+                        <Label htmlFor="dataFim">Data e Hora de Término*</Label>
+                        <Input
+                           id="dataFim"
+                           type="datetime-local"
+                           value={formData.dataFim}
+                           onChange={(e) => setFormData({ ...formData, dataFim: e.target.value })}
+                           required
+                        />
+                     </div>
+
+                     {/* Opening Time */}
+                     <div className="space-y-2">
+                        <Label htmlFor="horarioAbertura">Horário de Abertura*</Label>
+                        <Input
+                           id="horarioAbertura"
+                           type="time"
+                           value={formData.horarioAbertura}
+                           onChange={(e) => setFormData({ ...formData, horarioAbertura: e.target.value })}
+                           required
+                        />
+                     </div>
+
+                     {/* Closing Time */}
+                     <div className="space-y-2">
+                        <Label htmlFor="horarioEncerramento">Horário de Encerramento*</Label>
+                        <Input
+                           id="horarioEncerramento"
+                           type="time"
+                           value={formData.horarioEncerramento}
+                           onChange={(e) => setFormData({ ...formData, horarioEncerramento: e.target.value })}
+                           required
+                        />
+                     </div>
+
                      {/* Capacity */}
                      <div className="space-y-2">
-                        <Label htmlFor="capacity">Capacidade*</Label>
+                        <Label htmlFor="capacidadeMaxima">Capacidade Máxima*</Label>
                         <Input
-                           id="capacity"
+                           id="capacidadeMaxima"
                            type="number"
                            min="1"
-                           placeholder="Ex: 100"
-                           value={formData.capacity}
-                           onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                           placeholder="Ex: 50"
+                           value={formData.capacidadeMaxima}
+                           onChange={(e) => setFormData({ ...formData, capacidadeMaxima: e.target.value })}
                            required
                         />
                      </div>
 
-                     {/* Date */}
+                     {/* Event Type */}
                      <div className="space-y-2">
-                        <Label htmlFor="date">Data*</Label>
-                        <Input
-                           id="date"
-                           type="date"
-                           value={formData.date}
-                           onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        <Label htmlFor="tipoEvento">Tipo de Evento*</Label>
+                        <Select
+                           value={formData.tipoEvento}
+                           onValueChange={(value: 'presencial' | 'online' | 'hibrido') =>
+                              setFormData({ ...formData, tipoEvento: value })
+                           }
                            required
-                        />
+                        >
+                           <SelectTrigger id="tipoEvento">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent>
+                              <SelectItem value="presencial">Presencial</SelectItem>
+                              <SelectItem value="online">Online</SelectItem>
+                              <SelectItem value="hibrido">Híbrido</SelectItem>
+                           </SelectContent>
+                        </Select>
                      </div>
 
-                     {/* Time */}
+                     {/* Status */}
                      <div className="space-y-2">
-                        <Label htmlFor="time">Horário*</Label>
-                        <Input
-                           id="time"
-                           type="time"
-                           value={formData.time}
-                           onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                        <Label htmlFor="status">Status*</Label>
+                        <Select
+                           value={formData.status}
+                           onValueChange={(value: 'rascunho' | 'publicado' | 'cancelado') =>
+                              setFormData({ ...formData, status: value })
+                           }
                            required
-                        />
+                        >
+                           <SelectTrigger id="status">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent>
+                              <SelectItem value="rascunho">Rascunho</SelectItem>
+                              <SelectItem value="publicado">Publicado</SelectItem>
+                              <SelectItem value="cancelado">Cancelado</SelectItem>
+                           </SelectContent>
+                        </Select>
                      </div>
 
-                     {/* Location - Full Width */}
+                     {/* Online Link - Full Width */}
+                     {(formData.tipoEvento === 'online' || formData.tipoEvento === 'hibrido') && (
+                        <div className="space-y-2 md:col-span-2">
+                           <Label htmlFor="linkOnline">Link Online</Label>
+                           <Input
+                              id="linkOnline"
+                              type="url"
+                              placeholder="https://meet.google.com/abc-defg-hij"
+                              value={formData.linkOnline}
+                              onChange={(e) => setFormData({ ...formData, linkOnline: e.target.value })}
+                           />
+                        </div>
+                     )}
+
+                     {/* Target Audience - Full Width */}
                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="location">Local*</Label>
+                        <Label htmlFor="publicoAlvo">Público Alvo</Label>
                         <Input
-                           id="location"
-                           placeholder="Ex: Centro de Convenções, Av. Paulista, 1000"
-                           value={formData.location}
-                           onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                           required
+                           id="publicoAlvo"
+                           placeholder="Ex: Desenvolvedores iniciantes e intermediários"
+                           value={formData.publicoAlvo}
+                           onChange={(e) => setFormData({ ...formData, publicoAlvo: e.target.value })}
                         />
                      </div>
 
-                     {/* Latitude */}
-                     <div className="space-y-2">
-                        <Label htmlFor="lat">Latitude (opcional)</Label>
-                        <Input
-                           id="lat"
-                           type="number"
-                           step="any"
-                           placeholder="Ex: -23.5505"
-                           value={formData.lat}
-                           onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
+                     {/* Requirements - Full Width */}
+                     <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="requisitos">Requisitos</Label>
+                        <Textarea
+                           id="requisitos"
+                           placeholder="Ex: Notebook próprio e conhecimento básico de JavaScript"
+                           value={formData.requisitos}
+                           onChange={(e) => setFormData({ ...formData, requisitos: e.target.value })}
+                           rows={3}
+                           className="resize-none"
                         />
-                        <p className="text-xs text-muted-foreground">Para visualização no mapa</p>
-                     </div>
-
-                     {/* Longitude */}
-                     <div className="space-y-2">
-                        <Label htmlFor="lng">Longitude (opcional)</Label>
-                        <Input
-                           id="lng"
-                           type="number"
-                           step="any"
-                           placeholder="Ex: -46.6333"
-                           value={formData.lng}
-                           onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
-                        />
-                        <p className="text-xs text-muted-foreground">Para visualização no mapa</p>
                      </div>
 
                      {/* Image URL - Full Width */}
                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="image" className="flex items-center gap-2">
+                        <Label htmlFor="imagemCapa" className="flex items-center gap-2">
                            <ImageIcon className="w-4 h-4" />
-                           URL da Imagem (opcional)
+                           URL da Imagem de Capa (opcional)
                         </Label>
                         <Input
-                           id="image"
+                           id="imagemCapa"
                            type="url"
                            placeholder="https://exemplo.com/imagem-evento.jpg"
-                           value={formData.image}
-                           onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                           value={formData.imagemCapa}
+                           onChange={(e) => setFormData({ ...formData, imagemCapa: e.target.value })}
                         />
                      </div>
                   </div>
