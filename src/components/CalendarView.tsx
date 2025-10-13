@@ -98,10 +98,10 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
             </div>
 
             {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7">
                {/* Empty cells before first day of month */}
                {Array.from({ length: startingDayOfWeek }).map((_, index) => (
-                  <div key={`empty-${index}`} className="aspect-square" />
+                  <div key={`empty-${index}`} className="" />
                ))}
 
                {/* Days of the month */}
@@ -117,7 +117,7 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.01 }}
                         className={`
-                  aspect-square p-2 rounded-lg border border-border
+                  h-22 p-2 border border-border
                   ${isToday ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50'}
                   transition-colors cursor-pointer
                 `}
