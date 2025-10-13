@@ -11,10 +11,11 @@ interface EventCardProps {
    local?: Local | null
    onDelete: (id: string) => void
    onEdit: (event: Event) => void
+   onClick: (event: Event) => void
    index: number
 }
 
-export function EventCard({ event, categoria, local, onDelete, onEdit, index }: EventCardProps) {
+export function EventCard({ event, categoria, local, onDelete, onEdit, onClick, index }: EventCardProps) {
    const categoryStyle = event.categoria?.cor || 'bg-slate-600'
 
    const formatDate = (dateString: string) => {
@@ -143,7 +144,7 @@ export function EventCard({ event, categoria, local, onDelete, onEdit, index }: 
                </div>
 
                {/* Action Buttons */}
-               <div className="flex gap-2">
+               {/* <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(event)}>
                      <Edit className="w-4 h-4 mr-2" />
                      Editar
@@ -155,6 +156,12 @@ export function EventCard({ event, categoria, local, onDelete, onEdit, index }: 
                      onClick={() => onDelete(event.id)}
                   >
                      <Trash2 className="w-4 h-4" />
+                  </Button>
+               </div> */}
+               <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => onClick(event)}>
+                     <Edit className="w-4 h-4 mr-2" />
+                     Ver detalhes
                   </Button>
                </div>
             </CardContent>

@@ -329,6 +329,7 @@ export default function App() {
                               local={event.local}
                               onDelete={handleDeleteEvent}
                               onEdit={handleEditEvent}
+                              onClick={handleEventClick}
                               index={index}
                            />
                         ))}
