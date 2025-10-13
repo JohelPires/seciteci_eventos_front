@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { getEventos } from '@/data/data'
+import { getCategorias, getEventos, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 
@@ -58,150 +58,11 @@ export interface Event {
    requisitos?: string
 }
 
-const categorias: Categoria[] = [
-   { id: 1, nome: 'Tecnologia', cor: 'bg-blue-600' },
-   { id: 2, nome: 'Negócios', cor: 'bg-slate-700' },
-   { id: 3, nome: 'Educação', cor: 'bg-indigo-600' },
-   { id: 4, nome: 'Entretenimento', cor: 'bg-purple-600' },
-   { id: 5, nome: 'Esportes', cor: 'bg-orange-600' },
-   { id: 6, nome: 'Cultura', cor: 'bg-teal-600' },
-   { id: 7, nome: 'Saúde', cor: 'bg-green-600' },
-]
+const categorias: Categoria[] = await getCategorias()
+// console.log(categorias)
 
-const locais: Local[] = [
-   {
-      id: 1,
-      nome: 'Auditório Principal',
-      endereco: 'Av. Paulista',
-      numero: '1000',
-      complemento: 'Sala 101',
-      bairro: 'Bela Vista',
-      cidade: 'São Paulo',
-      estado: 'SP',
-      cep: '01310-100',
-      capacidade: 500,
-      latitude: -23.5505,
-      longitude: -46.6333,
-   },
-   {
-      id: 2,
-      nome: 'Espaço Inovação',
-      endereco: 'Rua da Assembleia',
-      numero: '100',
-      complemento: '3º andar',
-      bairro: 'Centro',
-      cidade: 'Rio de Janeiro',
-      estado: 'RJ',
-      cep: '20011-000',
-      capacidade: 100,
-      latitude: -22.9068,
-      longitude: -43.1729,
-   },
-   {
-      id: 3,
-      nome: 'Centro de Convenções',
-      endereco: 'SHN Quadra 5',
-      numero: 'Bloco A',
-      complemento: '',
-      bairro: 'Asa Norte',
-      cidade: 'Brasília',
-      estado: 'DF',
-      cep: '70705-050',
-      capacidade: 1000,
-      latitude: -15.7942,
-      longitude: -47.8822,
-   },
-   {
-      id: 4,
-      nome: 'Arena Cultural',
-      endereco: 'Av. Historiador Rubens de Mendonça',
-      numero: '3300',
-      complemento: '',
-      bairro: 'Centro Político Administrativo',
-      cidade: 'Cuiabá',
-      estado: 'MT',
-      cep: '78049-940',
-      capacidade: 300,
-      latitude: -15.6014,
-      longitude: -56.0979,
-   },
-]
-
-// const initialEvents: Event[] = [
-//    {
-//       id: '1',
-//       titulo: 'Tech Summit 2025',
-//       descricao: 'O maior evento de tecnologia do ano com palestras sobre IA, Web3 e inovação.',
-//       categoriaId: 1,
-//       localId: 1,
-//       dataInicio: '2025-10-15T09:00:00Z',
-//       dataFim: '2025-10-15T18:00:00Z',
-//       horarioAbertura: '08:30:00',
-//       horarioEncerramento: '19:00:00',
-//       capacidadeMaxima: 500,
-//       tipoEvento: 'presencial',
-//       imagemCapa:
-//          'https://images.unsplash.com/photo-1540575467063-178a50c2df87?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25mZXJlbmNlJTIwZXZlbnR8ZW58MXx8fHwxNzU5MzE5Nzk5fDA&ixlib=rb-4.1.0&q=80&w=1080',
-//       status: 'publicado',
-//       publicoAlvo: 'Desenvolvedores, engenheiros de software e entusiastas de tecnologia',
-//       requisitos: 'Conhecimento básico em programação',
-//    },
-//    {
-//       id: '2',
-//       titulo: 'Workshop de Node.js',
-//       descricao: 'Aprenda Node.js do zero ao avançado com projetos práticos e exemplos reais.',
-//       categoriaId: 3,
-//       localId: 2,
-//       dataInicio: '2025-10-20T14:00:00Z',
-//       dataFim: '2025-10-20T18:00:00Z',
-//       horarioAbertura: '13:30:00',
-//       horarioEncerramento: '18:30:00',
-//       capacidadeMaxima: 50,
-//       tipoEvento: 'hibrido',
-//       linkOnline: 'https://meet.google.com/abc-defg-hij',
-//       imagemCapa:
-//          'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwd29ya3Nob3B8ZW58MXx8fHwxNzU5MzYxNDk3fDA&ixlib=rb-4.1.0&q=80&w=1080',
-//       status: 'publicado',
-//       publicoAlvo: 'Desenvolvedores iniciantes e intermediários',
-//       requisitos: 'Notebook próprio e conhecimento básico de JavaScript',
-//    },
-//    {
-//       id: '3',
-//       titulo: 'Networking Empresarial',
-//       descricao: 'Conecte-se com líderes e empreendedores em um ambiente de negócios dinâmico.',
-//       categoriaId: 2,
-//       localId: 3,
-//       dataInicio: '2025-11-05T18:00:00Z',
-//       dataFim: '2025-11-05T22:00:00Z',
-//       horarioAbertura: '17:30:00',
-//       horarioEncerramento: '22:30:00',
-//       capacidadeMaxima: 150,
-//       tipoEvento: 'presencial',
-//       imagemCapa:
-//          'https://images.unsplash.com/photo-1606836591695-4d58a73eba1e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG1lZXRpbmd8ZW58MXx8fHwxNzU5MjgxNDU0fDA&ixlib=rb-4.1.0&q=80&w=1080',
-//       status: 'publicado',
-//       publicoAlvo: 'Empresários, gestores e profissionais de negócios',
-//       requisitos: 'Traje social',
-//    },
-//    {
-//       id: '4',
-//       titulo: 'Festival Cultural de Cuiabá',
-//       descricao: 'Celebração da cultura local com apresentações artísticas, música e gastronomia típica.',
-//       categoriaId: 6,
-//       localId: 4,
-//       dataInicio: '2025-10-25T16:00:00Z',
-//       dataFim: '2025-10-25T23:00:00Z',
-//       horarioAbertura: '15:30:00',
-//       horarioEncerramento: '23:30:00',
-//       capacidadeMaxima: 300,
-//       tipoEvento: 'presencial',
-//       imagemCapa:
-//          'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjdWx0dXJhbCUyMGZlc3RpdmFsfGVufDB8fHx8MTczMzc3MDAwMHww&ixlib=rb-4.1.0&q=80&w=1080',
-//       status: 'publicado',
-//       publicoAlvo: 'Famílias e amantes da cultura',
-//       requisitos: 'Entrada gratuita',
-//    },
-// ]
+const locais: Local[] = await getLocais()
+// console.log(locais)
 
 export default function App() {
    const [events, setEvents] = useState<Event[]>([])
@@ -215,8 +76,8 @@ export default function App() {
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
    // Helper functions
-   const getCategoria = (id: number) => categorias.find((c) => c.id === id)
-   const getLocal = (id: number) => locais.find((l) => l.id === id)
+   // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
+   // const getLocal = (id: number) => locais.find((l) => l.id === id)
 
    useEffect(() => {
       async function fetchData() {
@@ -464,8 +325,8 @@ export default function App() {
                            <EventCard
                               key={event.id}
                               event={event}
-                              categoria={getCategoria(event.categoriaId)}
-                              local={getLocal(event.localId)}
+                              categoria={event.categoria}
+                              local={event.local}
                               onDelete={handleDeleteEvent}
                               onEdit={handleEditEvent}
                               index={index}
@@ -495,8 +356,8 @@ export default function App() {
          {selectedEvent && (
             <EventDetails
                event={selectedEvent}
-               categoria={getCategoria(selectedEvent.categoriaId)}
-               local={getLocal(selectedEvent.localId)}
+               categoria={selectedEvent.categoria}
+               local={selectedEvent.local}
                onClose={handleCloseEventDetails}
                onEdit={handleEditEvent}
                onDelete={handleDeleteEvent}

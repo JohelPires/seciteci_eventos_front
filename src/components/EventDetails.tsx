@@ -6,8 +6,8 @@ import type { Event, Categoria, Local } from '@/app/page'
 
 interface EventDetailsProps {
    event: Event
-   categoria?: Categoria
-   local?: Local
+   categoria?: Categoria | null
+   local?: Local | null
    onClose: () => void
    onEdit: (event: Event) => void
    onDelete: (id: string) => void

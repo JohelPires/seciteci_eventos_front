@@ -7,8 +7,8 @@ import type { Event, Categoria, Local } from '@/app/page'
 
 interface EventCardProps {
    event: Event
-   categoria?: Categoria
-   local?: Local
+   categoria?: Categoria | null
+   local?: Local | null
    onDelete: (id: string) => void
    onEdit: (event: Event) => void
    index: number

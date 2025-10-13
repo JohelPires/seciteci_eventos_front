@@ -16,7 +16,7 @@ interface CalendarViewProps {
 export function CalendarView({ events, categorias, locais, onEventClick }: CalendarViewProps) {
    const [currentDate, setCurrentDate] = useState(new Date())
 
-   const getCategoria = (id: number) => categorias.find((c) => c.id === id)
+   // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
 
    const getDaysInMonth = (date: Date) => {
       const year = date.getFullYear()
@@ -126,7 +126,7 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
                            <span className={`text-sm mb-2 ${isToday ? 'text-primary' : 'text-foreground'}`}>{day}</span>
                            <div className="flex-1 space-y-1 overflow-hidden">
                               {dayEvents.slice(0, 3).map((event) => {
-                                 const categoria = getCategoria(event.categoriaId)
+                                 const categoria = event.categoria
                                  const categoryStyle = categoria?.cor || 'bg-slate-600'
 
                                  return (
