@@ -21,8 +21,8 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
    const [selectedMarkerEvent, setSelectedMarkerEvent] = useState<Event | null>(null)
    const [leafletLoaded, setLeafletLoaded] = useState(false)
 
-   const getCategoria = (id: number) => categorias.find((c) => c.id === id)
-   const getLocal = (id: number) => locais.find((l) => l.id === id)
+   //  const getCategoria = (id: number) => categorias.find((c) => c.id === id)
+   //  const getLocal = (id: number) => locais.find((l) => l.id === id)
 
    // Load Leaflet CSS and JS
    useEffect(() => {
@@ -117,7 +117,7 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
       // Add markers
       eventsWithCoords.forEach((event) => {
          const local = event.local
-         const categoria = event.categoria
+         //  const categoria = event.categoria
 
          if (!local || !local.latitude || !local.longitude) return
 

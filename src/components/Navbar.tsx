@@ -1,4 +1,4 @@
-import { Calendar, Home, Briefcase, Users, CalendarDays, MapPin, Folder, Accessibility, Menu } from 'lucide-react'
+import { Home, Briefcase, Users, CalendarDays, MapPin, Folder, Accessibility, Menu } from 'lucide-react'
 import { Button } from './ui/button'
 import { motion } from 'framer-motion'
 import { useState } from 'react'

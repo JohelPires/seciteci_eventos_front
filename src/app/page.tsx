@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Search, Calendar, BarChart3, Users, Tag, Grid3x3, CalendarDays } from 'lucide-react'
+import { Plus, Search, Calendar, BarChart3, Users, Tag, CalendarDays, Map } from 'lucide-react'
 import { Navbar } from '@/components/Navbar'
 import { EventCard } from '@/components/EventCard'
 import { EventForm } from '@/components/EventForm'
@@ -337,7 +337,33 @@ export default function App() {
                )}
             </>
             {/* )} */}
+            <motion.div
+               initial={{ opacity: 0, x: -20 }}
+               animate={{ opacity: 1, x: 0 }}
+               className="flex items-center gap-4 mb-9"
+            >
+               <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
+                  <CalendarDays className="w-7 h-7 text-primary-foreground" />
+               </div>
+               <div>
+                  <h1 className="text-2xl font-semibold">Calendário dos Eventos</h1>
+                  <p className="text-muted-foreground">Veja todos os eventos no calendário</p>
+               </div>
+            </motion.div>
             <CalendarView events={events} categorias={categorias} locais={locais} onEventClick={handleEventClick} />
+            <motion.div
+               initial={{ opacity: 0, x: -20 }}
+               animate={{ opacity: 1, x: 0 }}
+               className="flex items-center gap-4 my-9"
+            >
+               <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
+                  <Map className="w-7 h-7 text-primary-foreground" />
+               </div>
+               <div>
+                  <h1 className="text-2xl font-semibold">Mapa dos Eventos</h1>
+                  <p className="text-muted-foreground">Veja todos os eventos distribuidos no mapa</p>
+               </div>
+            </motion.div>
             <MapView events={events} categorias={categorias} locais={locais} onEventClick={handleEventClick} />
          </main>
 
