@@ -136,7 +136,7 @@ export default function App() {
       const matchesSearch =
          event.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
          event.descricao.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = categoryFilter === 'all' || event.categoriaId.toString() === categoryFilter
+      const matchesCategory = categoryFilter === 'all' || event.categoria?.nome === categoryFilter
       return matchesSearch && matchesCategory
    })
 
@@ -265,13 +265,12 @@ export default function App() {
                      <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full">
                         <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto bg-muted">
                            <TabsTrigger value="all">Todas</TabsTrigger>
-                           <TabsTrigger value="Tecnologia">Tecnologia</TabsTrigger>
-                           <TabsTrigger value="Inovação">Inovação</TabsTrigger>
-                           <TabsTrigger value="Negócios">Negócios</TabsTrigger>
-                           <TabsTrigger value="Agro">Agro</TabsTrigger>
-                           <TabsTrigger value="IA">IA</TabsTrigger>
-                           {/* {/* <TabsTrigger value="Esportes">Esportes</TabsTrigger> */}
-                           {/* <TabsTrigger value="Saúde">Saúde</TabsTrigger> */}
+                           {categorias &&
+                              categorias.map((categoria) => (
+                                 <TabsTrigger key={categoria.id} value={categoria.nome}>
+                                    {categoria.nome}
+                                 </TabsTrigger>
+                              ))}
                         </TabsList>
                      </Tabs>
                   )}
