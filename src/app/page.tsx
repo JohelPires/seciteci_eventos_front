@@ -9,6 +9,15 @@ import { EventDetails } from '@/components/EventDetails'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+   Pagination,
+   PaginationContent,
+   PaginationItem,
+   PaginationLink,
+   PaginationNext,
+   PaginationPrevious,
+   PaginationEllipsis,
+} from '@/components/ui/pagination'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
@@ -65,6 +74,8 @@ const categorias: Categoria[] = await getCategorias()
 const locais: Local[] = await getLocais()
 // console.log(locais)
 
+const ITEMS_PER_PAGE = 6
+
 export default function App() {
    const [events, setEvents] = useState<Event[]>([])
    const [showForm, setShowForm] = useState(false)
@@ -73,7 +84,7 @@ export default function App() {
    const [categoryFilter, setCategoryFilter] = useState('all')
    const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
-
+   const [currentPage, setCurrentPage] = useState(1)
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
    const { isAuthenticated, user, logout } = useAuth()
@@ -142,6 +153,17 @@ export default function App() {
       const matchesCategory = categoryFilter === 'all' || event.categoria?.nome === categoryFilter
       return matchesSearch && matchesCategory
    })
+
+   // Pagination calculations
+   const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE)
+   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+   const endIndex = startIndex + ITEMS_PER_PAGE
+   const paginatedEvents = filteredEvents.slice(startIndex, endIndex)
+
+   // Reset to page 1 when filters change
+   useEffect(() => {
+      setCurrentPage(1)
+   }, [searchTerm, categoryFilter])
 
    const totalCapacity = events.reduce((sum, event) => sum + event.capacidadeMaxima, 0)
    const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
@@ -321,11 +343,16 @@ export default function App() {
                      >
                         <p className="text-muted-foreground">
                            {filteredEvents.length} {filteredEvents.length === 1 ? 'evento' : 'eventos'}
+                           {totalPages > 1 && (
+                              <span className="ml-2">
+                                 (Página {currentPage} de {totalPages})
+                              </span>
+                           )}
                         </p>
                      </motion.div>
 
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                        {filteredEvents.map((event, index) => (
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                        {paginatedEvents.map((event, index) => (
                            <EventCard
                               key={event.id}
                               event={event}
@@ -338,6 +365,72 @@ export default function App() {
                            />
                         ))}
                      </div>
+
+                     {/* Pagination */}
+                     {totalPages > 1 && (
+                        <motion.div
+                           initial={{ opacity: 0, y: 20 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           className="flex justify-center"
+                        >
+                           <Pagination>
+                              <PaginationContent>
+                                 <PaginationItem>
+                                    <PaginationPrevious
+                                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                       className={
+                                          currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                                       }
+                                    />
+                                 </PaginationItem>
+
+                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                                    // Show first page, last page, current page, and pages around current
+                                    const showPage =
+                                       page === 1 ||
+                                       page === totalPages ||
+                                       (page >= currentPage - 1 && page <= currentPage + 1)
+
+                                    const showEllipsisBefore = page === currentPage - 2 && currentPage > 3
+                                    const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2
+
+                                    if (showEllipsisBefore || showEllipsisAfter) {
+                                       return (
+                                          <PaginationItem key={page}>
+                                             <PaginationEllipsis />
+                                          </PaginationItem>
+                                       )
+                                    }
+
+                                    if (!showPage) return null
+
+                                    return (
+                                       <PaginationItem key={page}>
+                                          <PaginationLink
+                                             onClick={() => setCurrentPage(page)}
+                                             isActive={currentPage === page}
+                                             className="cursor-pointer"
+                                          >
+                                             {page}
+                                          </PaginationLink>
+                                       </PaginationItem>
+                                    )
+                                 })}
+
+                                 <PaginationItem>
+                                    <PaginationNext
+                                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                       className={
+                                          currentPage === totalPages
+                                             ? 'pointer-events-none opacity-50'
+                                             : 'cursor-pointer'
+                                       }
+                                    />
+                                 </PaginationItem>
+                              </PaginationContent>
+                           </Pagination>
+                        </motion.div>
+                     )}
                   </>
                )}
             </>
