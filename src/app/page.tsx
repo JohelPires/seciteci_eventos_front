@@ -330,7 +330,7 @@ export default function App() {
          </header>
 
          {/* Main Content */}
-         <main className="container mx-auto px-4 py-10">
+         <main id="main" className="container mx-auto px-4 py-10">
             {/* {viewMode === 'calendar' ? ( */}
             {/* ) : ( */}
             <>
@@ -401,6 +401,7 @@ export default function App() {
                               <PaginationContent>
                                  <PaginationItem>
                                     <PaginationPrevious
+                                       href="#main"
                                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                                        className={
                                           currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
@@ -431,9 +432,12 @@ export default function App() {
                                     return (
                                        <PaginationItem key={page}>
                                           <PaginationLink
-                                             onClick={() => setCurrentPage(page)}
+                                             onClick={() => {
+                                                setCurrentPage(page)
+                                             }}
                                              isActive={currentPage === page}
                                              className="cursor-pointer"
+                                             href="#main"
                                           >
                                              {page}
                                           </PaginationLink>
@@ -443,7 +447,10 @@ export default function App() {
 
                                  <PaginationItem>
                                     <PaginationNext
-                                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                       href="#main"
+                                       onClick={() => {
+                                          setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                                       }}
                                        className={
                                           currentPage === totalPages
                                              ? 'pointer-events-none opacity-50'
