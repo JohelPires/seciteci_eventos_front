@@ -117,7 +117,7 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.01 }}
                         className={`
-                  h-22 p-2 border border-border
+                  h-26 p-2 border border-border
                   ${isToday ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50'}
                   transition-colors cursor-pointer
                 `}

@@ -3,6 +3,7 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Event, Categoria, Local } from '@/app/page'
+import { useAuth } from '@/context/AuthContext'
 
 interface EventDetailsProps {
    event: Event
@@ -14,6 +15,7 @@ interface EventDetailsProps {
 }
 
 export function EventDetails({ event, categoria, local, onClose, onEdit, onDelete }: EventDetailsProps) {
+   const { isAuthenticated, user, logout } = useAuth()
    const categoryStyle = categoria?.cor || 'bg-slate-600'
 
    const getStatusBadge = (status: string) => {
@@ -88,9 +90,11 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                      {categoria && (
                         <Badge className={`${categoryStyle} text-white border-0 shadow-md`}>{categoria.nome}</Badge>
                      )}
-                     <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
-                        {event.status}
-                     </Badge>
+                     {user?.tipoUsuario === 'admin' && (
+                        <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
+                           {event.status}
+                        </Badge>
+                     )}
                   </div>
                </div>
 
@@ -138,7 +142,7 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                         </div>
                      </div>
 
-                     <div className="flex items-start gap-3">
+                     {/* <div className="flex items-start gap-3">
                         <div className="p-2.5 rounded-lg bg-muted">
                            <Clock className="w-5 h-5 text-foreground/70" />
                         </div>
@@ -148,7 +152,7 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                               {formatTime(event.horarioAbertura)} - {formatTime(event.horarioEncerramento)}
                            </p>
                         </div>
-                     </div>
+                     </div> */}
 
                      <div className="flex items-start gap-3">
                         <div className="p-2.5 rounded-lg bg-muted">{getTipoEventoIcon(event.tipoEvento)}</div>
@@ -233,16 +237,18 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-border">
-                     <Button variant="outline" className="flex-1" onClick={handleEdit}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar Evento
-                     </Button>
-                     <Button variant="destructive" onClick={handleDelete}>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Excluir
-                     </Button>
-                  </div>
+                  {user?.tipoUsuario === 'admin' && (
+                     <div className="flex gap-3 pt-4 border-t border-border">
+                        <Button variant="outline" className="flex-1" onClick={handleEdit}>
+                           <Edit className="w-4 h-4 mr-2" />
+                           Editar Evento
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete}>
+                           <Trash2 className="w-4 h-4 mr-2" />
+                           Excluir
+                        </Button>
+                     </div>
+                  )}
                </div>
             </motion.div>
          </div>

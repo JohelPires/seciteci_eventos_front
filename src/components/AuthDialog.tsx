@@ -5,40 +5,71 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { RadioGroup, RadioGroupItem } from './ui/radio-group'
-import { Brain, Mail, Lock, User, Briefcase, Heart } from 'lucide-react'
+import { Mail, Lock, User } from 'lucide-react'
 import Image from 'next/image'
+import { toast } from 'sonner' // Importar toast para exibir mensagens de erro
+import { useAuth } from '@/context/AuthContext' // Importar o hook de autenticação
 
+/**
+ * Interface simplificada: não precisa mais de onLogin/onRegister,
+ * pois o AuthContext fará o trabalho.
+ */
 interface AuthDialogProps {
    open: boolean
    onClose: () => void
-   onLogin: (email: string, password: string) => void
-   onRegister: (email: string, password: string, name: string, userType: 'client' | 'professional') => void
 }
 
-export function AuthDialog({ open, onClose, onLogin, onRegister }: AuthDialogProps) {
+export function AuthDialog({ open, onClose }: AuthDialogProps) {
+   // Acesso às funções de login e registro do Contexto
+   const { login, register } = useAuth()
+
+   // Estados de Login
    const [loginEmail, setLoginEmail] = useState('')
    const [loginPassword, setLoginPassword] = useState('')
+   const [isLoginLoading, setIsLoginLoading] = useState(false)
 
+   // Estados de Registro
    const [registerName, setRegisterName] = useState('')
    const [registerEmail, setRegisterEmail] = useState('')
    const [registerPassword, setRegisterPassword] = useState('')
    const [confirmPassword, setConfirmPassword] = useState('')
    const [userType, setUserType] = useState<'client' | 'professional'>('client')
+   const [isRegisterLoading, setIsRegisterLoading] = useState(false)
 
-   const handleLogin = (e: React.FormEvent) => {
+   const handleLogin = async (e: React.FormEvent) => {
       e.preventDefault()
-      onLogin(loginEmail, loginPassword)
-      onClose()
+      setIsLoginLoading(true)
+      try {
+         // Chamada à função login do AuthContext
+         await login(loginEmail, loginPassword)
+         onClose() // Fecha o modal apenas em caso de sucesso
+      } catch (error) {
+         // O erro já foi tostado no AuthContext, mas a UI de loading é tratada aqui.
+         console.error('Falha ao tentar login:', error)
+      } finally {
+         setIsLoginLoading(false)
+      }
    }
 
-   const handleRegister = (e: React.FormEvent) => {
+   const handleRegister = async (e: React.FormEvent) => {
       e.preventDefault()
       if (registerPassword !== confirmPassword) {
-         alert('As senhas não coincidem!')
+         // Uso do toast no lugar do alert()
+         toast.error('As senhas não coincidem! Por favor, verifique.')
          return
       }
-      onRegister(registerEmail, registerPassword, registerName, userType)
-      onClose()
+
+      setIsRegisterLoading(true)
+      try {
+         // Chamada à função register do AuthContext
+         await register(registerName, registerEmail, registerPassword, userType)
+         onClose() // Fecha o modal apenas em caso de sucesso
+      } catch (error) {
+         // O erro já foi tostado no AuthContext.
+         console.error('Falha ao tentar registrar:', error)
+      } finally {
+         setIsRegisterLoading(false)
+      }
    }
 
    return (
@@ -46,7 +77,14 @@ export function AuthDialog({ open, onClose, onLogin, onRegister }: AuthDialogPro
          <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
                <div className="flex items-center justify-center mb-4">
-                  <Image src="/logo-mapasmt.png" alt="EventHub Logo" width={180} height={180} />
+                  {/* Se '/logo-mapasmt.png' estiver no seu diretório public */}
+                  <Image
+                     src="/logo-mapasmt.png"
+                     alt="EventHub Logo"
+                     width={180}
+                     height={180}
+                     className="w-auto h-16 object-contain"
+                  />
                </div>
                <DialogTitle className="text-center text-2xl">Bem-vindo ao Mapas MT</DialogTitle>
                <DialogDescription className="text-center">Entre ou crie sua conta para continuar</DialogDescription>
@@ -94,13 +132,16 @@ export function AuthDialog({ open, onClose, onLogin, onRegister }: AuthDialogPro
                      </div>
 
                      <div className="flex justify-end">
-                        <button type="button" className="text-sm text-blue-600 hover:text-blue-700">
+                        <button
+                           type="button"
+                           className="text-sm text-primary hover:text-primary-foreground/80 transition-colors"
+                        >
                            Esqueceu a senha?
                         </button>
                      </div>
 
-                     <Button type="submit" className="w-full btn btn-primary">
-                        Entrar
+                     <Button type="submit" className="w-full" disabled={isLoginLoading}>
+                        {isLoginLoading ? 'Entrando...' : 'Entrar'}
                      </Button>
                   </form>
                </TabsContent>
@@ -140,6 +181,30 @@ export function AuthDialog({ open, onClose, onLogin, onRegister }: AuthDialogPro
                         </div>
                      </div>
 
+                     {/* Tipos de Usuário (mantido do original, mas pode não ser usado na API) */}
+                     {/* <div className="space-y-2 pt-2">
+                        <Label>Tipo de Usuário</Label>
+                        <RadioGroup
+                           defaultValue="client"
+                           value={userType}
+                           onValueChange={(value: 'client' | 'professional') => setUserType(value)}
+                           className="flex space-x-4"
+                        >
+                           <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="client" id="client" />
+                              <Label htmlFor="client" className="flex items-center gap-1">
+                                 <span className="text-sm">Cliente</span>
+                              </Label>
+                           </div>
+                           <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="professional" id="professional" />
+                              <Label htmlFor="professional" className="flex items-center gap-1">
+                                 <span className="text-sm">Profissional</span>
+                              </Label>
+                           </div>
+                        </RadioGroup>
+                     </div> */}
+
                      <div className="space-y-2">
                         <Label htmlFor="register-password">Senha</Label>
                         <div className="relative">
@@ -172,8 +237,8 @@ export function AuthDialog({ open, onClose, onLogin, onRegister }: AuthDialogPro
                         </div>
                      </div>
 
-                     <Button type="submit" className="w-full btn btn-primary mt-4">
-                        Criar Conta
+                     <Button type="submit" className="w-full mt-4" disabled={isRegisterLoading}>
+                        {isRegisterLoading ? 'Criando Conta...' : 'Criar Conta'}
                      </Button>
 
                      <p className="text-xs text-center text-gray-500">

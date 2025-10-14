@@ -3,10 +3,13 @@ import { Button } from './ui/button'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Image from 'next/image'
+import { useAuth } from '@/context/AuthContext'
 
 export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
    const [activeTab, setActiveTab] = useState('eventos')
+
+   const { isAuthenticated, user, logout } = useAuth()
 
    const navItems = [
       { id: 'home', label: 'Home', icon: Home },
@@ -62,13 +65,18 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
 
                {/* Login Button */}
                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="hidden lg:block">
-                  <Button
-                     onClick={onOpenAuth}
-                     variant="default"
-                     className="bg-slate-800 hover:bg-slate-900 cursor-pointer"
-                  >
-                     Entrar
-                  </Button>
+                  {isAuthenticated ? (
+                     <p className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-foreground text-sm">
+                        Olá, {user?.nome}
+                        <Button onClick={logout} variant="default" className="cursor-pointer">
+                           Sair
+                        </Button>
+                     </p>
+                  ) : (
+                     <Button onClick={onOpenAuth} variant="default" className="cursor-pointer">
+                        Entrar
+                     </Button>
+                  )}
                </motion.div>
 
                {/* Mobile Menu Button */}

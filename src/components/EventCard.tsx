@@ -4,6 +4,7 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { motion } from 'framer-motion'
 import type { Event, Categoria, Local } from '@/app/page'
+import { useAuth } from '@/context/AuthContext'
 
 interface EventCardProps {
    event: Event
@@ -16,6 +17,7 @@ interface EventCardProps {
 }
 
 export function EventCard({ event, categoria, local, onDelete, onEdit, onClick, index }: EventCardProps) {
+   const { isAuthenticated, user, logout } = useAuth()
    const categoryStyle = event.categoria?.cor || 'bg-slate-600'
 
    const formatDate = (dateString: string) => {
@@ -84,9 +86,11 @@ export function EventCard({ event, categoria, local, onDelete, onEdit, onClick, 
                   {event.categoria && (
                      <Badge className={`${categoryStyle} text-white border-0 shadow-md`}>{event.categoria.nome}</Badge>
                   )}
-                  <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
-                     {event.status}
-                  </Badge>
+                  {user?.tipoUsuario === 'admin' && (
+                     <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
+                        {event.status}
+                     </Badge>
+                  )}
                </div>
 
                {/* Date Badge */}

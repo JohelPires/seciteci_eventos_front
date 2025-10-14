@@ -15,6 +15,7 @@ import { motion } from 'framer-motion'
 import { getCategorias, getEventos, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
+import { useAuth } from '@/context/AuthContext'
 
 export interface Local {
    id: number
@@ -74,6 +75,8 @@ export default function App() {
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
 
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
+
+   const { isAuthenticated, user, logout } = useAuth()
 
    // Helper functions
    // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
@@ -169,12 +172,14 @@ export default function App() {
                      </div>
                   </motion.div>
 
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                     <Button onClick={() => setShowForm(true)} size="lg" className="gap-2 shadow-sm">
-                        <Plus className="w-5 h-5" />
-                        Novo Evento
-                     </Button>
-                  </motion.div>
+                  {isAuthenticated && (
+                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                        <Button onClick={() => setShowForm(true)} size="lg" className="gap-2 shadow-sm">
+                           <Plus className="w-5 h-5" />
+                           Novo Evento
+                        </Button>
+                     </motion.div>
+                  )}
                </div>
 
                {/* Stats Cards */}
@@ -395,8 +400,8 @@ export default function App() {
             //   onLogin={handleLogin}
             //   onRegister={handleRegister}
             // onClose={() => {}}
-            onLogin={() => {}}
-            onRegister={() => {}}
+            // onLogin={() => {}}
+            // onRegister={() => {}}
          />
       </div>
    )
