@@ -21,10 +21,22 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { getCategorias, getEventos, getLocais } from '@/data/data'
+import { createEvento, getCategorias, getEventos, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
+import { Alert } from '@/components/ui/alert'
+import {
+   AlertDialog,
+   AlertDialogCancel,
+   AlertDialogContent,
+   AlertDialogDescription,
+   AlertDialogFooter,
+   AlertDialogHeader,
+   AlertDialogOverlay,
+   AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { set } from 'react-hook-form'
 
 export interface Local {
    id: number
@@ -87,7 +99,10 @@ export default function App() {
    const [currentPage, setCurrentPage] = useState(1)
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
-   const { isAuthenticated, user, logout } = useAuth()
+   const [alertMessage, setAlertMessage] = useState('')
+   const [alertDialogOpen, setAlertDialogOpen] = useState(false)
+
+   const { token, isAuthenticated, user, logout } = useAuth()
 
    // Helper functions
    // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
@@ -107,9 +122,10 @@ export default function App() {
       fetchData()
    }, [])
 
-   const handleCreateEvent = (eventData: Omit<Event, 'id'>) => {
+   const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
-         setEvents(events.map((e) => (e.id === editingEvent.id ? { ...eventData, id: editingEvent.id } : e)))
+         // setEvents(events.map((e) => (e.id === editingEvent.id ? { ...eventData, id: editingEvent.id } : e)))
+         console.log(eventData)
          toast.success('Evento atualizado com sucesso!')
          setEditingEvent(null)
       } else {
@@ -117,8 +133,16 @@ export default function App() {
             ...eventData,
             id: Date.now().toString(),
          }
-         setEvents([newEvent, ...events])
-         toast.success('Evento criado com sucesso!')
+         // setEvents([newEvent, ...events])
+         try {
+            const data = await createEvento(newEvent, token)
+            // console.log(data)
+            toast.success('Evento criado com sucesso!')
+            setAlertMessage('Evento criado com sucesso. Aguarde a aprovação do administrador.')
+            setAlertDialogOpen(true)
+         } catch (error) {
+            console.log(error)
+         }
       }
       setShowForm(false)
    }
@@ -496,6 +520,26 @@ export default function App() {
             // onLogin={() => {}}
             // onRegister={() => {}}
          />
+
+         <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
+            <AlertDialogOverlay />
+            <AlertDialogContent>
+               <AlertDialogHeader>
+                  <AlertDialogTitle>Atenção</AlertDialogTitle>
+               </AlertDialogHeader>
+               <AlertDialogDescription>{alertMessage && alertMessage}</AlertDialogDescription>
+               <AlertDialogFooter>
+                  <AlertDialogCancel
+                     onClick={() => {
+                        setAlertMessage('')
+                        setAlertDialogOpen(false)
+                     }}
+                  >
+                     Ok
+                  </AlertDialogCancel>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
       </div>
    )
 }

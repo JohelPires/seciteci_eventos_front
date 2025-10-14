@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { motion, AnimatePresence } from 'framer-motion'
 
 import type { Event, Categoria, Local } from '@/app/page'
+import { useAuth } from '@/context/AuthContext'
 
 interface EventFormProps {
    onSubmit: (event: Omit<Event, 'id'>) => void
@@ -35,6 +36,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
       publicoAlvo: '',
       requisitos: '',
    })
+
+   const { isAuthenticated, user, logout } = useAuth()
 
    useEffect(() => {
       if (editingEvent) {
@@ -84,8 +87,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
          ...(formData.requisitos && { requisitos: formData.requisitos }),
       }
 
-      onSubmit(eventData) // Agora o tipo deve ser compatível.
+      onSubmit(eventData)
 
+      // Limpar o formulário
       setFormData({
          titulo: '',
          descricao: '',
@@ -221,10 +225,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
 
                      {/* Start Date */}
                      <div className="space-y-2">
-                        <Label htmlFor="dataInicio">Data e Hora de Início*</Label>
+                        <Label htmlFor="dataInicio">Data de Início*</Label>
                         <Input
                            id="dataInicio"
-                           type="datetime-local"
+                           type="date"
                            value={formData.dataInicio}
                            onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
                            required
@@ -233,10 +237,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
 
                      {/* End Date */}
                      <div className="space-y-2">
-                        <Label htmlFor="dataFim">Data e Hora de Término*</Label>
+                        <Label htmlFor="dataFim">Data de Término*</Label>
                         <Input
                            id="dataFim"
-                           type="datetime-local"
+                           type="date"
                            value={formData.dataFim}
                            onChange={(e) => setFormData({ ...formData, dataFim: e.target.value })}
                            required
@@ -303,25 +307,27 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
                      </div>
 
                      {/* Status */}
-                     <div className="space-y-2">
-                        <Label htmlFor="status">Status*</Label>
-                        <Select
-                           value={formData.status}
-                           onValueChange={(value: 'rascunho' | 'publicado' | 'cancelado') =>
-                              setFormData({ ...formData, status: value })
-                           }
-                           required
-                        >
-                           <SelectTrigger id="status">
-                              <SelectValue />
-                           </SelectTrigger>
-                           <SelectContent>
-                              <SelectItem value="rascunho">Rascunho</SelectItem>
-                              <SelectItem value="publicado">Publicado</SelectItem>
-                              <SelectItem value="cancelado">Cancelado</SelectItem>
-                           </SelectContent>
-                        </Select>
-                     </div>
+                     {user?.tipoUsuario === 'admin' && (
+                        <div className="space-y-2">
+                           <Label htmlFor="status">Status*</Label>
+                           <Select
+                              value={formData.status}
+                              onValueChange={(value: 'rascunho' | 'publicado' | 'cancelado') =>
+                                 setFormData({ ...formData, status: value })
+                              }
+                              required
+                           >
+                              <SelectTrigger id="status">
+                                 <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                 <SelectItem value="rascunho">Rascunho</SelectItem>
+                                 <SelectItem value="publicado">Publicado</SelectItem>
+                                 <SelectItem value="cancelado">Cancelado</SelectItem>
+                              </SelectContent>
+                           </Select>
+                        </div>
+                     )}
 
                      {/* Online Link - Full Width */}
                      {(formData.tipoEvento === 'online' || formData.tipoEvento === 'hibrido') && (

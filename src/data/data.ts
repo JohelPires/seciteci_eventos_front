@@ -1,9 +1,24 @@
+import { Event } from '@/app/page'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export const getEventos = async () => {
    const res = await fetch(`${API_URL}/api/eventos`)
    // console.info(API_URL)
    // console.info(res)
+   const data = await res.json()
+   return data
+}
+
+export const createEvento = async (evento: Event, token: string | null) => {
+   const res = await fetch(`${API_URL}/api/eventos`, {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/json',
+         Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(evento),
+   })
    const data = await res.json()
    return data
 }
