@@ -106,9 +106,9 @@ export function EventCard({ event, categoria, local, onDelete, onEdit, onClick, 
                </div>
             </div>
 
-            <CardContent className="p-6 flex-1 flex flex-col">
-               <h3 className="mb-2 line-clamp-2">{event.titulo}</h3>
-               <p className="text-muted-foreground mb-6 line-clamp-2 flex-1">{event.descricao}</p>
+            <CardContent className="flex-1 flex flex-col">
+               <h3 className="mb-2 line-clamp-2 text-lg font-semibold">{event.titulo}</h3>
+               <p className="text-muted-foreground mb-6 line-clamp-2 flex-1 text-sm">{event.descricao}</p>
 
                {/* Info Section */}
                <div className="space-y-3 mb-6">
