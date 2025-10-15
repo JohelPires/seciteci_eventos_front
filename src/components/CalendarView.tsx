@@ -30,14 +30,19 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
    }
 
    const getEventsForDay = (day: number) => {
-      const year = currentDate.getFullYear()
-      const month = currentDate.getMonth()
-      const targetDate = new Date(year, month, day)
-      const dateString = targetDate.toISOString().split('T')[0]
+      const targetYear = currentDate.getFullYear()
+      const targetMonth = currentDate.getMonth()
+      const targetDay = day
 
       return events.filter((event) => {
-         const eventDate = new Date(event.dataInicio).toISOString().split('T')[0]
-         return eventDate === dateString
+         const eventDate = new Date(event.dataInicio)
+
+         // Compara as partes LOCAIS da data, ignorando o fuso horário de armazenamento.
+         return (
+            eventDate.getFullYear() === targetYear &&
+            eventDate.getMonth() === targetMonth &&
+            eventDate.getDate() === targetDay
+         )
       })
    }
 
