@@ -8,6 +8,7 @@ import { AdminCategorias } from './AdminCategorias'
 import { AdminLocais } from './AdminLocais'
 import { motion } from 'framer-motion'
 import type { Event, Categoria, Local } from '@/app/page'
+import { useAuth } from '@/context/AuthContext'
 
 interface AdminDashboardProps {
    events: Event[]
@@ -35,6 +36,8 @@ export function AdminDashboard({
    onPublicarEvent,
 }: AdminDashboardProps) {
    const [activeTab, setActiveTab] = useState('overview')
+
+   const { user } = useAuth()
 
    // Statistics
    const totalEvents = events.length
@@ -74,11 +77,12 @@ export function AdminDashboard({
                         <Settings className="w-6 h-6 text-primary-foreground" />
                      </div>
                      <div>
-                        <h1 className="text-xl">Painel Administrativo</h1>
+                        <h1 className="text-xl">Eventos Seciteci - Painel Administrativo</h1>
                         <p className="text-sm text-muted-foreground">Gerenciamento da Plataforma</p>
                      </div>
                   </div>
-                  <Button variant="outline" onClick={onLogout} className="gap-2">
+                  {/* <p>Bem-vindo, {user?.nome}</p> */}
+                  <Button variant="outline" onClick={() => (window.location.href = '/')} className="gap-2">
                      <LogOut className="w-4 h-4" />
                      Sair
                   </Button>
