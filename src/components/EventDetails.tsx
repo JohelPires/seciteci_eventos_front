@@ -39,7 +39,7 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
    }
 
    const formatTime = (timeString: string) => {
-      return timeString.substring(0, 5) // HH:MM
+      return timeString.substring(11, 16) // HH:MM
    }
 
    const handleDelete = () => {
@@ -129,15 +129,7 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                         <div>
                            <p className="text-sm text-muted-foreground">Horário do Evento</p>
                            <p className="text-foreground">
-                              {new Date(event.dataInicio).toLocaleTimeString('pt-BR', {
-                                 hour: '2-digit',
-                                 minute: '2-digit',
-                              })}{' '}
-                              -{' '}
-                              {new Date(event.dataFim).toLocaleTimeString('pt-BR', {
-                                 hour: '2-digit',
-                                 minute: '2-digit',
-                              })}
+                              {formatTime(event.horarioAbertura)} - {formatTime(event.horarioEncerramento)}
                            </p>
                         </div>
                      </div>
