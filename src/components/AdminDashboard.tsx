@@ -1,0 +1,310 @@
+import { useState } from 'react'
+import { BarChart3, Calendar, MapPin, Tag, Users, Settings, LogOut, Activity, TrendingUp } from 'lucide-react'
+import { Button } from './ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
+import { AdminEventos } from './AdminEventos'
+import { AdminCategorias } from './AdminCategorias'
+import { AdminLocais } from './AdminLocais'
+import { motion } from 'framer-motion'
+import type { Event, Categoria, Local } from '@/app/page'
+
+interface AdminDashboardProps {
+   events: Event[]
+   categorias: Categoria[]
+   locais: Local[]
+   onLogout: () => void
+   onUpdateEvents: (events: Event[]) => void
+   onUpdateCategorias: (categorias: Categoria[]) => void
+   onUpdateLocais: (locais: Local[]) => void
+   onEditEvent: (event: Event) => void
+   onDeleteEvent: (id: string) => void
+   onPublicarEvent: (id: string) => void
+}
+
+export function AdminDashboard({
+   events,
+   categorias,
+   locais,
+   onLogout,
+   onUpdateEvents,
+   onUpdateCategorias,
+   onUpdateLocais,
+   onEditEvent,
+   onDeleteEvent,
+   onPublicarEvent,
+}: AdminDashboardProps) {
+   const [activeTab, setActiveTab] = useState('overview')
+
+   // Statistics
+   const totalEvents = events.length
+   const publishedEvents = events.filter((e) => e.status === 'publicado').length
+   const draftEvents = events.filter((e) => e.status === 'rascunho').length
+   const cancelledEvents = events.filter((e) => e.status === 'cancelado').length
+   const totalCapacity = events.reduce((sum, e) => sum + e.capacidadeMaxima, 0)
+   const averageCapacity = totalEvents > 0 ? Math.round(totalCapacity / totalEvents) : 0
+
+   // Events by category
+   const eventsByCategory = categorias.map((cat) => ({
+      categoria: cat.nome,
+      cor: cat.cor,
+      count: events.filter((e) => e.categoriaId === cat.id).length,
+   }))
+
+   // Events by type
+   const eventsByType = {
+      presencial: events.filter((e) => e.tipoEvento === 'presencial').length,
+      online: events.filter((e) => e.tipoEvento === 'online').length,
+      hibrido: events.filter((e) => e.tipoEvento === 'hibrido').length,
+   }
+
+   // Recent events (last 5)
+   const recentEvents = [...events]
+      .sort((a, b) => new Date(b.dataInicio).getTime() - new Date(a.dataInicio).getTime())
+      .slice(0, 5)
+
+   return (
+      <div className="min-h-screen bg-background">
+         {/* Admin Header */}
+         <header className="border-b border-border bg-card shadow-sm">
+            <div className="container mx-auto px-4 py-4">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <Settings className="w-6 h-6 text-primary-foreground" />
+                     </div>
+                     <div>
+                        <h1 className="text-xl">Painel Administrativo</h1>
+                        <p className="text-sm text-muted-foreground">Gerenciamento da Plataforma</p>
+                     </div>
+                  </div>
+                  <Button variant="outline" onClick={onLogout} className="gap-2">
+                     <LogOut className="w-4 h-4" />
+                     Sair
+                  </Button>
+               </div>
+            </div>
+         </header>
+
+         <div className="container mx-auto px-4 py-8">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+               <TabsList className="mb-8">
+                  <TabsTrigger value="overview" className="gap-2">
+                     <Activity className="w-4 h-4" />
+                     Visão Geral
+                  </TabsTrigger>
+                  <TabsTrigger value="events" className="gap-2">
+                     <Calendar className="w-4 h-4" />
+                     Eventos
+                  </TabsTrigger>
+                  <TabsTrigger value="categories" className="gap-2">
+                     <Tag className="w-4 h-4" />
+                     Categorias
+                  </TabsTrigger>
+                  <TabsTrigger value="locations" className="gap-2">
+                     <MapPin className="w-4 h-4" />
+                     Locais
+                  </TabsTrigger>
+               </TabsList>
+
+               {/* Overview Tab */}
+               <TabsContent value="overview" className="space-y-6">
+                  <motion.div
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+                  >
+                     <Card>
+                        <CardHeader className="pb-3">
+                           <CardDescription>Total de Eventos</CardDescription>
+                           <CardTitle className="text-3xl">{totalEvents}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
+                              <span>Todos os status</span>
+                           </div>
+                        </CardContent>
+                     </Card>
+
+                     <Card>
+                        <CardHeader className="pb-3">
+                           <CardDescription>Eventos Publicados</CardDescription>
+                           <CardTitle className="text-3xl text-green-600">{publishedEvents}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <TrendingUp className="w-4 h-4" />
+                              <span>
+                                 {totalEvents > 0 ? Math.round((publishedEvents / totalEvents) * 100) : 0}% do total
+                              </span>
+                           </div>
+                        </CardContent>
+                     </Card>
+
+                     <Card>
+                        <CardHeader className="pb-3">
+                           <CardDescription>Capacidade Total</CardDescription>
+                           <CardTitle className="text-3xl">{totalCapacity.toLocaleString()}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Users className="w-4 h-4" />
+                              <span>Média: {averageCapacity} pessoas</span>
+                           </div>
+                        </CardContent>
+                     </Card>
+
+                     <Card>
+                        <CardHeader className="pb-3">
+                           <CardDescription>Categorias Ativas</CardDescription>
+                           <CardTitle className="text-3xl">{categorias.length}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Tag className="w-4 h-4" />
+                              <span>{locais.length} locais cadastrados</span>
+                           </div>
+                        </CardContent>
+                     </Card>
+                  </motion.div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                     {/* Events by Status */}
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                     >
+                        <Card>
+                           <CardHeader>
+                              <CardTitle>Eventos por Status</CardTitle>
+                           </CardHeader>
+                           <CardContent className="space-y-3">
+                              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                                 <span className="text-sm">Publicados</span>
+                                 <span className="font-semibold">{publishedEvents}</span>
+                              </div>
+                              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
+                                 <span className="text-sm">Rascunhos</span>
+                                 <span className="font-semibold">{draftEvents}</span>
+                              </div>
+                              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                                 <span className="text-sm">Cancelados</span>
+                                 <span className="font-semibold">{cancelledEvents}</span>
+                              </div>
+                           </CardContent>
+                        </Card>
+                     </motion.div>
+
+                     {/* Events by Type */}
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 }}
+                     >
+                        <Card>
+                           <CardHeader>
+                              <CardTitle>Eventos por Tipo</CardTitle>
+                           </CardHeader>
+                           <CardContent className="space-y-3">
+                              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                                 <span className="text-sm">Presencial</span>
+                                 <span className="font-semibold">{eventsByType.presencial}</span>
+                              </div>
+                              <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                                 <span className="text-sm">Online</span>
+                                 <span className="font-semibold">{eventsByType.online}</span>
+                              </div>
+                              <div className="flex items-center justify-between p-3 bg-teal-50 dark:bg-teal-950/30 rounded-lg">
+                                 <span className="text-sm">Híbrido</span>
+                                 <span className="font-semibold">{eventsByType.hibrido}</span>
+                              </div>
+                           </CardContent>
+                        </Card>
+                     </motion.div>
+
+                     {/* Events by Category */}
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                     >
+                        <Card>
+                           <CardHeader>
+                              <CardTitle>Eventos por Categoria</CardTitle>
+                           </CardHeader>
+                           <CardContent className="space-y-2">
+                              {eventsByCategory.map((item, index) => (
+                                 <div
+                                    key={index}
+                                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                                 >
+                                    <div className="flex items-center gap-2">
+                                       <div className={`w-3 h-3 rounded-full ${item.cor}`} />
+                                       <span className="text-sm">{item.categoria}</span>
+                                    </div>
+                                    <span className="font-semibold">{item.count}</span>
+                                 </div>
+                              ))}
+                           </CardContent>
+                        </Card>
+                     </motion.div>
+
+                     {/* Recent Events */}
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.25 }}
+                     >
+                        <Card>
+                           <CardHeader>
+                              <CardTitle>Eventos Recentes</CardTitle>
+                           </CardHeader>
+                           <CardContent className="space-y-3">
+                              {recentEvents.length > 0 ? (
+                                 recentEvents.map((event) => (
+                                    <div key={event.id} className="p-3 border border-border rounded-lg">
+                                       <p className="font-medium text-sm">{event.titulo}</p>
+                                       <p className="text-xs text-muted-foreground mt-1">
+                                          {new Date(event.dataInicio).toLocaleDateString('pt-BR')}
+                                       </p>
+                                    </div>
+                                 ))
+                              ) : (
+                                 <p className="text-sm text-muted-foreground text-center py-4">
+                                    Nenhum evento cadastrado
+                                 </p>
+                              )}
+                           </CardContent>
+                        </Card>
+                     </motion.div>
+                  </div>
+               </TabsContent>
+
+               {/* Events Tab */}
+               <TabsContent value="events">
+                  <AdminEventos
+                     events={events}
+                     categorias={categorias}
+                     locais={locais}
+                     onEditEvent={onEditEvent}
+                     onDeleteEvent={onDeleteEvent}
+                     onPublicarEvent={onPublicarEvent}
+                  />
+               </TabsContent>
+
+               {/* Categories Tab */}
+               <TabsContent value="categories">
+                  <AdminCategorias categorias={categorias} onUpdateCategorias={onUpdateCategorias} events={events} />
+               </TabsContent>
+
+               {/* Locations Tab */}
+               <TabsContent value="locations">
+                  <AdminLocais locais={locais} onUpdateLocais={onUpdateLocais} events={events} />
+               </TabsContent>
+            </Tabs>
+         </div>
+      </div>
+   )
+}

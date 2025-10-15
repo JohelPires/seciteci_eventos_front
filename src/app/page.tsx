@@ -81,10 +81,8 @@ export interface Event {
 }
 
 const categorias: Categoria[] = await getCategorias()
-// console.log(categorias)
 
 const locais: Local[] = await getLocais()
-// console.log(locais)
 
 const ITEMS_PER_PAGE = 6
 
@@ -112,7 +110,7 @@ export default function App() {
       async function fetchData() {
          try {
             const response = await getEventos()
-            console.log(response)
+
             setEvents(response.eventos)
          } catch (error) {
             console.log(error)
@@ -125,7 +123,6 @@ export default function App() {
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
          // setEvents(events.map((e) => (e.id === editingEvent.id ? { ...eventData, id: editingEvent.id } : e)))
-         console.log(eventData)
          toast.success('Evento atualizado com sucesso!')
          setEditingEvent(null)
       } else {
@@ -136,7 +133,6 @@ export default function App() {
          // setEvents([newEvent, ...events])
          try {
             const data = await createEvento(newEvent, token)
-            // console.log(data)
             toast.success('Evento criado com sucesso!')
             setAlertMessage('Evento criado com sucesso. Aguarde a aprovação do administrador.')
             setAlertDialogOpen(true)

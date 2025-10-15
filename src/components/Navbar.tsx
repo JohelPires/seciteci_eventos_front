@@ -71,7 +71,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                         {user?.tipoUsuario === 'admin' && (
                            <Button
                               onClick={() => (window.location.href = '/admin')}
-                              variant="destructive"
+                              variant="outline"
                               className="cursor-pointer"
                            >
                               Admin

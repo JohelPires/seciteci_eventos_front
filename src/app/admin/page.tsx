@@ -37,6 +37,7 @@ import {
    AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { set } from 'react-hook-form'
+import { AdminDashboard } from '@/components/AdminDashboard'
 
 export interface Local {
    id: number
@@ -80,10 +81,10 @@ export interface Event {
    requisitos?: string
 }
 
-const categorias: Categoria[] = await getCategorias()
+// const categorias: Categoria[] = await getCategorias()
 // console.log(categorias)
 
-const locais: Local[] = await getLocais()
+// const locais: Local[] = await getLocais()
 // console.log(locais)
 
 const ITEMS_PER_PAGE = 20
@@ -99,6 +100,9 @@ export default function App() {
    const [currentPage, setCurrentPage] = useState(1)
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
+   const [categorias, setCategorias] = useState<Categoria[]>([])
+   const [locais, setLocais] = useState<Local[]>([])
+
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
    const [reload, setReload] = useState(false)
@@ -113,8 +117,36 @@ export default function App() {
       async function fetchData() {
          try {
             const response = await getEventosAdmin(token)
-            console.log(response)
+
             setEvents(response.eventos)
+         } catch (error) {
+            console.log(error)
+         }
+      }
+
+      fetchData()
+   }, [reload])
+
+   useEffect(() => {
+      async function fetchData() {
+         try {
+            const response = await getCategorias()
+
+            setCategorias(response)
+         } catch (error) {
+            console.log(error)
+         }
+      }
+
+      fetchData()
+   }, [reload])
+
+   useEffect(() => {
+      async function fetchData() {
+         try {
+            const response = await getLocais()
+
+            setLocais(response)
          } catch (error) {
             console.log(error)
          }
@@ -125,11 +157,9 @@ export default function App() {
 
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
-         console.log(eventData)
-         console.log(editingEvent.id)
          // setEvents(events.map((e) => (e.id === editingEvent.id ? { ...eventData, id: editingEvent.id } : e)))
          const data = await editEvento(editingEvent.id, eventData, token)
-         console.log(data)
+
          toast.success('Evento atualizado com sucesso!')
          setEditingEvent(null)
       } else {
@@ -140,7 +170,7 @@ export default function App() {
          // setEvents([newEvent, ...events])
          try {
             const data = await createEvento(newEvent, token)
-            // console.log(data)
+
             toast.success('Evento criado com sucesso!')
             setAlertMessage('Evento criado com sucesso. Aguarde a aprovação do administrador.')
             setAlertDialogOpen(true)
@@ -164,7 +194,7 @@ export default function App() {
    const handlePublicarEvent = async (id: string) => {
       //   setEvents(events.map((e) => (e.id === id ? { ...e, status: 'publicado' } : e)))
       const data = await editEvento(id, { status: 'publicado' }, token)
-      console.log(data)
+
       setReload(!reload)
       toast.success('Evento aprovado com sucesso!')
    }
@@ -205,297 +235,20 @@ export default function App() {
    const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
 
    return (
-      <div className="min-h-screen bg-gray-50">
+      <>
          <Toaster />
-
-         {/* Navigation Bar */}
-         <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
-
-         {/* Header */}
-         <header className="border-b border-border bg-card">
-            <div className="container mx-auto px-4 py-6">
-               {/* Top Section */}
-               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
-                  <motion.div
-                     initial={{ opacity: 0, x: -20 }}
-                     animate={{ opacity: 1, x: 0 }}
-                     className="flex items-center gap-4"
-                  >
-                     <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
-                        <Calendar className="w-7 h-7 text-primary-foreground" />
-                     </div>
-                     <div>
-                        <h1 className="text-2xl font-semibold">Eventos Solicitados</h1>
-                        <p className="text-muted-foreground">Eventos aguardando revisão do administrador</p>
-                     </div>
-                  </motion.div>
-
-                  {isAuthenticated && (
-                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                        <Button onClick={() => setShowForm(true)} size="lg" className="gap-2 shadow-sm">
-                           <Plus className="w-5 h-5" />
-                           Novo Evento
-                        </Button>
-                     </motion.div>
-                  )}
-               </div>
-
-               {/* Stats Cards */}
-               <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
-               >
-                  <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-                     <div className="flex items-center justify-between">
-                        <div>
-                           <p className="text-sm text-muted-foreground mb-1">Total de Eventos</p>
-                           <p className="text-foreground text-3xl font-semibold">{events.length}</p>
-                        </div>
-                        <div className="p-3 bg-blue-100 dark:bg-blue-950 rounded-lg">
-                           <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-                     <div className="flex items-center justify-between">
-                        <div>
-                           <p className="text-sm text-muted-foreground mb-1">Capacidade Total</p>
-                           <p className="text-foreground text-3xl font-semibold">{totalCapacity.toLocaleString()}</p>
-                        </div>
-                        <div className="p-3 bg-green-100 dark:bg-green-950 rounded-lg">
-                           <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-                     <div className="flex items-center justify-between">
-                        <div>
-                           <p className="text-sm text-muted-foreground mb-1">Categorias Ativas</p>
-                           <p className="text-foreground text-3xl font-semibold">{categorias.length}</p>
-                        </div>
-                        <div className="p-3 bg-purple-100 dark:bg-purple-950 rounded-lg">
-                           <Tag className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        </div>
-                     </div>
-                  </div>
-               </motion.div>
-
-               {/* View Mode Toggle and Search */}
-               <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="space-y-4"
-               >
-                  <div className="flex flex-col sm:flex-row gap-3">
-                     <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <Input
-                           placeholder="Buscar eventos por título ou descrição..."
-                           value={searchTerm}
-                           onChange={(e) => setSearchTerm(e.target.value)}
-                           className="pl-12 h-12 bg-input-background"
-                        />
-                     </div>
-
-                     {/* <div className="flex gap-2 bg-muted rounded-lg p-1">
-                        <Button
-                           variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                           size="sm"
-                           onClick={() => setViewMode('grid')}
-                           className="gap-2"
-                        >
-                           <Grid3x3 className="w-4 h-4" />
-                           Grade
-                        </Button>
-                        <Button
-                           variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-                           size="sm"
-                           onClick={() => setViewMode('calendar')}
-                           className="gap-2"
-                        >
-                           <CalendarDays className="w-4 h-4" />
-                           Calendário
-                        </Button>
-                     </div> */}
-                  </div>
-
-                  {viewMode === 'grid' && (
-                     <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full">
-                        <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto bg-muted">
-                           <TabsTrigger value="all">Todas</TabsTrigger>
-                           {categorias &&
-                              categorias.map((categoria) => (
-                                 <TabsTrigger key={categoria.id} value={categoria.nome}>
-                                    {categoria.nome}
-                                 </TabsTrigger>
-                              ))}
-                        </TabsList>
-                     </Tabs>
-                  )}
-               </motion.div>
-            </div>
-         </header>
-
-         {/* Main Content */}
-         <main id="main" className="container mx-auto px-4 py-10">
-            {/* {viewMode === 'calendar' ? ( */}
-            {/* ) : ( */}
-            <>
-               {filteredEvents.length === 0 ? (
-                  <motion.div
-                     initial={{ opacity: 0, scale: 0.95 }}
-                     animate={{ opacity: 1, scale: 1 }}
-                     className="text-center py-20"
-                  >
-                     <div className="max-w-md mx-auto">
-                        <div className="mb-6 w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
-                           <Calendar className="w-10 h-10 text-muted-foreground" />
-                        </div>
-                        <h3 className="mb-2">Nenhum evento encontrado</h3>
-                        <p className="text-muted-foreground mb-6">
-                           {searchTerm || categoryFilter !== 'all'
-                              ? 'Tente ajustar os filtros de busca'
-                              : 'Comece criando seu primeiro evento'}
-                        </p>
-                        {!searchTerm && categoryFilter === 'all' && (
-                           <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
-                              <Plus className="w-4 h-4" />
-                              Criar Primeiro Evento
-                           </Button>
-                        )}
-                     </div>
-                  </motion.div>
-               ) : (
-                  <>
-                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center justify-between mb-6"
-                     >
-                        <p className="text-muted-foreground">
-                           {filteredEvents.length} {filteredEvents.length === 1 ? 'evento' : 'eventos'}
-                           {totalPages > 1 && (
-                              <span className="ml-2">
-                                 (Página {currentPage} de {totalPages})
-                              </span>
-                           )}
-                        </p>
-                     </motion.div>
-
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        {paginatedEvents.map((event, index) => (
-                           <EventCard
-                              key={event.id}
-                              event={event}
-                              categoria={event.categoria}
-                              local={event.local}
-                              onDelete={handleDeleteEvent}
-                              onEdit={handleEditEvent}
-                              onClick={handleEventClick}
-                              onPublicar={handlePublicarEvent}
-                              index={index}
-                              isAdmin
-                           />
-                        ))}
-                     </div>
-
-                     {/* Pagination */}
-                     {totalPages > 1 && (
-                        <motion.div
-                           initial={{ opacity: 0, y: 20 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           className="flex justify-center"
-                        >
-                           <Pagination>
-                              <PaginationContent>
-                                 <PaginationItem>
-                                    <PaginationPrevious
-                                       href="#main"
-                                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                                       className={
-                                          currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-                                       }
-                                    />
-                                 </PaginationItem>
-
-                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                                    // Show first page, last page, current page, and pages around current
-                                    const showPage =
-                                       page === 1 ||
-                                       page === totalPages ||
-                                       (page >= currentPage - 1 && page <= currentPage + 1)
-
-                                    const showEllipsisBefore = page === currentPage - 2 && currentPage > 3
-                                    const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2
-
-                                    if (showEllipsisBefore || showEllipsisAfter) {
-                                       return (
-                                          <PaginationItem key={page}>
-                                             <PaginationEllipsis />
-                                          </PaginationItem>
-                                       )
-                                    }
-
-                                    if (!showPage) return null
-
-                                    return (
-                                       <PaginationItem key={page}>
-                                          <PaginationLink
-                                             onClick={() => {
-                                                setCurrentPage(page)
-                                             }}
-                                             isActive={currentPage === page}
-                                             className="cursor-pointer"
-                                             href="#main"
-                                          >
-                                             {page}
-                                          </PaginationLink>
-                                       </PaginationItem>
-                                    )
-                                 })}
-
-                                 <PaginationItem>
-                                    <PaginationNext
-                                       href="#main"
-                                       onClick={() => {
-                                          setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                                       }}
-                                       className={
-                                          currentPage === totalPages
-                                             ? 'pointer-events-none opacity-50'
-                                             : 'cursor-pointer'
-                                       }
-                                    />
-                                 </PaginationItem>
-                              </PaginationContent>
-                           </Pagination>
-                        </motion.div>
-                     )}
-                  </>
-               )}
-            </>
-            {/* )} */}
-            <motion.div
-               initial={{ opacity: 0, x: -20 }}
-               animate={{ opacity: 1, x: 0 }}
-               className="flex items-center gap-4 mb-9"
-            >
-               <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
-                  <CalendarDays className="w-7 h-7 text-primary-foreground" />
-               </div>
-               <div>
-                  <h1 className="text-2xl font-semibold">Calendário dos Eventos</h1>
-                  <p className="text-muted-foreground">Veja todos os eventos no calendário</p>
-               </div>
-            </motion.div>
-         </main>
-
-         {/* Event Form Modal */}
+         <AdminDashboard
+            events={events}
+            categorias={categorias}
+            locais={locais}
+            onLogout={logout}
+            onUpdateEvents={setEvents}
+            onUpdateCategorias={setCategorias}
+            onUpdateLocais={setLocais}
+            onEditEvent={handleEditEvent}
+            onDeleteEvent={handleDeleteEvent}
+            onPublicarEvent={handlePublicarEvent}
+         />
          {showForm && (
             <EventForm
                onSubmit={handleCreateEvent}
@@ -505,27 +258,331 @@ export default function App() {
                locais={locais}
             />
          )}
-
-         {/* Event Details Modal */}
-         {selectedEvent && (
-            <EventDetails
-               event={selectedEvent}
-               categoria={selectedEvent.categoria}
-               local={selectedEvent.local}
-               onClose={handleCloseEventDetails}
-               onEdit={handleEditEvent}
-               onDelete={handleDeleteEvent}
-            />
-         )}
-         <AuthDialog
-            open={authDialogOpen}
-            onClose={() => setAuthDialogOpen(false)}
-            //   onLogin={handleLogin}
-            //   onRegister={handleRegister}
-            // onClose={() => {}}
-            // onLogin={() => {}}
-            // onRegister={() => {}}
-         />
-      </div>
+      </>
    )
+
+   //    return (
+   //       <div className="min-h-screen bg-gray-50">
+   //          <Toaster />
+
+   //          {/* Navigation Bar */}
+   //          <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
+
+   //          {/* Header */}
+   //          <header className="border-b border-border bg-card">
+   //             <div className="container mx-auto px-4 py-6">
+   //                {/* Top Section */}
+   //                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
+   //                   <motion.div
+   //                      initial={{ opacity: 0, x: -20 }}
+   //                      animate={{ opacity: 1, x: 0 }}
+   //                      className="flex items-center gap-4"
+   //                   >
+   //                      <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
+   //                         <Calendar className="w-7 h-7 text-primary-foreground" />
+   //                      </div>
+   //                      <div>
+   //                         <h1 className="text-2xl font-semibold">Eventos Solicitados</h1>
+   //                         <p className="text-muted-foreground">Eventos aguardando revisão do administrador</p>
+   //                      </div>
+   //                   </motion.div>
+
+   //                   {isAuthenticated && (
+   //                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+   //                         <Button onClick={() => setShowForm(true)} size="lg" className="gap-2 shadow-sm">
+   //                            <Plus className="w-5 h-5" />
+   //                            Novo Evento
+   //                         </Button>
+   //                      </motion.div>
+   //                   )}
+   //                </div>
+
+   //                {/* Stats Cards */}
+   //                <motion.div
+   //                   initial={{ opacity: 0, y: 20 }}
+   //                   animate={{ opacity: 1, y: 0 }}
+   //                   transition={{ delay: 0.1 }}
+   //                   className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+   //                >
+   //                   <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
+   //                      <div className="flex items-center justify-between">
+   //                         <div>
+   //                            <p className="text-sm text-muted-foreground mb-1">Total de Eventos</p>
+   //                            <p className="text-foreground text-3xl font-semibold">{events.length}</p>
+   //                         </div>
+   //                         <div className="p-3 bg-blue-100 dark:bg-blue-950 rounded-lg">
+   //                            <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+   //                         </div>
+   //                      </div>
+   //                   </div>
+
+   //                   <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
+   //                      <div className="flex items-center justify-between">
+   //                         <div>
+   //                            <p className="text-sm text-muted-foreground mb-1">Capacidade Total</p>
+   //                            <p className="text-foreground text-3xl font-semibold">{totalCapacity.toLocaleString()}</p>
+   //                         </div>
+   //                         <div className="p-3 bg-green-100 dark:bg-green-950 rounded-lg">
+   //                            <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+   //                         </div>
+   //                      </div>
+   //                   </div>
+
+   //                   <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
+   //                      <div className="flex items-center justify-between">
+   //                         <div>
+   //                            <p className="text-sm text-muted-foreground mb-1">Categorias Ativas</p>
+   //                            <p className="text-foreground text-3xl font-semibold">{categorias.length}</p>
+   //                         </div>
+   //                         <div className="p-3 bg-purple-100 dark:bg-purple-950 rounded-lg">
+   //                            <Tag className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+   //                         </div>
+   //                      </div>
+   //                   </div>
+   //                </motion.div>
+
+   //                {/* View Mode Toggle and Search */}
+   //                <motion.div
+   //                   initial={{ opacity: 0, y: 20 }}
+   //                   animate={{ opacity: 1, y: 0 }}
+   //                   transition={{ delay: 0.2 }}
+   //                   className="space-y-4"
+   //                >
+   //                   <div className="flex flex-col sm:flex-row gap-3">
+   //                      <div className="relative flex-1">
+   //                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+   //                         <Input
+   //                            placeholder="Buscar eventos por título ou descrição..."
+   //                            value={searchTerm}
+   //                            onChange={(e) => setSearchTerm(e.target.value)}
+   //                            className="pl-12 h-12 bg-input-background"
+   //                         />
+   //                      </div>
+
+   //                      {/* <div className="flex gap-2 bg-muted rounded-lg p-1">
+   //                         <Button
+   //                            variant={viewMode === 'grid' ? 'default' : 'ghost'}
+   //                            size="sm"
+   //                            onClick={() => setViewMode('grid')}
+   //                            className="gap-2"
+   //                         >
+   //                            <Grid3x3 className="w-4 h-4" />
+   //                            Grade
+   //                         </Button>
+   //                         <Button
+   //                            variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+   //                            size="sm"
+   //                            onClick={() => setViewMode('calendar')}
+   //                            className="gap-2"
+   //                         >
+   //                            <CalendarDays className="w-4 h-4" />
+   //                            Calendário
+   //                         </Button>
+   //                      </div> */}
+   //                   </div>
+
+   //                   {viewMode === 'grid' && (
+   //                      <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full">
+   //                         <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto bg-muted">
+   //                            <TabsTrigger value="all">Todas</TabsTrigger>
+   //                            {categorias &&
+   //                               categorias.map((categoria) => (
+   //                                  <TabsTrigger key={categoria.id} value={categoria.nome}>
+   //                                     {categoria.nome}
+   //                                  </TabsTrigger>
+   //                               ))}
+   //                         </TabsList>
+   //                      </Tabs>
+   //                   )}
+   //                </motion.div>
+   //             </div>
+   //          </header>
+
+   //          {/* Main Content */}
+   //          <main id="main" className="container mx-auto px-4 py-10">
+   //             {/* {viewMode === 'calendar' ? ( */}
+   //             {/* ) : ( */}
+   //             <>
+   //                {filteredEvents.length === 0 ? (
+   //                   <motion.div
+   //                      initial={{ opacity: 0, scale: 0.95 }}
+   //                      animate={{ opacity: 1, scale: 1 }}
+   //                      className="text-center py-20"
+   //                   >
+   //                      <div className="max-w-md mx-auto">
+   //                         <div className="mb-6 w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
+   //                            <Calendar className="w-10 h-10 text-muted-foreground" />
+   //                         </div>
+   //                         <h3 className="mb-2">Nenhum evento encontrado</h3>
+   //                         <p className="text-muted-foreground mb-6">
+   //                            {searchTerm || categoryFilter !== 'all'
+   //                               ? 'Tente ajustar os filtros de busca'
+   //                               : 'Comece criando seu primeiro evento'}
+   //                         </p>
+   //                         {!searchTerm && categoryFilter === 'all' && (
+   //                            <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
+   //                               <Plus className="w-4 h-4" />
+   //                               Criar Primeiro Evento
+   //                            </Button>
+   //                         )}
+   //                      </div>
+   //                   </motion.div>
+   //                ) : (
+   //                   <>
+   //                      <motion.div
+   //                         initial={{ opacity: 0 }}
+   //                         animate={{ opacity: 1 }}
+   //                         className="flex items-center justify-between mb-6"
+   //                      >
+   //                         <p className="text-muted-foreground">
+   //                            {filteredEvents.length} {filteredEvents.length === 1 ? 'evento' : 'eventos'}
+   //                            {totalPages > 1 && (
+   //                               <span className="ml-2">
+   //                                  (Página {currentPage} de {totalPages})
+   //                               </span>
+   //                            )}
+   //                         </p>
+   //                      </motion.div>
+
+   //                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+   //                         {paginatedEvents.map((event, index) => (
+   //                            <EventCard
+   //                               key={event.id}
+   //                               event={event}
+   //                               categoria={event.categoria}
+   //                               local={event.local}
+   //                               onDelete={handleDeleteEvent}
+   //                               onEdit={handleEditEvent}
+   //                               onClick={handleEventClick}
+   //                               onPublicar={handlePublicarEvent}
+   //                               index={index}
+   //                               isAdmin
+   //                            />
+   //                         ))}
+   //                      </div>
+
+   //                      {/* Pagination */}
+   //                      {totalPages > 1 && (
+   //                         <motion.div
+   //                            initial={{ opacity: 0, y: 20 }}
+   //                            animate={{ opacity: 1, y: 0 }}
+   //                            className="flex justify-center"
+   //                         >
+   //                            <Pagination>
+   //                               <PaginationContent>
+   //                                  <PaginationItem>
+   //                                     <PaginationPrevious
+   //                                        href="#main"
+   //                                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+   //                                        className={
+   //                                           currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+   //                                        }
+   //                                     />
+   //                                  </PaginationItem>
+
+   //                                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+   //                                     // Show first page, last page, current page, and pages around current
+   //                                     const showPage =
+   //                                        page === 1 ||
+   //                                        page === totalPages ||
+   //                                        (page >= currentPage - 1 && page <= currentPage + 1)
+
+   //                                     const showEllipsisBefore = page === currentPage - 2 && currentPage > 3
+   //                                     const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2
+
+   //                                     if (showEllipsisBefore || showEllipsisAfter) {
+   //                                        return (
+   //                                           <PaginationItem key={page}>
+   //                                              <PaginationEllipsis />
+   //                                           </PaginationItem>
+   //                                        )
+   //                                     }
+
+   //                                     if (!showPage) return null
+
+   //                                     return (
+   //                                        <PaginationItem key={page}>
+   //                                           <PaginationLink
+   //                                              onClick={() => {
+   //                                                 setCurrentPage(page)
+   //                                              }}
+   //                                              isActive={currentPage === page}
+   //                                              className="cursor-pointer"
+   //                                              href="#main"
+   //                                           >
+   //                                              {page}
+   //                                           </PaginationLink>
+   //                                        </PaginationItem>
+   //                                     )
+   //                                  })}
+
+   //                                  <PaginationItem>
+   //                                     <PaginationNext
+   //                                        href="#main"
+   //                                        onClick={() => {
+   //                                           setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+   //                                        }}
+   //                                        className={
+   //                                           currentPage === totalPages
+   //                                              ? 'pointer-events-none opacity-50'
+   //                                              : 'cursor-pointer'
+   //                                        }
+   //                                     />
+   //                                  </PaginationItem>
+   //                               </PaginationContent>
+   //                            </Pagination>
+   //                         </motion.div>
+   //                      )}
+   //                   </>
+   //                )}
+   //             </>
+   //             {/* )} */}
+   //             <motion.div
+   //                initial={{ opacity: 0, x: -20 }}
+   //                animate={{ opacity: 1, x: 0 }}
+   //                className="flex items-center gap-4 mb-9"
+   //             >
+   //                <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
+   //                   <CalendarDays className="w-7 h-7 text-primary-foreground" />
+   //                </div>
+   //                <div>
+   //                   <h1 className="text-2xl font-semibold">Calendário dos Eventos</h1>
+   //                   <p className="text-muted-foreground">Veja todos os eventos no calendário</p>
+   //                </div>
+   //             </motion.div>
+   //          </main>
+
+   //          {/* Event Form Modal */}
+   //          {showForm && (
+   //             <EventForm
+   //                onSubmit={handleCreateEvent}
+   //                onClose={handleCloseForm}
+   //                editingEvent={editingEvent}
+   //                categorias={categorias}
+   //                locais={locais}
+   //             />
+   //          )}
+
+   //          {/* Event Details Modal */}
+   //          {selectedEvent && (
+   //             <EventDetails
+   //                event={selectedEvent}
+   //                categoria={selectedEvent.categoria}
+   //                local={selectedEvent.local}
+   //                onClose={handleCloseEventDetails}
+   //                onEdit={handleEditEvent}
+   //                onDelete={handleDeleteEvent}
+   //             />
+   //          )}
+   //          <AuthDialog
+   //             open={authDialogOpen}
+   //             onClose={() => setAuthDialogOpen(false)}
+   //             //   onLogin={handleLogin}
+   //             //   onRegister={handleRegister}
+   //             // onClose={() => {}}
+   //             // onLogin={() => {}}
+   //             // onRegister={() => {}}
+   //          />
+   //       </div>
+   //    )
 }

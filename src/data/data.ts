@@ -4,14 +4,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export const getEventos = async () => {
    const res = await fetch(`${API_URL}/api/eventos?status=publicado`)
-   // console.info(API_URL)
-   // console.info(res)
+
    const data = await res.json()
    return data
 }
 
 export const getEventosAdmin = async (token: string | null) => {
-   const res = await fetch(`${API_URL}/api/eventos?status=rascunho`, {
+   const res = await fetch(`${API_URL}/api/eventos`, {
       headers: {
          Authorization: `Bearer ${token}`,
       },
@@ -54,6 +53,7 @@ export const getLocais = async () => {
 
 export const getCategorias = async () => {
    const res = await fetch(`${API_URL}/api/categorias`)
+
    const data = await res.json()
    return data.categorias
 }
