@@ -68,6 +68,15 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                   {isAuthenticated ? (
                      <p className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-foreground text-sm">
                         Olá, {user?.nome}
+                        {user?.tipoUsuario === 'admin' && (
+                           <Button
+                              onClick={() => (window.location.href = '/admin')}
+                              variant="destructive"
+                              className="cursor-pointer"
+                           >
+                              Admin
+                           </Button>
+                        )}
                         <Button onClick={logout} variant="default" className="cursor-pointer">
                            Sair
                         </Button>
