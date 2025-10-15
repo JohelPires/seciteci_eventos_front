@@ -46,10 +46,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
             descricao: editingEvent.descricao,
             categoriaId: editingEvent.categoriaId.toString(),
             localId: editingEvent.localId.toString(),
-            dataInicio: editingEvent.dataInicio.substring(0, 16), // Format for datetime-local
-            dataFim: editingEvent.dataFim.substring(0, 16),
-            horarioAbertura: editingEvent.horarioAbertura,
-            horarioEncerramento: editingEvent.horarioEncerramento,
+            dataInicio: editingEvent.dataInicio.substring(0, 10), // Format for datetime-local
+            dataFim: editingEvent.dataFim.substring(0, 10),
+            horarioAbertura: editingEvent.horarioAbertura.substring(11, 16),
+            horarioEncerramento: editingEvent.horarioEncerramento.substring(11, 16),
             capacidadeMaxima: editingEvent.capacidadeMaxima.toString(),
             tipoEvento: editingEvent.tipoEvento,
             linkOnline: editingEvent.linkOnline || '',
