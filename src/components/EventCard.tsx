@@ -88,9 +88,16 @@ export function EventCard({
                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   </>
                ) : (
-                  <div className={`w-full h-full flex items-center justify-center ${categoryStyle}`}>
-                     <Calendar className="w-16 h-16 text-white/40" />
-                  </div>
+                  <>
+                     <motion.img
+                        src="/evento_sem_imagem.png"
+                        alt="Imagem não disponível"
+                        className="w-full h-full object-cover"
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ duration: 0.4 }}
+                     />
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  </>
                )}
 
                {/* Category and Status Badges */}
