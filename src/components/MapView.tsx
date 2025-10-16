@@ -150,10 +150,7 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
           </div>
           <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 12px;">
             <span>🕐</span>
-            <span>${new Date(event.dataInicio).toLocaleTimeString('pt-BR', {
-               hour: '2-digit',
-               minute: '2-digit',
-            })}</span>
+            <span>${event.horarioAbertura.substring(11, 16)}</span>
           </div>
           <div style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
             <span>📍</span>
@@ -261,15 +258,8 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
                            <div className="flex items-center gap-2 text-sm">
                               <Clock className="w-4 h-4 text-muted-foreground" />
                               <span>
-                                 {new Date(selectedMarkerEvent.dataInicio).toLocaleTimeString('pt-BR', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                 })}{' '}
-                                 -{' '}
-                                 {new Date(selectedMarkerEvent.dataFim).toLocaleTimeString('pt-BR', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                 })}
+                                 {selectedMarkerEvent.horarioAbertura.substring(11, 16)} -{' '}
+                                 {selectedMarkerEvent.horarioEncerramento.substring(11, 16)}
                               </span>
                            </div>
 
