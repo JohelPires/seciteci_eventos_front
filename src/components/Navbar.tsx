@@ -22,7 +22,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
    ]
 
    return (
-      <nav className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <nav className="sticky top-0 z-50 w-full bg-primary pt-1 pb-1 mb-2 shadow-black/40 shadow-2xl">
          <div className="container mx-auto px-4">
             <div className="flex h-16 items-center justify-between my-3">
                {/* Logo */}
@@ -31,7 +31,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-3"
                >
-                  <Image src="/logo-mapasmt.png" alt="EventHub Logo" width={180} height={180} />
+                  <Image src="/logo-mapasmt-branco.png" alt="EventHub Logo" width={180} height={180} />
                   {/* 
                   <div className="hidden sm:block">
                      <h3 className="leading-none">EventHub</h3>
@@ -50,10 +50,10 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                         <button
                            key={item.id}
                            onClick={() => setActiveTab(item.id)}
-                           className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
+                           className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors duration-200 ease-in-out ${
                               activeTab === item.id
-                                 ? 'bg-primary text-primary-foreground'
-                                 : 'text-foreground hover:bg-muted'
+                                 ? 'bg-white text-primary shadow-md' // aba ativa: fundo branco, texto azul e leve sombra
+                                 : 'text-white hover:text-gray-200' // inativa: texto branco, hover cinza claro
                            }`}
                         >
                            <Icon className="w-5 h-5" />
@@ -66,23 +66,23 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                {/* Login Button */}
                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="hidden lg:block">
                   {isAuthenticated ? (
-                     <p className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-foreground text-sm">
+                     <p className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-white text-sm">
                         Olá, {user?.nome}
                         {user?.tipoUsuario === 'admin' && (
                            <Button
                               onClick={() => (window.location.href = '/admin')}
-                              variant="outline"
+                              variant="ghost"
                               className="cursor-pointer"
                            >
                               Admin
                            </Button>
                         )}
-                        <Button onClick={logout} variant="default" className="cursor-pointer">
+                        <Button onClick={logout} variant="outline" className="cursor-pointer">
                            Sair
                         </Button>
                      </p>
                   ) : (
-                     <Button onClick={onOpenAuth} variant="default" className="cursor-pointer">
+                     <Button onClick={onOpenAuth} variant="outline" className="cursor-pointer">
                         Entrar
                      </Button>
                   )}

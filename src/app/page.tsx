@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { set } from 'react-hook-form'
 import { CardSkeleton } from '@/components/CardSkeleton'
+import { Footer } from '@/components/Footer'
 
 export interface Local {
    id: number
@@ -243,8 +244,8 @@ export default function App() {
                            <p className="text-sm text-muted-foreground mb-1">Total de Eventos</p>
                            <p className="text-foreground text-3xl font-semibold">{events.length}</p>
                         </div>
-                        <div className="p-3 bg-blue-100 dark:bg-blue-950 rounded-lg">
-                           <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <div className="p-3 bg-primary dark:bg-blue-950 rounded-lg">
+                           <BarChart3 className="w-5 h-5 text-white dark:text-blue-400" />
                         </div>
                      </div>
                   </div>
@@ -255,8 +256,8 @@ export default function App() {
                            <p className="text-sm text-muted-foreground mb-1">Capacidade Total</p>
                            <p className="text-foreground text-3xl font-semibold">{totalCapacity.toLocaleString()}</p>
                         </div>
-                        <div className="p-3 bg-green-100 dark:bg-green-950 rounded-lg">
-                           <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        <div className="p-3 bg-primary dark:bg-green-950 rounded-lg">
+                           <Users className="w-5 h-5 text-white dark:text-green-400" />
                         </div>
                      </div>
                   </div>
@@ -267,8 +268,8 @@ export default function App() {
                            <p className="text-sm text-muted-foreground mb-1">Categorias Ativas</p>
                            <p className="text-foreground text-3xl font-semibold">{categorias.length}</p>
                         </div>
-                        <div className="p-3 bg-purple-100 dark:bg-purple-950 rounded-lg">
-                           <Tag className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <div className="p-3 bg-primary dark:bg-purple-950 rounded-lg">
+                           <Tag className="w-5 h-5 text-white dark:text-purple-400" />
                         </div>
                      </div>
                   </div>
@@ -316,11 +317,20 @@ export default function App() {
 
                   {viewMode === 'grid' && (
                      <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full">
-                        <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto bg-muted">
-                           <TabsTrigger value="all">Todas</TabsTrigger>
+                        <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto bg-primary">
+                           <TabsTrigger
+                              value="all"
+                              className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
+                           >
+                              Todas
+                           </TabsTrigger>
                            {categorias &&
                               categorias.map((categoria) => (
-                                 <TabsTrigger key={categoria.id} value={categoria.nome}>
+                                 <TabsTrigger
+                                    key={categoria.id}
+                                    value={categoria.nome}
+                                    className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
+                                 >
                                     {categoria.nome}
                                  </TabsTrigger>
                               ))}
@@ -332,7 +342,7 @@ export default function App() {
          </header>
 
          {/* Main Content */}
-         <main id="main" className="container mx-auto px-4 py-10">
+         <main id="main" className="container mx-auto px-4 py-10 mb-12">
             {/* {viewMode === 'calendar' ? ( */}
             {/* ) : ( */}
 
@@ -507,6 +517,8 @@ export default function App() {
             </motion.div>
             <MapView events={events} categorias={categorias} locais={locais} onEventClick={handleEventClick} />
          </main>
+
+         <Footer />
 
          {/* Event Form Modal */}
          {showForm && (
