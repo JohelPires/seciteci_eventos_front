@@ -7,6 +7,7 @@ import { EventForm } from '@/components/EventForm'
 import { CalendarView } from '@/components/CalendarView'
 import { EventDetails } from '@/components/EventDetails'
 import { Button } from '@/components/ui/button'
+
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -37,6 +38,7 @@ import {
    AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { set } from 'react-hook-form'
+import { CardSkeleton } from '@/components/CardSkeleton'
 
 export interface Local {
    id: number
@@ -97,6 +99,8 @@ export default function App() {
    const [currentPage, setCurrentPage] = useState(1)
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
+   const [loading, setLoading] = useState<boolean>(true)
+
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
 
@@ -109,9 +113,11 @@ export default function App() {
    useEffect(() => {
       async function fetchData() {
          try {
+            setLoading(true)
             const response = await getEventos()
 
             setEvents(response.eventos)
+            setLoading(false)
          } catch (error) {
             console.log(error)
          }
@@ -329,138 +335,148 @@ export default function App() {
          <main id="main" className="container mx-auto px-4 py-10">
             {/* {viewMode === 'calendar' ? ( */}
             {/* ) : ( */}
-            <>
-               {filteredEvents.length === 0 ? (
-                  <motion.div
-                     initial={{ opacity: 0, scale: 0.95 }}
-                     animate={{ opacity: 1, scale: 1 }}
-                     className="text-center py-20"
-                  >
-                     <div className="max-w-md mx-auto">
-                        <div className="mb-6 w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
-                           <Calendar className="w-10 h-10 text-muted-foreground" />
-                        </div>
-                        <h3 className="mb-2">Nenhum evento encontrado</h3>
-                        <p className="text-muted-foreground mb-6">
-                           {searchTerm || categoryFilter !== 'all'
-                              ? 'Tente ajustar os filtros de busca'
-                              : 'Comece criando seu primeiro evento'}
-                        </p>
-                        {!searchTerm && categoryFilter === 'all' && (
-                           <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
-                              <Plus className="w-4 h-4" />
-                              Criar Primeiro Evento
-                           </Button>
-                        )}
-                     </div>
-                  </motion.div>
-               ) : (
-                  <>
+
+            {loading ? (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                     <CardSkeleton key={i} />
+                  ))}
+               </div>
+            ) : (
+               <>
+                  {filteredEvents.length === 0 ? (
                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center justify-between mb-6"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-center py-20"
                      >
-                        <p className="text-muted-foreground">
-                           {filteredEvents.length} {filteredEvents.length === 1 ? 'evento' : 'eventos'}
-                           {totalPages > 1 && (
-                              <span className="ml-2">
-                                 (Página {currentPage} de {totalPages})
-                              </span>
+                        <div className="max-w-md mx-auto">
+                           <div className="mb-6 w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
+                              <Calendar className="w-10 h-10 text-muted-foreground" />
+                           </div>
+                           <h3 className="mb-2">Nenhum evento encontrado</h3>
+                           <p className="text-muted-foreground mb-6">
+                              {searchTerm || categoryFilter !== 'all'
+                                 ? 'Tente ajustar os filtros de busca'
+                                 : 'Comece criando seu primeiro evento'}
+                           </p>
+                           {!searchTerm && categoryFilter === 'all' && (
+                              <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
+                                 <Plus className="w-4 h-4" />
+                                 Criar Primeiro Evento
+                              </Button>
                            )}
-                        </p>
+                        </div>
                      </motion.div>
-
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        {paginatedEvents.map((event, index) => (
-                           <EventCard
-                              key={event.id}
-                              event={event}
-                              categoria={event.categoria}
-                              local={event.local}
-                              onDelete={handleDeleteEvent}
-                              onEdit={handleEditEvent}
-                              onClick={handleEventClick}
-                              index={index}
-                           />
-                        ))}
-                     </div>
-
-                     {/* Pagination */}
-                     {totalPages > 1 && (
+                  ) : (
+                     <>
                         <motion.div
-                           initial={{ opacity: 0, y: 20 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           className="flex justify-center"
+                           initial={{ opacity: 0 }}
+                           animate={{ opacity: 1 }}
+                           className="flex items-center justify-between mb-6"
                         >
-                           <Pagination>
-                              <PaginationContent>
-                                 <PaginationItem>
-                                    <PaginationPrevious
-                                       href="#main"
-                                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                                       className={
-                                          currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                           <p className="text-muted-foreground">
+                              {filteredEvents.length} {filteredEvents.length === 1 ? 'evento' : 'eventos'}
+                              {totalPages > 1 && (
+                                 <span className="ml-2">
+                                    (Página {currentPage} de {totalPages})
+                                 </span>
+                              )}
+                           </p>
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                           {paginatedEvents.map((event, index) => (
+                              <EventCard
+                                 key={event.id}
+                                 event={event}
+                                 categoria={event.categoria}
+                                 local={event.local}
+                                 onDelete={handleDeleteEvent}
+                                 onEdit={handleEditEvent}
+                                 onClick={handleEventClick}
+                                 index={index}
+                              />
+                           ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                           <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="flex justify-center"
+                           >
+                              <Pagination>
+                                 <PaginationContent>
+                                    <PaginationItem>
+                                       <PaginationPrevious
+                                          href="#main"
+                                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                          className={
+                                             currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                                          }
+                                       />
+                                    </PaginationItem>
+
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                                       // Show first page, last page, current page, and pages around current
+                                       const showPage =
+                                          page === 1 ||
+                                          page === totalPages ||
+                                          (page >= currentPage - 1 && page <= currentPage + 1)
+
+                                       const showEllipsisBefore = page === currentPage - 2 && currentPage > 3
+                                       const showEllipsisAfter =
+                                          page === currentPage + 2 && currentPage < totalPages - 2
+
+                                       if (showEllipsisBefore || showEllipsisAfter) {
+                                          return (
+                                             <PaginationItem key={page}>
+                                                <PaginationEllipsis />
+                                             </PaginationItem>
+                                          )
                                        }
-                                    />
-                                 </PaginationItem>
 
-                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                                    // Show first page, last page, current page, and pages around current
-                                    const showPage =
-                                       page === 1 ||
-                                       page === totalPages ||
-                                       (page >= currentPage - 1 && page <= currentPage + 1)
+                                       if (!showPage) return null
 
-                                    const showEllipsisBefore = page === currentPage - 2 && currentPage > 3
-                                    const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2
-
-                                    if (showEllipsisBefore || showEllipsisAfter) {
                                        return (
                                           <PaginationItem key={page}>
-                                             <PaginationEllipsis />
+                                             <PaginationLink
+                                                onClick={() => {
+                                                   setCurrentPage(page)
+                                                }}
+                                                isActive={currentPage === page}
+                                                className="cursor-pointer"
+                                                href="#main"
+                                             >
+                                                {page}
+                                             </PaginationLink>
                                           </PaginationItem>
                                        )
-                                    }
+                                    })}
 
-                                    if (!showPage) return null
-
-                                    return (
-                                       <PaginationItem key={page}>
-                                          <PaginationLink
-                                             onClick={() => {
-                                                setCurrentPage(page)
-                                             }}
-                                             isActive={currentPage === page}
-                                             className="cursor-pointer"
-                                             href="#main"
-                                          >
-                                             {page}
-                                          </PaginationLink>
-                                       </PaginationItem>
-                                    )
-                                 })}
-
-                                 <PaginationItem>
-                                    <PaginationNext
-                                       href="#main"
-                                       onClick={() => {
-                                          setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                                       }}
-                                       className={
-                                          currentPage === totalPages
-                                             ? 'pointer-events-none opacity-50'
-                                             : 'cursor-pointer'
-                                       }
-                                    />
-                                 </PaginationItem>
-                              </PaginationContent>
-                           </Pagination>
-                        </motion.div>
-                     )}
-                  </>
-               )}
-            </>
+                                    <PaginationItem>
+                                       <PaginationNext
+                                          href="#main"
+                                          onClick={() => {
+                                             setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                                          }}
+                                          className={
+                                             currentPage === totalPages
+                                                ? 'pointer-events-none opacity-50'
+                                                : 'cursor-pointer'
+                                          }
+                                       />
+                                    </PaginationItem>
+                                 </PaginationContent>
+                              </Pagination>
+                           </motion.div>
+                        )}
+                     </>
+                  )}
+               </>
+            )}
             {/* )} */}
             <motion.div
                initial={{ opacity: 0, x: -20 }}
