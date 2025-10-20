@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useRef, useState } from 'react'
-import { MapPin, Video, Globe, Calendar, Clock, Users, X } from 'lucide-react'
+import { useEffect, useRef, useState, useMemo } from 'react'
+import { MapPin, Video, Globe, Calendar, Clock, Users, X, Filter } from 'lucide-react'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { Checkbox } from './ui/checkbox'
 import type { Event, Categoria, Local } from '@/app/page'
 
 interface MapViewProps {
@@ -21,108 +23,95 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
    const [selectedMarkerEvent, setSelectedMarkerEvent] = useState<Event | null>(null)
    const [leafletLoaded, setLeafletLoaded] = useState(false)
 
-   //  const getCategoria = (id: number) => categorias.find((c) => c.id === id)
-   //  const getLocal = (id: number) => locais.find((l) => l.id === id)
+   const today = new Date()
+   const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth())
+   const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear())
+   const [filtroAtivo, setFiltroAtivo] = useState(false)
 
-   // Load Leaflet CSS and JS
+   // -----------------------------
+   // 1️⃣ FILTRAR EVENTOS POR MÊS/ANO
+   // -----------------------------
+   const filteredEvents = useMemo(() => {
+      if (!filtroAtivo) return events // se filtro estiver desativado → mostra tudo
+      return events.filter((event) => {
+         const eventDate = new Date(event.dataInicio)
+         return eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
+      })
+   }, [events, selectedMonth, selectedYear, filtroAtivo])
+
+   // -----------------------------
+   // 2️⃣ CARREGAR LEAFLET
+   // -----------------------------
    useEffect(() => {
-      // Add Leaflet CSS
       const link = document.createElement('link')
       link.rel = 'stylesheet'
       link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
       link.crossOrigin = ''
       document.head.appendChild(link)
 
-      // Load Leaflet JS
       const script = document.createElement('script')
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-      script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
       script.crossOrigin = ''
-      script.onload = () => {
-         setLeafletLoaded(true)
-      }
+      script.onload = () => setLeafletLoaded(true)
       document.head.appendChild(script)
 
       return () => {
-         if (link.parentNode) {
-            link.parentNode.removeChild(link)
-         }
-         if (script.parentNode) {
-            script.parentNode.removeChild(script)
-         }
+         link.remove()
+         script.remove()
       }
    }, [])
 
-   // Initialize map
+   // -----------------------------
+   // 3️⃣ INICIALIZAR MAPA
+   // -----------------------------
    useEffect(() => {
       if (!leafletLoaded || !mapRef.current || mapInstanceRef.current) return
-
       const L = (window as any).L
       if (!L) return
 
-      // Center of Brazil
       const map = L.map(mapRef.current).setView([-15.7942, -47.8822], 4)
-
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+         attribution: '&copy; OpenStreetMap contributors',
          maxZoom: 18,
       }).addTo(map)
 
       mapInstanceRef.current = map
-
-      // Fix map display issues
-      setTimeout(() => {
-         map.invalidateSize()
-      }, 100)
+      setTimeout(() => map.invalidateSize(), 100)
 
       return () => {
-         if (mapInstanceRef.current) {
-            mapInstanceRef.current.remove()
-            mapInstanceRef.current = null
-         }
+         map.remove()
+         mapInstanceRef.current = null
       }
    }, [leafletLoaded])
 
-   // Add markers for events
+   // -----------------------------
+   // 4️⃣ ADICIONAR MARKERS
+   // -----------------------------
    useEffect(() => {
       if (!mapInstanceRef.current || !leafletLoaded) return
-
       const L = (window as any).L
       if (!L) return
 
-      // Clear existing markers
-      markersRef.current.forEach((marker) => marker.remove())
+      markersRef.current.forEach((m) => m.remove())
       markersRef.current = []
 
-      // Get events with locations that have coordinates
-      const eventsWithCoords = events.filter((event) => {
-         const local = event.local
-         return local && local.latitude && local.longitude
-      })
-
+      const eventsWithCoords = filteredEvents.filter(
+         (event) => event.local && event.local.latitude && event.local.longitude
+      )
       if (eventsWithCoords.length === 0) return
 
-      // Create custom icon function
-      const createCustomIcon = (color: string) => {
-         return L.divIcon({
+      const createCustomIcon = (color: string) =>
+         L.divIcon({
             html: `<div style="background-color: ${color}; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
             className: 'custom-marker',
             iconSize: [32, 32],
             iconAnchor: [16, 32],
             popupAnchor: [0, -32],
          })
-      }
 
-      // Add markers
       eventsWithCoords.forEach((event) => {
          const local = event.local
-         //  const categoria = event.categoria
-
-         if (!local || !local.latitude || !local.longitude) return
-
-         // Get color from category
-         const color = event.categoria?.cor.includes('bg-')
+         const color = event.categoria?.cor?.includes('bg-')
             ? {
                  'bg-blue-600': '#2563eb',
                  'bg-slate-700': '#334155',
@@ -134,52 +123,23 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
               }[event.categoria.cor] || '#64748b'
             : '#64748b'
 
-         const marker = L.marker([local.latitude, local.longitude], {
+         const marker = L.marker([local!.latitude, local!.longitude], {
             icon: createCustomIcon(color),
          }).addTo(mapInstanceRef.current)
 
-         const popupContent = `
-        <div style="min-width: 200px;">
-          <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600;">${event.titulo}</h4>
-          <p style="margin: 0 0 8px 0; font-size: 12px; color: #64748b;">${event.descricao.substring(0, 80)}${
-            event.descricao.length > 80 ? '...' : ''
-         }</p>
-          <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 12px;">
-            <span>📅</span>
-            <span>${new Date(event.dataInicio).toLocaleDateString('pt-BR')}</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 12px;">
-            <span>🕐</span>
-            <span>${event.horarioAbertura.substring(11, 16)}</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
-            <span>📍</span>
-            <span>${local.nome}</span>
-          </div>
-        </div>
-      `
-
-         marker.bindPopup(popupContent)
-
-         marker.on('click', () => {
-            setSelectedMarkerEvent(event)
-         })
-
+         marker.on('click', () => setSelectedMarkerEvent(event))
          markersRef.current.push(marker)
       })
 
-      // Fit bounds to show all markers
       if (eventsWithCoords.length > 0) {
-         const bounds = L.latLngBounds(
-            eventsWithCoords.map((event) => {
-               const local = event.local
-               return [local!.latitude, local!.longitude]
-            })
-         )
+         const bounds = L.latLngBounds(eventsWithCoords.map((event) => [event.local!.latitude, event.local!.longitude]))
          mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] })
       }
-   }, [events, leafletLoaded, categorias, locais])
+   }, [filteredEvents, leafletLoaded])
 
+   // -----------------------------
+   // 5️⃣ ÍCONES E UI
+   // -----------------------------
    const getTipoEventoIcon = (tipo: string) => {
       switch (tipo) {
          case 'online':
@@ -191,128 +151,155 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
       }
    }
 
+   const monthOptions = [
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
+   ]
+   const yearOptions = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i)
+
    return (
-      <div className="relative h-[calc(100vh-400px)] min-h-[500px] rounded-lg overflow-hidden border border-border shadow-lg">
-         <div ref={mapRef} className="w-full h-full z-0" />
+      <div className="relative">
+         {/* Header com filtro */}
+         <div className="flex items-center justify-end mb-3 flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+               {/* <Filter className="w-5 h-5 text-primary" /> */}
+               {/* <h2 className="text-lg">Filtro de Mês/Ano</h2> */}
+               <div className="flex items-center gap-2">
+                  <Checkbox
+                     id="ativar-filtro"
+                     checked={filtroAtivo}
+                     onCheckedChange={(checked) => setFiltroAtivo(!!checked)}
+                  />
+                  <label htmlFor="ativar-filtro" className="text-sm cursor-pointer">
+                     Filtrar por mês e ano
+                  </label>
+               </div>
+            </div>
 
-         {/* Event Details Card */}
-         {selectedMarkerEvent &&
-            (() => {
-               const categoria = selectedMarkerEvent.categoria
-               const local = selectedMarkerEvent.local
-               const categoryStyle = selectedMarkerEvent.categoria?.cor || 'bg-slate-600'
+            <div className="flex items-center gap-2">
+               <Select onValueChange={(val) => setSelectedMonth(Number(val))} value={String(selectedMonth)}>
+                  <SelectTrigger className="w-[130px]">
+                     <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     {monthOptions.map((m, i) => (
+                        <SelectItem key={m} value={String(i)}>
+                           {m}
+                        </SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
 
-               return (
-                  <Card className="absolute top-4 right-4 w-80 max-w-[calc(100%-2rem)] shadow-2xl z-[1000] max-h-[calc(100%-2rem)] overflow-auto">
-                     <CardHeader className="relative pb-3">
-                        <Button
-                           variant="ghost"
-                           size="sm"
-                           className="absolute top-2 right-2 h-8 w-8 p-0"
-                           onClick={() => setSelectedMarkerEvent(null)}
-                        >
-                           <X className="h-4 w-4" />
-                        </Button>
-                        <CardTitle className="pr-8">{selectedMarkerEvent.titulo}</CardTitle>
-                        <div className="flex gap-2">
-                           {categoria && (
-                              <Badge className={`${categoryStyle} text-white border-0 w-fit`}>{categoria.nome}</Badge>
-                           )}
+               <Select onValueChange={(val) => setSelectedYear(Number(val))} value={String(selectedYear)}>
+                  <SelectTrigger className="w-[100px]">
+                     <SelectValue placeholder="Ano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     {yearOptions.map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                           {y}
+                        </SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
+            </div>
+         </div>
+
+         {/* MAPA */}
+         <div className="relative h-[calc(100vh-400px)] min-h-[500px] rounded-lg overflow-hidden border border-border shadow-lg">
+            <div ref={mapRef} className="w-full h-full z-0" />
+
+            {/* CARD DO EVENTO SELECIONADO */}
+            {selectedMarkerEvent && (
+               <Card className="absolute top-4 right-4 w-80 shadow-2xl z-[1000] max-h-[calc(100%-2rem)] overflow-auto">
+                  <CardHeader className="relative pb-3">
+                     <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 h-8 w-8 p-0"
+                        onClick={() => setSelectedMarkerEvent(null)}
+                     >
+                        <X className="h-4 w-4" />
+                     </Button>
+                     <CardTitle className="pr-8">{selectedMarkerEvent.titulo}</CardTitle>
+                     <div className="flex gap-2">
+                        {selectedMarkerEvent.categoria && (
                            <Badge
                               className={`${
-                                 selectedMarkerEvent.status === 'publicado'
-                                    ? 'bg-green-600'
-                                    : selectedMarkerEvent.status === 'rascunho'
-                                    ? 'bg-yellow-600'
-                                    : 'bg-red-600'
+                                 selectedMarkerEvent.categoria.cor || 'bg-slate-600'
                               } text-white border-0 w-fit`}
                            >
-                              {selectedMarkerEvent.status}
+                              {selectedMarkerEvent.categoria.nome}
                            </Badge>
-                        </div>
-                     </CardHeader>
-                     <CardContent className="space-y-4">
-                        {selectedMarkerEvent.imagemCapa && (
-                           <img
-                              src={selectedMarkerEvent.imagemCapa}
-                              alt={selectedMarkerEvent.titulo}
-                              className="w-full h-40 object-cover rounded-md"
-                           />
                         )}
-
-                        {/* <p className="text-sm text-muted-foreground">{selectedMarkerEvent.descricao}</p> */}
-
-                        <div className="space-y-2">
-                           <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span>
-                                 {new Date(selectedMarkerEvent.dataInicio).toLocaleDateString('pt-BR', {
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                 })}
-                              </span>
-                           </div>
-
-                           <div className="flex items-center gap-2 text-sm">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              <span>
-                                 {selectedMarkerEvent.horarioAbertura.substring(11, 16)} -{' '}
-                                 {selectedMarkerEvent.horarioEncerramento.substring(11, 16)}
-                              </span>
-                           </div>
-
-                           <div className="flex items-center gap-2 text-sm">
-                              <Users className="w-4 h-4 text-muted-foreground" />
-                              <span>{selectedMarkerEvent.capacidadeMaxima} pessoas</span>
-                           </div>
-
-                           <div className="flex items-center gap-2 text-sm">
-                              {getTipoEventoIcon(selectedMarkerEvent.tipoEvento)}
-                              <span className="capitalize">{selectedMarkerEvent.tipoEvento}</span>
-                           </div>
-
-                           {local && (
-                              <div className="flex items-start gap-2 text-sm">
-                                 <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                                 <div>
-                                    <p>{local.nome}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                       {local.endereco}, {local.numero} - {local.cidade}/{local.estado}
-                                    </p>
-                                 </div>
-                              </div>
-                           )}
+                     </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                     {selectedMarkerEvent.imagemCapa && (
+                        <img
+                           src={selectedMarkerEvent.imagemCapa}
+                           alt={selectedMarkerEvent.titulo}
+                           className="w-full h-40 object-cover rounded-md"
+                        />
+                     )}
+                     <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                           <Calendar className="w-4 h-4 text-muted-foreground" />
+                           <span>
+                              {new Date(selectedMarkerEvent.dataInicio).toLocaleDateString('pt-BR', {
+                                 weekday: 'long',
+                                 year: 'numeric',
+                                 month: 'long',
+                                 day: 'numeric',
+                              })}
+                           </span>
                         </div>
+                        <div className="flex items-center gap-2 text-sm">
+                           <Clock className="w-4 h-4 text-muted-foreground" />
+                           <span>
+                              {selectedMarkerEvent.horarioAbertura.substring(11, 16)} -{' '}
+                              {selectedMarkerEvent.horarioEncerramento.substring(11, 16)}
+                           </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                           <Users className="w-4 h-4 text-muted-foreground" />
+                           <span>{selectedMarkerEvent.capacidadeMaxima} pessoas</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                           {getTipoEventoIcon(selectedMarkerEvent.tipoEvento)}
+                           <span className="capitalize">{selectedMarkerEvent.tipoEvento}</span>
+                        </div>
+                     </div>
+                     <Button onClick={() => onEventClick(selectedMarkerEvent)} className="w-full">
+                        Ver Detalhes Completos
+                     </Button>
+                  </CardContent>
+               </Card>
+            )}
 
-                        <Button onClick={() => onEventClick(selectedMarkerEvent)} className="w-full">
-                           Ver Detalhes Completos
-                        </Button>
-                     </CardContent>
-                  </Card>
-               )
-            })()}
-
-         {/* Info Card */}
-         <Card className="absolute bottom-4 left-4 shadow-xl z-[1000]">
-            <CardContent className="p-4">
-               <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <div>
+            {/* CARD DE INFORMAÇÕES */}
+            <Card className="absolute bottom-4 left-4 shadow-xl z-[1000]">
+               <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                     <MapPin className="w-5 h-5 text-primary" />
                      <p className="text-sm">
-                        {
-                           events.filter((e) => {
-                              const local = e.local
-                              return local && local.latitude && local.longitude
-                           }).length
-                        }{' '}
-                        eventos no mapa
+                        {filteredEvents.filter((e) => e.local && e.local.latitude && e.local.longitude).length} eventos
+                        no mapa
                      </p>
                   </div>
-               </div>
-            </CardContent>
-         </Card>
+               </CardContent>
+            </Card>
+         </div>
       </div>
    )
 }
