@@ -6,6 +6,26 @@ export const getEventos = async () => {
    const res = await fetch(`${API_URL}/api/eventos?status=publicado&limit=1000`)
 
    const data = await res.json()
+
+   // await new Promise((resolve) => setTimeout(resolve, 3000))
+
+   return data
+}
+
+export const getEventosFullQuery = async (
+   categoria: string | null = '',
+   cidade: string | null = '',
+   status: 'publicado' | 'rascunho' | 'cancelado' | null = 'publicado',
+   tipo: 'presencial' | 'online' | 'hibrido' | null = 'presencial',
+   busca: string | null = '',
+   page: number | null = 1,
+   limit: number | null = 10
+) => {
+   const res = await fetch(
+      `${API_URL}/api/eventos?categoria=${categoria}&cidade=${cidade}&status=${status}&tipo=${tipo}&busca=${busca}&page=${page}&limit=${limit}`
+   )
+   const data = await res.json()
+   console.log(data)
    return data
 }
 

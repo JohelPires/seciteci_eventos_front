@@ -130,14 +130,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    /**
     * Lógica para realizar o registro via API (Stub).
     */
-   const register = async (nome: string, email: string, senha: string, userType: 'client' | 'professional') => {
+   const register = async (nome: string, email: string, senha: string) => {
       try {
          const response = await fetch(`${API_URL}/api/auth/register`, {
             method: 'POST',
             headers: {
                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ nome, email, senha, userType }), // Adapte o payload para o seu endpoint de registro
+            body: JSON.stringify({ nome, email, senha }), // Adapte o payload para o seu endpoint de registro
          })
 
          if (!response.ok) {

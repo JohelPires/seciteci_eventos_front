@@ -85,6 +85,10 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
    ]
    const yearOptions = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i)
 
+   function onDayClick(day: number, month: number, year: number) {
+      console.log(day, monthOptions[month], year)
+   }
+
    return (
       <div className="space-y-6">
          {/* Header */}
@@ -165,6 +169,7 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.01 }}
+                        onClick={() => onDayClick(day, month, year)}
                         className={`
                            h-26 p-2 border border-border
                            ${isToday ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50'}

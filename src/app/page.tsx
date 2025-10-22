@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import { Plus, Search, Calendar, BarChart3, Users, Tag, CalendarDays, Map } from 'lucide-react'
 import { Navbar } from '@/components/Navbar'
 import { EventCard } from '@/components/EventCard'
@@ -22,7 +22,7 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { createEvento, getCategorias, getEventos, getLocais } from '@/data/data'
+import { createEvento, getCategorias, getEventos, getEventosFullQuery, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
@@ -40,6 +40,8 @@ import {
 import { set } from 'react-hook-form'
 import { CardSkeleton } from '@/components/CardSkeleton'
 import { Footer } from '@/components/Footer'
+import { useQuery } from '@tanstack/react-query'
+import { get } from 'http'
 
 export interface Local {
    id: number
@@ -102,6 +104,8 @@ export default function App() {
 
    const [loading, setLoading] = useState<boolean>(true)
 
+   const [reload, setReload] = useState(false)
+
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
 
@@ -111,21 +115,30 @@ export default function App() {
    // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
    // const getLocal = (id: number) => locais.find((l) => l.id === id)
 
+   const { data, error, isLoading } = useQuery({ queryKey: ['eventos'], queryFn: getEventos })
+
    useEffect(() => {
-      async function fetchData() {
-         try {
-            setLoading(true)
-            const response = await getEventos()
-
-            setEvents(response.eventos)
-            setLoading(false)
-         } catch (error) {
-            console.log(error)
-         }
+      if (data) {
+         setEvents(data.eventos)
+         // setLoading(false)
       }
+   }, [data])
 
-      fetchData()
-   }, [])
+   // useEffect(() => {
+   //    async function fetchData() {
+   //       try {
+   //          setLoading(true)
+   //          const response = await getEventos()
+
+   //          setEvents(response.eventos)
+   //          setLoading(false)
+   //       } catch (error) {
+   //          console.log(error)
+   //       }
+   //    }
+
+   //    fetchData()
+   // }, [reload])
 
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
@@ -346,7 +359,7 @@ export default function App() {
             {/* {viewMode === 'calendar' ? ( */}
             {/* ) : ( */}
 
-            {loading ? (
+            {isLoading ? (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {Array.from({ length: 3 }).map((_, i) => (
                      <CardSkeleton key={i} />
