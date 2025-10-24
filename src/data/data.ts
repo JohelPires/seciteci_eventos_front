@@ -1,4 +1,4 @@
-import { Event } from '@/app/page'
+import { Categoria, Event } from '@/app/page'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -76,4 +76,42 @@ export const getCategorias = async () => {
 
    const data = await res.json()
    return data.categorias
+}
+
+export async function createCategoria(newCategoria: Omit<Categoria, 'id'>, token: string | null) {
+   const res = await fetch(`${API_URL}/api/categorias`, {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/json',
+         Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(newCategoria),
+   })
+   if (!res.ok) throw new Error('Erro ao criar categoria')
+   return res.json()
+}
+
+export async function updateCategoria(categoria: Categoria, token: string | null) {
+   const res = await fetch(`${API_URL}/api/categorias/${categoria.id}`, {
+      method: 'PUT',
+      headers: {
+         'Content-Type': 'application/json',
+         Authorization: `Bearer ${token}`,
+      },
+
+      body: JSON.stringify(categoria),
+   })
+   if (!res.ok) throw new Error('Erro ao atualizar categoria')
+   return res.json()
+}
+
+export const deleteCategoria = async (id: string, token: string | null) => {
+   const res = await fetch(`${API_URL}/api/categorias/${id}`, {
+      method: 'DELETE',
+      headers: {
+         Authorization: `Bearer ${token}`,
+      },
+   })
+   const data = await res.json()
+   return data
 }

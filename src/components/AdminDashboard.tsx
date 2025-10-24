@@ -300,7 +300,7 @@ export function AdminDashboard({
 
                {/* Categories Tab */}
                <TabsContent value="categories">
-                  <AdminCategorias categorias={categorias} onUpdateCategorias={onUpdateCategorias} events={events} />
+                  <AdminCategorias events={events} />
                </TabsContent>
 
                {/* Locations Tab */}

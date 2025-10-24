@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { use, useState } from 'react'
 import { Plus, Edit, Trash2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -8,18 +8,60 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { toast } from 'sonner'
 import type { Categoria, Event } from '@/app/page'
+import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createCategoria, deleteCategoria, getCategorias, updateCategoria } from '@/data/data'
+import { CardSkeleton } from './CardSkeleton'
+import { useAuth } from '@/context/AuthContext'
 
 interface AdminCategoriasProps {
-   categorias: Categoria[]
+   // categorias: Categoria[]
    events: Event[]
-   onUpdateCategorias: (categorias: Categoria[]) => void
+   // onUpdateCategorias: (categorias: Categoria[]) => void
 }
 
-export function AdminCategorias({ categorias, events, onUpdateCategorias }: AdminCategoriasProps) {
+export function AdminCategorias({ events }: AdminCategoriasProps) {
    const [isDialogOpen, setIsDialogOpen] = useState(false)
    const [editingCategoria, setEditingCategoria] = useState<Categoria | null>(null)
    const [nome, setNome] = useState('')
    const [cor, setCor] = useState('bg-blue-600')
+
+   const { token } = useAuth()
+
+   const queryClient = useQueryClient()
+
+   const { data: categorias, isLoading } = useQuery({
+      queryKey: ['categorias'],
+      queryFn: getCategorias,
+   })
+
+   const createMutation = useMutation({
+      mutationFn: (categoria: { nome: string; cor: string }) => createCategoria(categoria, token),
+
+      onSuccess: () => {
+         queryClient.invalidateQueries({ queryKey: ['categorias'] })
+         toast.success('Categoria criada com sucesso!')
+      },
+   })
+
+   const updateMutation = useMutation({
+      mutationFn: (categoria: Categoria) => updateCategoria(categoria, token),
+      onSuccess: () => {
+         queryClient.invalidateQueries({ queryKey: ['categorias'] })
+         toast.success('Categoria atualizada com sucesso!')
+      },
+   })
+
+   const deleteMutation = useMutation({
+      mutationFn: (id: string) => deleteCategoria(id, token),
+      onSuccess: () => {
+         queryClient.invalidateQueries({ queryKey: ['categorias'] })
+         toast.success('Categoria excluída com sucesso!')
+      },
+   })
+
+   if (isLoading) {
+      return <CardSkeleton />
+   }
 
    const cores = [
       { value: 'bg-blue-600', label: 'Azul' },
@@ -54,16 +96,9 @@ export function AdminCategorias({ categorias, events, onUpdateCategorias }: Admi
       }
 
       if (editingCategoria) {
-         // Edit existing
-         const updated = categorias.map((c) => (c.id === editingCategoria.id ? { ...c, nome, cor } : c))
-         onUpdateCategorias(updated)
-         toast.success('Categoria atualizada com sucesso!')
+         updateMutation.mutate({ ...editingCategoria, nome, cor })
       } else {
-         // Add new
-         const newId = Math.max(...categorias.map((c) => c.id), 0) + 1
-         const newCategoria: Categoria = { id: newId, nome, cor }
-         onUpdateCategorias([...categorias, newCategoria])
-         toast.success('Categoria criada com sucesso!')
+         createMutation.mutate({ nome, cor })
       }
 
       setIsDialogOpen(false)
@@ -78,8 +113,7 @@ export function AdminCategorias({ categorias, events, onUpdateCategorias }: Admi
       }
 
       if (confirm('Tem certeza que deseja excluir esta categoria?')) {
-         onUpdateCategorias(categorias.filter((c) => c.id !== id))
-         toast.success('Categoria excluída com sucesso!')
+         deleteMutation.mutate(String(id))
       }
    }
 
@@ -150,7 +184,7 @@ export function AdminCategorias({ categorias, events, onUpdateCategorias }: Admi
          </CardHeader>
          <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-               {categorias.map((categoria) => (
+               {categorias.map((categoria: Categoria) => (
                   <Card key={categoria.id} className="relative">
                      <CardContent className="p-4">
                         <div className="flex items-start justify-between">
