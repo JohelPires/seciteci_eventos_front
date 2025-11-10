@@ -19,6 +19,10 @@ interface EventFormProps {
 }
 
 export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais }: EventFormProps) {
+   const MAX_DESCRICAO_CHARS = 250 // Aproximadamente 5 linhas
+   const MAX_PUBLICO_ALVO_CHARS = 150 // Aproximadamente 2-3 linhas
+   const MAX_REQUISITOS_CHARS = 150 // Aproximadamente 2-3 linhas
+
    const [formData, setFormData] = useState({
       titulo: '',
       descricao: '',
@@ -63,6 +67,15 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
 
    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault()
+
+      // Validação do limite de caracteres
+      if (
+         formData.descricao.length > MAX_DESCRICAO_CHARS ||
+         formData.publicoAlvo.length > MAX_PUBLICO_ALVO_CHARS ||
+         formData.requisitos.length > MAX_REQUISITOS_CHARS
+      ) {
+         return
+      }
 
       const eventData: Omit<Event, 'id'> = {
          titulo: formData.titulo,
@@ -127,7 +140,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
                            <CalendarIcon className="w-5 h-5 text-primary-foreground" />
                         </div>
                         <div>
-                           <h2>{editingEvent ? 'Editar Evento' : 'Criar Novo Evento'}</h2>
+                           <h2>{editingEvent ? 'Editar Evento' : 'Solicitar Novo Evento'}</h2>
                            <p className="text-sm text-muted-foreground">Preencha os detalhes do evento</p>
                         </div>
                      </div>
@@ -166,7 +179,12 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
 
                      {/* Description - Full Width */}
                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="descricao">Descrição*</Label>
+                        <Label htmlFor="descricao">
+                           Descrição*
+                           <span className="text-xs text-muted-foreground ml-2">
+                              ({formData.descricao.length}/{MAX_DESCRICAO_CHARS})
+                           </span>
+                        </Label>
                         <Textarea
                            id="descricao"
                            placeholder="Descreva os principais pontos do evento..."
@@ -174,8 +192,17 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
                            onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                            required
                            rows={4}
-                           className="resize-none"
+                           className={`resize-none ${
+                              formData.descricao.length > MAX_DESCRICAO_CHARS
+                                 ? 'border-red-500 focus-visible:ring-red-500'
+                                 : ''
+                           }`}
                         />
+                        {formData.descricao.length > MAX_DESCRICAO_CHARS && (
+                           <p className="text-xs text-red-500 mt-1">
+                              A descrição excedeu o limite de {MAX_DESCRICAO_CHARS} caracteres
+                           </p>
+                        )}
                      </div>
 
                      {/* Category */}
@@ -273,7 +300,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
 
                      {/* Capacity */}
                      <div className="space-y-2">
-                        <Label htmlFor="capacidadeMaxima">Capacidade Máxima*</Label>
+                        <Label htmlFor="capacidadeMaxima">Vagas*</Label>
                         <Input
                            id="capacidadeMaxima"
                            type="number"
@@ -345,26 +372,54 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
 
                      {/* Target Audience - Full Width */}
                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="publicoAlvo">Público Alvo</Label>
+                        <Label htmlFor="publicoAlvo">
+                           Público Alvo
+                           <span className="text-xs text-muted-foreground ml-2">
+                              ({formData.publicoAlvo.length}/{MAX_PUBLICO_ALVO_CHARS})
+                           </span>
+                        </Label>
                         <Input
                            id="publicoAlvo"
                            placeholder="Ex: Desenvolvedores iniciantes e intermediários"
                            value={formData.publicoAlvo}
                            onChange={(e) => setFormData({ ...formData, publicoAlvo: e.target.value })}
+                           className={
+                              formData.publicoAlvo.length > MAX_PUBLICO_ALVO_CHARS
+                                 ? 'border-red-500 focus-visible:ring-red-500'
+                                 : ''
+                           }
                         />
+                        {formData.publicoAlvo.length > MAX_PUBLICO_ALVO_CHARS && (
+                           <p className="text-xs text-red-500 mt-1">
+                              O público alvo excedeu o limite de {MAX_PUBLICO_ALVO_CHARS} caracteres
+                           </p>
+                        )}
                      </div>
 
                      {/* Requirements - Full Width */}
                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="requisitos">Requisitos</Label>
-                        <Textarea
+                        <Label htmlFor="requisitos">
+                           Requisitos
+                           <span className="text-xs text-muted-foreground ml-2">
+                              ({formData.requisitos.length}/{MAX_REQUISITOS_CHARS})
+                           </span>
+                        </Label>
+                        <Input
                            id="requisitos"
                            placeholder="Ex: Notebook próprio e conhecimento básico de JavaScript"
                            value={formData.requisitos}
                            onChange={(e) => setFormData({ ...formData, requisitos: e.target.value })}
-                           rows={3}
-                           className="resize-none"
+                           className={
+                              formData.requisitos.length > MAX_REQUISITOS_CHARS
+                                 ? 'border-red-500 focus-visible:ring-red-500'
+                                 : ''
+                           }
                         />
+                        {formData.requisitos.length > MAX_REQUISITOS_CHARS && (
+                           <p className="text-xs text-red-500 mt-1">
+                              Os requisitos excederam o limite de {MAX_REQUISITOS_CHARS} caracteres
+                           </p>
+                        )}
                      </div>
 
                      {/* Image URL - Full Width */}
@@ -386,7 +441,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
                   {/* Action Buttons */}
                   <div className="flex gap-3 pt-4 border-t border-border">
                      <Button type="submit" className="flex-1" size="lg">
-                        {editingEvent ? 'Atualizar Evento' : 'Criar Evento'}
+                        {editingEvent ? 'Atualizar Evento' : 'Solicitar Evento'}
                      </Button>
                      <Button type="button" variant="outline" onClick={onClose} size="lg">
                         Cancelar
