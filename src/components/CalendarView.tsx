@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
 import { Badge } from './ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { motion } from 'framer-motion'
 import type { Event, Categoria, Local } from '@/app/page'
+import { ScrollArea } from '@radix-ui/react-scroll-area'
 
 interface CalendarViewProps {
    events: Event[]
@@ -16,6 +18,7 @@ interface CalendarViewProps {
 
 export function CalendarView({ events, categorias, locais, onEventClick }: CalendarViewProps) {
    const [currentDate, setCurrentDate] = useState(new Date())
+   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null)
 
    const getDaysInMonth = (date: Date) => {
       const year = date.getFullYear()
@@ -143,8 +146,8 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
 
          {/* Calendar Grid */}
          <Card className="p-6">
-            {/* Dias da Semana */}
-            <div className="grid grid-cols-7 gap-2 mb-4">
+            {/* Week Days Header */}
+            <div className="grid grid-cols-7 gap-2 mb-1">
                {weekDays.map((day) => (
                   <div key={day} className="text-center text-sm text-muted-foreground p-2">
                      {day}
@@ -152,57 +155,132 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
                ))}
             </div>
 
-            {/* Dias */}
-            <div className="grid grid-cols-7">
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-2">
+               {/* Empty cells before first day of month */}
                {Array.from({ length: startingDayOfWeek }).map((_, index) => (
-                  <div key={`empty-${index}`} />
+                  <div key={`empty-${index}`} className="" />
                ))}
 
+               {/* Days of the month */}
                {Array.from({ length: daysInMonth }).map((_, index) => {
                   const day = index + 1
                   const dayEvents = getEventsForDay(day)
                   const isToday = isCurrentMonth && day === today.getDate()
 
                   return (
-                     <motion.div
+                     <Popover
                         key={day}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.01 }}
-                        onClick={() => onDayClick(day, month, year)}
-                        className={`
-                           h-26 p-2 border border-border
-                           ${isToday ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50'}
-                           transition-colors cursor-pointer
-                        `}
+                        open={openPopoverId === `day-${day}`}
+                        onOpenChange={(open) => setOpenPopoverId(open ? `day-${day}` : null)}
                      >
-                        <div className="h-full flex flex-col">
-                           <span className={`text-sm mb-2 ${isToday ? 'text-primary' : 'text-foreground'}`}>{day}</span>
-                           <div className="flex-1 space-y-1 overflow-hidden">
-                              {dayEvents.slice(0, 3).map((event) => {
-                                 const categoria = event.categoria
-                                 const categoryStyle = categoria?.cor || 'bg-slate-600'
+                        <PopoverTrigger asChild>
+                           <motion.div
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: index * 0.01 }}
+                              className={`h-32 p-2 rounded-lg border border-border
+                      ${isToday ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50'}
+                      ${dayEvents.length > 0 ? 'cursor-pointer' : ''}
+                      transition-colors
+                    `}
+                           >
+                              <div className="h-full flex flex-col">
+                                 <span className={`text-sm mb-2 ${isToday ? 'text-primary' : 'text-foreground'}`}>
+                                    {day}
+                                 </span>
+                                 <div className="flex-1 space-y-1 overflow-hidden">
+                                    {dayEvents.slice(0, 2).map((event) => {
+                                       const categoria = event.categoria
+                                       const categoryStyle = categoria?.cor || 'bg-slate-600'
 
-                                 return (
-                                    <motion.div
-                                       key={event.id}
-                                       whileHover={{ scale: 1.05 }}
-                                       onClick={() => onEventClick(event)}
-                                    >
-                                       <Badge
-                                          className={`${categoryStyle} text-white border-0 text-xs w-full justify-start truncate cursor-pointer`}
-                                       >
-                                          {event.titulo}
-                                       </Badge>
-                                    </motion.div>
-                                 )
-                              })}
-                              {dayEvents.length > 3 && (
-                                 <p className="text-xs text-muted-foreground">+{dayEvents.length - 3} mais</p>
-                              )}
-                           </div>
-                        </div>
-                     </motion.div>
+                                       return (
+                                          <motion.div
+                                             key={event.id}
+                                             whileHover={{ scale: 1.05 }}
+                                             onClick={(e) => {
+                                                e.stopPropagation()
+                                                onEventClick(event)
+                                                setOpenPopoverId(null)
+                                             }}
+                                          >
+                                             <Badge
+                                                className={`${categoryStyle} text-white border-0 text-xs w-full justify-start truncate cursor-pointer`}
+                                             >
+                                                {event.titulo}
+                                             </Badge>
+                                          </motion.div>
+                                       )
+                                    })}
+                                    {dayEvents.length > 2 && (
+                                       <p className="text-xs text-muted-foreground">+{dayEvents.length - 2} mais</p>
+                                    )}
+                                 </div>
+                              </div>
+                           </motion.div>
+                        </PopoverTrigger>
+
+                        {dayEvents.length > 0 && (
+                           <PopoverContent className="w-80 p-0" align="start" side="right">
+                              <div className="p-4 border-b border-border">
+                                 <h4 className="mb-1">
+                                    {day} de {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}
+                                 </h4>
+                                 <p className="text-sm text-muted-foreground">
+                                    {dayEvents.length} {dayEvents.length === 1 ? 'evento' : 'eventos'}
+                                 </p>
+                              </div>
+                              <ScrollArea className="max-h-[400px] overflow-auto">
+                                 <div className="p-4 space-y-3">
+                                    {dayEvents.map((event) => {
+                                       const categoria = event.categoria
+                                       const local = event.local
+                                       const categoryStyle = categoria?.cor || 'bg-slate-600'
+                                       const startTime = new Date(event.dataInicio).toLocaleTimeString('pt-BR', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                       })
+
+                                       return (
+                                          <motion.div
+                                             key={event.id}
+                                             whileHover={{ scale: 1.02 }}
+                                             className="p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                                             onClick={() => {
+                                                onEventClick(event)
+                                                setOpenPopoverId(null)
+                                             }}
+                                          >
+                                             <div className="space-y-2">
+                                                <div className="flex items-start justify-between gap-2">
+                                                   <h5 className="leading-tight flex-1">{event.titulo}</h5>
+                                                   <Badge
+                                                      className={`${categoryStyle} text-white border-0 text-xs shrink-0`}
+                                                   >
+                                                      {categoria?.nome}
+                                                   </Badge>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                   <div className="flex items-center gap-1">
+                                                      <Clock className="w-3 h-3" />
+                                                      {startTime}
+                                                   </div>
+                                                   {local && (
+                                                      <div className="flex items-center gap-1 truncate">
+                                                         <MapPin className="w-3 h-3 shrink-0" />
+                                                         <span className="truncate">{local.nome}</span>
+                                                      </div>
+                                                   )}
+                                                </div>
+                                             </div>
+                                          </motion.div>
+                                       )
+                                    })}
+                                 </div>
+                              </ScrollArea>
+                           </PopoverContent>
+                        )}
+                     </Popover>
                   )
                })}
             </div>
