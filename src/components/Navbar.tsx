@@ -12,7 +12,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
    const { isAuthenticated, user, logout } = useAuth()
 
    const navItems = [
-      { id: 'home', label: 'Home', icon: Home },
+      // { id: 'home', label: 'Home', icon: Home },
       { id: 'oportunidades', label: 'Oportunidades', icon: Briefcase },
       { id: 'agentes', label: 'Agentes', icon: Users },
       { id: 'eventos', label: 'Eventos', icon: CalendarDays },
@@ -24,7 +24,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
    return (
       <nav className="sticky top-0 z-50 w-full bg-primary pt-1 pb-1 mb-2 shadow-black/40 shadow-2xl">
          <div className="container mx-auto px-4">
-            <div className="flex h-16 items-center justify-between my-3">
+            <div className="flex h-16 items-center justify-between">
                {/* Logo */}
                <motion.div
                   initial={{ opacity: 0, x: -20 }}
@@ -32,39 +32,16 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                   className="flex items-center gap-3"
                >
                   <Image src="/logo-mapasmt-branco.png" alt="EventHub Logo" width={180} height={180} />
-                  {/* 
-                  <div className="hidden sm:block">
-                     <h3 className="leading-none">EventHub</h3>
-                  </div> */}
                </motion.div>
 
-               {/* Desktop Navigation */}
+               {/* Actions: Hamburger Menu + Login (sempre visíveis) */}
                <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="hidden lg:flex items-center gap-1"
+                  className="flex items-center gap-2"
                >
-                  {navItems.map((item) => {
-                     const Icon = item.icon
-                     return (
-                        <button
-                           key={item.id}
-                           onClick={() => setActiveTab(item.id)}
-                           className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors duration-200 ease-in-out ${
-                              activeTab === item.id
-                                 ? 'bg-white text-primary shadow-md' // aba ativa: fundo branco, texto azul e leve sombra
-                                 : 'text-white hover:text-gray-200' // inativa: texto branco, hover cinza claro
-                           }`}
-                        >
-                           <Icon className="w-5 h-5" />
-                           <span className="text-xs">{item.label}</span>
-                        </button>
-                     )
-                  })}
-               </motion.div>
+                  {/* Login Button */}
 
-               {/* Login Button */}
-               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="hidden lg:block">
                   {isAuthenticated ? (
                      <p className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-white text-sm">
                         Olá, {user?.nome}
@@ -74,7 +51,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                               variant="ghost"
                               className="cursor-pointer"
                            >
-                              Admin
+                              Painel
                            </Button>
                         )}
                         <Button onClick={logout} variant="outline" className="cursor-pointer">
@@ -86,23 +63,25 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                         Entrar
                      </Button>
                   )}
-               </motion.div>
-
-               {/* Mobile Menu Button */}
-               <div className="lg:hidden">
-                  <Button variant="ghost" size="sm" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                  {/* Menu Hamburguer */}
+                  <Button
+                     variant="ghost"
+                     size="sm"
+                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                     className="text-white hover:bg-white/10"
+                  >
                      <Menu className="w-5 h-5" />
                   </Button>
-               </div>
+               </motion.div>
             </div>
 
-            {/* Mobile Navigation */}
+            {/* Menu Dropdown (sempre disponível quando hamburguer for clicado) */}
             {mobileMenuOpen && (
                <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="lg:hidden border-t border-border py-4 space-y-2"
+                  className="border-t border-white/20 py-4 space-y-2"
                >
                   {navItems.map((item) => {
                      const Icon = item.icon
@@ -114,9 +93,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                               setMobileMenuOpen(false)
                            }}
                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                              activeTab === item.id
-                                 ? 'bg-primary text-primary-foreground'
-                                 : 'text-foreground hover:bg-muted'
+                              activeTab === item.id ? 'bg-white text-[#143373]' : 'text-white hover:bg-white/10'
                            }`}
                         >
                            <Icon className="w-5 h-5" />
@@ -124,10 +101,6 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                         </button>
                      )
                   })}
-                  <div className="h-px bg-border my-2" />
-                  <Button variant="default" className="w-full bg-slate-800 hover:bg-slate-900">
-                     Entrar
-                  </Button>
                </motion.div>
             )}
          </div>
