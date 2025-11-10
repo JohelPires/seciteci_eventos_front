@@ -154,8 +154,8 @@ export default function App() {
          // setEvents([newEvent, ...events])
          try {
             const data = await createEvento(newEvent, token)
-            toast.success('Evento criado com sucesso!')
-            setAlertMessage('Evento criado com sucesso. Aguarde a aprovação do administrador.')
+            toast.success('Evento solicitado. Aguarde a aprovação do administrador.')
+            setAlertMessage('Evento solicitado. Aguarde a aprovação do administrador.')
             setAlertDialogOpen(true)
          } catch (error) {
             console.log(error)

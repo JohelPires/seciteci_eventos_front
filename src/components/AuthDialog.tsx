@@ -93,7 +93,7 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
             <Tabs defaultValue="login" className="w-full">
                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="login">Entrar</TabsTrigger>
-                  <TabsTrigger value="register">Registrar</TabsTrigger>
+                  <TabsTrigger value="register">Cadastrar</TabsTrigger>
                </TabsList>
 
                {/* Login Tab */}
