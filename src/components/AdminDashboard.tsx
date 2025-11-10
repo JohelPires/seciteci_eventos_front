@@ -148,7 +148,7 @@ export function AdminDashboard({
 
                      <Card>
                         <CardHeader className="pb-3">
-                           <CardDescription>Capacidade Total</CardDescription>
+                           <CardDescription>Vagas Totais</CardDescription>
                            <CardTitle className="text-3xl">{totalCapacity.toLocaleString()}</CardTitle>
                         </CardHeader>
                         <CardContent>

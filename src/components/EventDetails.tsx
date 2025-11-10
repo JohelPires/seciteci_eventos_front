@@ -174,7 +174,7 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                            <Users className="w-5 h-5 text-foreground/70" />
                         </div>
                         <div>
-                           <p className="text-sm text-muted-foreground">Capacidade Máxima</p>
+                           <p className="text-sm text-muted-foreground">Vagas</p>
                            <p className="text-foreground">{event.capacidadeMaxima} pessoas</p>
                         </div>
                      </div>

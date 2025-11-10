@@ -224,7 +224,7 @@ export function AdminLocais({ locais, events, onUpdateLocais }: AdminLocaisProps
                            </div>
 
                            <div className="space-y-2">
-                              <Label htmlFor="capacidade">Capacidade</Label>
+                              <Label htmlFor="capacidade">Vagas</Label>
                               <Input
                                  id="capacidade"
                                  type="number"
@@ -312,9 +312,7 @@ export function AdminLocais({ locais, events, onUpdateLocais }: AdminLocaisProps
                               {local.bairro} • CEP: {local.cep}
                            </p>
                            <div className="flex items-center justify-between pt-2 mt-2 border-t">
-                              <span className="text-xs text-muted-foreground">
-                                 Capacidade: {local.capacidade} pessoas
-                              </span>
+                              <span className="text-xs text-muted-foreground">Vagas: {local.capacidade} pessoas</span>
                               <span className="text-xs text-muted-foreground">{getEventCount(local.id)} eventos</span>
                            </div>
                         </div>
