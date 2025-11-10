@@ -42,6 +42,7 @@ import { CardSkeleton } from '@/components/CardSkeleton'
 import { Footer } from '@/components/Footer'
 import { useQuery } from '@tanstack/react-query'
 import { get } from 'http'
+import { Separator } from '@radix-ui/react-select'
 
 export interface Local {
    id: number
@@ -230,7 +231,7 @@ export default function App() {
                      </div>
                      <div>
                         <h1 className="text-2xl font-semibold">Eventos</h1>
-                        <p className="text-muted-foreground">Eventos da Seciteci no Estado do Mato Grosso</p>
+                        <p className="text-muted-foreground">Eventos realizados ou apoiados pela SECITECI</p>
                      </div>
                   </motion.div>
 
@@ -238,7 +239,7 @@ export default function App() {
                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                         <Button onClick={() => setShowForm(true)} size="lg" className="gap-2 shadow-sm">
                            <Plus className="w-5 h-5" />
-                           Novo Evento
+                           Solicitar Cadastro de Evento
                         </Button>
                      </motion.div>
                   )}
@@ -266,7 +267,7 @@ export default function App() {
                   <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
                      <div className="flex items-center justify-between">
                         <div>
-                           <p className="text-sm text-muted-foreground mb-1">Capacidade Total</p>
+                           <p className="text-sm text-muted-foreground mb-1">Vagas totais</p>
                            <p className="text-foreground text-3xl font-semibold">{totalCapacity.toLocaleString()}</p>
                         </div>
                         <div className="p-3 bg-primary dark:bg-green-950 rounded-lg">
@@ -335,7 +336,7 @@ export default function App() {
                               value="all"
                               className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
                            >
-                              Todas
+                              Todas as categorias
                            </TabsTrigger>
                            {categorias &&
                               categorias.map((categoria) => (
@@ -358,7 +359,6 @@ export default function App() {
          <main id="main" className="container mx-auto px-4 py-10 mb-12">
             {/* {viewMode === 'calendar' ? ( */}
             {/* ) : ( */}
-
             {isLoading ? (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {Array.from({ length: 3 }).map((_, i) => (
@@ -386,7 +386,7 @@ export default function App() {
                            {!searchTerm && categoryFilter === 'all' && (
                               <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
                                  <Plus className="w-4 h-4" />
-                                 Criar Primeiro Evento
+                                 Solicite um cadastro de evento
                               </Button>
                            )}
                         </div>
@@ -501,6 +501,7 @@ export default function App() {
                </>
             )}
             {/* )} */}
+            <div className="h-0.5 mt-10 mb-5 bg-gray-200 rounded-2xl"></div>
             <motion.div
                initial={{ opacity: 0, x: -20 }}
                animate={{ opacity: 1, x: 0 }}
@@ -515,10 +516,11 @@ export default function App() {
                </div>
             </motion.div>
             <CalendarView events={events} categorias={categorias} locais={locais} onEventClick={handleEventClick} />
+            <div className="h-0.5 mt-10 mb-5 bg-gray-200 rounded-2xl"></div>
             <motion.div
                initial={{ opacity: 0, x: -20 }}
                animate={{ opacity: 1, x: 0 }}
-               className="flex items-center gap-4 my-9"
+               className="flex items-center gap-4"
             >
                <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
                   <Map className="w-7 h-7 text-primary-foreground" />
