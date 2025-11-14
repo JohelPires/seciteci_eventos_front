@@ -70,16 +70,31 @@ export interface Event {
    titulo: string
    descricao: string
    categoriaId: number
-   localId: number
-   local: Local | null
    categoria: Categoria | null
+   organizadorId?: number
    dataInicio: string
    dataFim: string
-   horarioAbertura: string
-   horarioEncerramento: string
+   horarioAbertura?: string | undefined
+   horarioEncerramento?: string | undefined
    capacidadeMaxima: number
+   vagasDisponiveis?: number
    tipoEvento: 'presencial' | 'online' | 'hibrido'
    linkOnline?: string
+   LocalLinkGoogleMaps?: string
+   LocalNome?: string
+   LocalEndereco?: string
+   LocalNumero?: string
+   LocalComplemento?: string
+   LocalBairro?: string
+   LocalCidade?: string
+   LocalEstado?: string
+   LocalCep?: string
+   LocalPais?: string
+   LocalCapacidade?: number
+   LocalLatitude?: string
+   LocalLongitude?: string
+   LocalObservacoes?: string
+   linkPaginaEvento?: string
    imagemCapa?: string
    status: 'rascunho' | 'publicado' | 'cancelado'
    publicoAlvo?: string
@@ -414,7 +429,7 @@ export default function App() {
                                  key={event.id}
                                  event={event}
                                  categoria={event.categoria}
-                                 local={event.local}
+                                 // local={event.local}
                                  onDelete={handleDeleteEvent}
                                  onEdit={handleEditEvent}
                                  onClick={handleEventClick}
@@ -515,7 +530,7 @@ export default function App() {
                   <p className="text-muted-foreground">Veja todos os eventos no calendário</p>
                </div>
             </motion.div>
-            <CalendarView events={events} categorias={categorias} locais={locais} onEventClick={handleEventClick} />
+            <CalendarView events={events} categorias={categorias} onEventClick={handleEventClick} />
             <div className="h-0.5 mt-10 mb-5 bg-gray-200 rounded-2xl"></div>
             <motion.div
                initial={{ opacity: 0, x: -20 }}
@@ -530,7 +545,7 @@ export default function App() {
                   <p className="text-muted-foreground">Veja todos os eventos distribuidos no mapa</p>
                </div>
             </motion.div>
-            <MapView events={events} categorias={categorias} locais={locais} onEventClick={handleEventClick} />
+            <MapView events={events} categorias={categorias} onEventClick={handleEventClick} />
          </main>
 
          <Footer />
@@ -542,7 +557,7 @@ export default function App() {
                onClose={handleCloseForm}
                editingEvent={editingEvent}
                categorias={categorias}
-               locais={locais}
+               // locais={locais}
             />
          )}
 
@@ -551,7 +566,7 @@ export default function App() {
             <EventDetails
                event={selectedEvent}
                categoria={selectedEvent.categoria}
-               local={selectedEvent.local}
+               // local={selectedEvent.local}
                onClose={handleCloseEventDetails}
                onEdit={handleEditEvent}
                onDelete={handleDeleteEvent}
