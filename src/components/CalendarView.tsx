@@ -12,11 +12,11 @@ import { ScrollArea } from '@radix-ui/react-scroll-area'
 interface CalendarViewProps {
    events: Event[]
    categorias: Categoria[]
-   locais: Local[]
+   // locais: Local[]
    onEventClick: (event: Event) => void
 }
 
-export function CalendarView({ events, categorias, locais, onEventClick }: CalendarViewProps) {
+export function CalendarView({ events, categorias, onEventClick }: CalendarViewProps) {
    const [currentDate, setCurrentDate] = useState(new Date())
    const [openPopoverId, setOpenPopoverId] = useState<string | null>(null)
 
@@ -234,7 +234,7 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
                                  <div className="p-4 space-y-3">
                                     {dayEvents.map((event) => {
                                        const categoria = event.categoria
-                                       const local = event.local
+                                       // const local = event.local
                                        const categoryStyle = categoria?.cor || 'bg-slate-600'
                                        const startTime = new Date(event.dataInicio).toLocaleTimeString('pt-BR', {
                                           hour: '2-digit',
@@ -265,12 +265,11 @@ export function CalendarView({ events, categorias, locais, onEventClick }: Calen
                                                       <Clock className="w-3 h-3" />
                                                       {startTime}
                                                    </div>
-                                                   {local && (
-                                                      <div className="flex items-center gap-1 truncate">
-                                                         <MapPin className="w-3 h-3 shrink-0" />
-                                                         <span className="truncate">{local.nome}</span>
-                                                      </div>
-                                                   )}
+
+                                                   <div className="flex items-center gap-1 truncate">
+                                                      <MapPin className="w-3 h-3 shrink-0" />
+                                                      <span className="truncate">{event.LocalNome}</span>
+                                                   </div>
                                                 </div>
                                              </div>
                                           </motion.div>
