@@ -122,98 +122,102 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
    }
 
    return (
-      <Card>
-         <CardHeader>
-            <div className="flex items-center justify-between">
-               <div>
-                  <CardTitle>Gerenciar Categorias</CardTitle>
-                  <CardDescription>Adicione, edite ou remova categorias de eventos</CardDescription>
+      <div className="min-h-screen">
+         <Card>
+            <CardHeader>
+               <div className="flex items-center justify-between">
+                  <div>
+                     <CardTitle>Gerenciar Categorias</CardTitle>
+                     <CardDescription>Adicione, edite ou remova categorias de eventos</CardDescription>
+                  </div>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                     <DialogTrigger asChild>
+                        <Button onClick={() => handleOpenDialog()} className="gap-2">
+                           <Plus className="w-4 h-4" />
+                           Nova Categoria
+                        </Button>
+                     </DialogTrigger>
+                     <DialogContent>
+                        <DialogHeader>
+                           <DialogTitle>{editingCategoria ? 'Editar Categoria' : 'Nova Categoria'}</DialogTitle>
+                           <DialogDescription>Preencha os dados da categoria</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                           <div className="space-y-2">
+                              <Label htmlFor="nome">Nome da Categoria*</Label>
+                              <Input
+                                 id="nome"
+                                 placeholder="Ex: Tecnologia"
+                                 value={nome}
+                                 onChange={(e) => setNome(e.target.value)}
+                              />
+                           </div>
+                           <div className="space-y-2">
+                              <Label htmlFor="cor">Cor</Label>
+                              <Select value={cor} onValueChange={setCor}>
+                                 <SelectTrigger id="cor">
+                                    <SelectValue />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                    {cores.map((c) => (
+                                       <SelectItem key={c.value} value={c.value}>
+                                          <div className="flex items-center gap-2">
+                                             <div className={`w-4 h-4 rounded-full ${c.value}`} />
+                                             {c.label}
+                                          </div>
+                                       </SelectItem>
+                                    ))}
+                                 </SelectContent>
+                              </Select>
+                           </div>
+                           <div className="flex gap-2 pt-4">
+                              <Button onClick={handleSave} className="flex-1">
+                                 {editingCategoria ? 'Atualizar' : 'Criar'}
+                              </Button>
+                              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                                 Cancelar
+                              </Button>
+                           </div>
+                        </div>
+                     </DialogContent>
+                  </Dialog>
                </div>
-               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                     <Button onClick={() => handleOpenDialog()} className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        Nova Categoria
-                     </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                     <DialogHeader>
-                        <DialogTitle>{editingCategoria ? 'Editar Categoria' : 'Nova Categoria'}</DialogTitle>
-                        <DialogDescription>Preencha os dados da categoria</DialogDescription>
-                     </DialogHeader>
-                     <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                           <Label htmlFor="nome">Nome da Categoria*</Label>
-                           <Input
-                              id="nome"
-                              placeholder="Ex: Tecnologia"
-                              value={nome}
-                              onChange={(e) => setNome(e.target.value)}
-                           />
-                        </div>
-                        <div className="space-y-2">
-                           <Label htmlFor="cor">Cor</Label>
-                           <Select value={cor} onValueChange={setCor}>
-                              <SelectTrigger id="cor">
-                                 <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                 {cores.map((c) => (
-                                    <SelectItem key={c.value} value={c.value}>
-                                       <div className="flex items-center gap-2">
-                                          <div className={`w-4 h-4 rounded-full ${c.value}`} />
-                                          {c.label}
-                                       </div>
-                                    </SelectItem>
-                                 ))}
-                              </SelectContent>
-                           </Select>
-                        </div>
-                        <div className="flex gap-2 pt-4">
-                           <Button onClick={handleSave} className="flex-1">
-                              {editingCategoria ? 'Atualizar' : 'Criar'}
-                           </Button>
-                           <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                              Cancelar
-                           </Button>
-                        </div>
-                     </div>
-                  </DialogContent>
-               </Dialog>
-            </div>
-         </CardHeader>
-         <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-               {categorias.map((categoria: Categoria) => (
-                  <Card key={categoria.id} className="relative">
-                     <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                           <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg ${categoria.cor} flex-shrink-0`} />
-                              <div>
-                                 <h4 className="font-medium">{categoria.nome}</h4>
-                                 <p className="text-sm text-muted-foreground">{getEventCount(categoria.id)} eventos</p>
+            </CardHeader>
+            <CardContent>
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {categorias.map((categoria: Categoria) => (
+                     <Card key={categoria.id} className="relative">
+                        <CardContent className="p-4">
+                           <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-3">
+                                 <div className={`w-8 h-8 rounded-lg ${categoria.cor} flex-shrink-0`} />
+                                 <div>
+                                    <h4 className="font-medium">{categoria.nome}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                       {getEventCount(categoria.id)} eventos
+                                    </p>
+                                 </div>
+                              </div>
+                              <div className="flex gap-1">
+                                 <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(categoria)}>
+                                    <Edit className="w-4 h-4" />
+                                 </Button>
+                                 <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(categoria.id)}
+                                    className="text-destructive hover:text-destructive"
+                                 >
+                                    <Trash2 className="w-4 h-4" />
+                                 </Button>
                               </div>
                            </div>
-                           <div className="flex gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(categoria)}>
-                                 <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                 variant="ghost"
-                                 size="sm"
-                                 onClick={() => handleDelete(categoria.id)}
-                                 className="text-destructive hover:text-destructive"
-                              >
-                                 <Trash2 className="w-4 h-4" />
-                              </Button>
-                           </div>
-                        </div>
-                     </CardContent>
-                  </Card>
-               ))}
-            </div>
-         </CardContent>
-      </Card>
+                        </CardContent>
+                     </Card>
+                  ))}
+               </div>
+            </CardContent>
+         </Card>
+      </div>
    )
 }
