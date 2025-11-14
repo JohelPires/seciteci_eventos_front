@@ -1,4 +1,4 @@
-import { X, Calendar, MapPin, FileText, Target, Video, Globe, Clock, Users, Edit, Trash2 } from 'lucide-react'
+import { X, Calendar, MapPin, FileText, Target, Video, Globe, Clock, Users, Edit, Trash2, Link } from 'lucide-react'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -8,15 +8,17 @@ import { useAuth } from '@/context/AuthContext'
 interface EventDetailsProps {
    event: Event
    categoria?: Categoria | null
-   local?: Local | null
+   // local?: Local | null
    onClose: () => void
    onEdit: (event: Event) => void
    onDelete: (id: string) => void
 }
 
-export function EventDetails({ event, categoria, local, onClose, onEdit, onDelete }: EventDetailsProps) {
+export function EventDetails({ event, categoria, onClose, onEdit, onDelete }: EventDetailsProps) {
    const { isAuthenticated, user, logout } = useAuth()
    const categoryStyle = categoria?.cor || 'bg-slate-600'
+
+   console.log(event)
 
    const getStatusBadge = (status: string) => {
       const styles = {
@@ -38,7 +40,10 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
       }
    }
 
-   const formatTime = (timeString: string) => {
+   const formatTime = (timeString: string | undefined) => {
+      if (!timeString) {
+         return ''
+      }
       return timeString.substring(11, 16) // HH:MM
    }
 
@@ -134,18 +139,6 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                         </div>
                      </div>
 
-                     {/* <div className="flex items-start gap-3">
-                        <div className="p-2.5 rounded-lg bg-muted">
-                           <Clock className="w-5 h-5 text-foreground/70" />
-                        </div>
-                        <div>
-                           <p className="text-sm text-muted-foreground">Horário de Abertura/Encerramento</p>
-                           <p className="text-foreground">
-                              {formatTime(event.horarioAbertura)} - {formatTime(event.horarioEncerramento)}
-                           </p>
-                        </div>
-                     </div> */}
-
                      <div className="flex items-start gap-3">
                         <div className="p-2.5 rounded-lg bg-muted">{getTipoEventoIcon(event.tipoEvento)}</div>
                         <div>
@@ -153,21 +146,6 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                            <p className="text-foreground capitalize">{event.tipoEvento}</p>
                         </div>
                      </div>
-
-                     {local && (
-                        <div className="flex items-start gap-3 md:col-span-2">
-                           <div className="p-2.5 rounded-lg bg-muted">
-                              <MapPin className="w-5 h-5 text-foreground/70" />
-                           </div>
-                           <div>
-                              <p className="text-sm text-muted-foreground">Local</p>
-                              <p className="text-foreground">{local.nome}</p>
-                              <p className="text-sm text-muted-foreground">
-                                 {local.endereco}, {local.numero} - {local.bairro}, {local.cidade}/{local.estado}
-                              </p>
-                           </div>
-                        </div>
-                     )}
 
                      <div className="flex items-start gap-3">
                         <div className="p-2.5 rounded-lg bg-muted">
@@ -178,6 +156,36 @@ export function EventDetails({ event, categoria, local, onClose, onEdit, onDelet
                            <p className="text-foreground">{event.capacidadeMaxima} pessoas</p>
                         </div>
                      </div>
+
+                     {event && (
+                        <div className="flex items-start gap-3 md:col-span-2">
+                           <div className="p-2.5 rounded-lg bg-muted">
+                              <MapPin className="w-5 h-5 text-foreground/70" />
+                           </div>
+                           <div>
+                              <p className="text-sm text-muted-foreground">Local</p>
+                              <p className="text-foreground">{event.LocalNome}</p>
+                              <p className="text-sm text-muted-foreground">
+                                 {event.LocalEndereco}, {event.LocalNumero} - {event.LocalBairro}, {event.LocalCidade}/
+                                 {event.LocalEstado}
+                              </p>
+                           </div>
+                        </div>
+                     )}
+
+                     {event.linkPaginaEvento && (
+                        <div className="flex items-start gap-3">
+                           <div className="p-2.5 rounded-lg bg-muted">
+                              <Link className="w-5 h-5 text-foreground/70" />
+                           </div>
+                           <div>
+                              <p className="text-sm text-muted-foreground">Link da página</p>
+                              <a href={event.linkPaginaEvento} target="_blank" rel="noopener noreferrer">
+                                 <p className="text-foreground">{event.linkPaginaEvento}</p>
+                              </a>
+                           </div>
+                        </div>
+                     )}
 
                      {event.linkOnline && (
                         <div className="flex items-start gap-3 md:col-span-2">
