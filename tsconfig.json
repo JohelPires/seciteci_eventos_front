@@ -32,7 +32,8 @@
       "src/components/ui/chart.tsx.del",
       "src/components/ui/resizable.tsx.del",
       "src/components/ui/input-otp.tsx.del",
-      "next.config.mjs"
+      "next.config.mjs",
+      "src/components/EventForm2.tsx.old"
    ],
    "exclude": ["node_modules"]
 }
