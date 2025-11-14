@@ -11,7 +11,7 @@ import type { Event, Categoria, Local } from '@/app/page'
 interface AdminEventosProps {
    events: Event[]
    categorias: Categoria[]
-   locais: Local[]
+   // locais: Local[]
    onEditEvent: (event: Event) => void
    onDeleteEvent: (id: string) => void
    onPublicarEvent: (id: string) => void
@@ -20,7 +20,7 @@ interface AdminEventosProps {
 export function AdminEventos({
    events,
    categorias,
-   locais,
+   // locais,
    onEditEvent,
    onDeleteEvent,
    onPublicarEvent,
@@ -29,7 +29,7 @@ export function AdminEventos({
    const [statusFilter, setStatusFilter] = useState('all')
 
    const getCategoria = (id: number) => categorias.find((c) => c.id === id)
-   const getLocal = (id: number) => locais.find((l) => l.id === id)
+   // const getLocal = (id: number) => locais.find((l) => l.id === id)
 
    const filteredEvents = events.filter((event) => {
       const matchesSearch =
@@ -107,7 +107,7 @@ export function AdminEventos({
                      ) : (
                         filteredEvents.map((event) => {
                            const categoria = getCategoria(event.categoriaId)
-                           const local = getLocal(event.localId)
+                           // const local = getLocal(event.localId)
 
                            return (
                               <TableRow key={event.id}>
@@ -119,7 +119,7 @@ export function AdminEventos({
                                        year: 'numeric',
                                     })}
                                  </TableCell>
-                                 <TableCell>{local ? `${local.nome}` : 'N/A'}</TableCell>
+                                 <TableCell>local</TableCell>
                                  <TableCell>
                                     {categoria && (
                                        <div className="flex items-center gap-2">
