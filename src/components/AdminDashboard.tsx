@@ -5,19 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { AdminEventos } from './AdminEventos'
 import { AdminCategorias } from './AdminCategorias'
-import { AdminLocais } from './AdminLocais'
+// import { AdminLocais } from './AdminLocais'
 import { motion } from 'framer-motion'
 import type { Event, Categoria, Local } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
+import { Footer } from './Footer'
+import { AdminUsuarios } from './AdminUsuarios'
 
 interface AdminDashboardProps {
    events: Event[]
    categorias: Categoria[]
-   locais: Local[]
+   // locais: Local[]
    onLogout: () => void
    onUpdateEvents: (events: Event[]) => void
    onUpdateCategorias: (categorias: Categoria[]) => void
-   onUpdateLocais: (locais: Local[]) => void
+   // onUpdateLocais: (locais: Local[]) => void
    onEditEvent: (event: Event) => void
    onDeleteEvent: (id: string) => void
    onPublicarEvent: (id: string) => void
@@ -26,11 +28,11 @@ interface AdminDashboardProps {
 export function AdminDashboard({
    events,
    categorias,
-   locais,
+   // locais,
    onLogout,
    onUpdateEvents,
    onUpdateCategorias,
-   onUpdateLocais,
+   // onUpdateLocais,
    onEditEvent,
    onDeleteEvent,
    onPublicarEvent,
@@ -69,7 +71,7 @@ export function AdminDashboard({
    return (
       <div className="min-h-screen bg-background">
          {/* Admin Header */}
-         <header className="border-b border-border bg-card shadow-sm">
+         <header className="border-b border-border bg-card shadow-sm bg-primary">
             <div className="container mx-auto px-4 py-4">
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -77,37 +79,51 @@ export function AdminDashboard({
                         <Settings className="w-6 h-6 text-primary-foreground" />
                      </div>
                      <div>
-                        <h1 className="text-xl">Eventos Seciteci - Painel Administrativo</h1>
-                        <p className="text-sm text-muted-foreground">Gerenciamento da Plataforma</p>
+                        <h1 className="text-xl text-white">Eventos Seciteci - Painel Administrativo</h1>
+                        <p className="text-sm text-white/50">Gerenciamento da Plataforma</p>
                      </div>
                   </div>
-                  {/* <p>Bem-vindo, {user?.nome}</p> */}
-                  <Button variant="outline" onClick={() => (window.location.href = '/')} className="gap-2">
-                     <LogOut className="w-4 h-4" />
-                     Sair
-                  </Button>
+                  <div className="flex items-center gap-3">
+                     <p className="text-sm text-white">Bem-vindo, {user?.nome}</p>
+                     <Button variant="outline" onClick={() => (window.location.href = '/')} className="gap-2">
+                        <LogOut className="w-4 h-4" />
+                        Sair
+                     </Button>
+                  </div>
                </div>
             </div>
          </header>
 
          <div className="container mx-auto px-4 py-8">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-               <TabsList className="mb-8">
-                  <TabsTrigger value="overview" className="gap-2">
+               <TabsList className="mb-8 bg-primary w-full">
+                  <TabsTrigger
+                     value="overview"
+                     className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
+                  >
                      <Activity className="w-4 h-4" />
                      Visão Geral
                   </TabsTrigger>
-                  <TabsTrigger value="events" className="gap-2">
+                  <TabsTrigger
+                     value="events"
+                     className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
+                  >
                      <Calendar className="w-4 h-4" />
                      Eventos
                   </TabsTrigger>
-                  <TabsTrigger value="categories" className="gap-2">
+                  <TabsTrigger
+                     value="locations"
+                     className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
+                  >
+                     <Users className="w-4 h-4" />
+                     Usuários
+                  </TabsTrigger>
+                  <TabsTrigger
+                     value="categories"
+                     className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
+                  >
                      <Tag className="w-4 h-4" />
                      Categorias
-                  </TabsTrigger>
-                  <TabsTrigger value="locations" className="gap-2">
-                     <MapPin className="w-4 h-4" />
-                     Locais
                   </TabsTrigger>
                </TabsList>
 
@@ -167,7 +183,7 @@ export function AdminDashboard({
                         <CardContent>
                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Tag className="w-4 h-4" />
-                              <span>{locais.length} locais cadastrados</span>
+                              {/* <span>{locais.length} locais cadastrados</span> */}
                            </div>
                         </CardContent>
                      </Card>
@@ -185,15 +201,15 @@ export function AdminDashboard({
                               <CardTitle>Eventos por Status</CardTitle>
                            </CardHeader>
                            <CardContent className="space-y-3">
-                              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-sky-950/30 rounded-lg">
                                  <span className="text-sm">Publicados</span>
                                  <span className="font-semibold">{publishedEvents}</span>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
+                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-yellow-950/30 rounded-lg">
                                  <span className="text-sm">Rascunhos</span>
                                  <span className="font-semibold">{draftEvents}</span>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-red-950/30 rounded-lg">
                                  <span className="text-sm">Cancelados</span>
                                  <span className="font-semibold">{cancelledEvents}</span>
                               </div>
@@ -212,15 +228,15 @@ export function AdminDashboard({
                               <CardTitle>Eventos por Tipo</CardTitle>
                            </CardHeader>
                            <CardContent className="space-y-3">
-                              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-blue-950/30 rounded-lg">
                                  <span className="text-sm">Presencial</span>
                                  <span className="font-semibold">{eventsByType.presencial}</span>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-purple-950/30 rounded-lg">
                                  <span className="text-sm">Online</span>
                                  <span className="font-semibold">{eventsByType.online}</span>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-teal-50 dark:bg-teal-950/30 rounded-lg">
+                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-teal-950/30 rounded-lg">
                                  <span className="text-sm">Híbrido</span>
                                  <span className="font-semibold">{eventsByType.hibrido}</span>
                               </div>
@@ -291,10 +307,31 @@ export function AdminDashboard({
                   <AdminEventos
                      events={events}
                      categorias={categorias}
-                     locais={locais}
+                     // locais={locais}
                      onEditEvent={onEditEvent}
                      onDeleteEvent={onDeleteEvent}
                      onPublicarEvent={onPublicarEvent}
+                  />
+               </TabsContent>
+
+               {/* Usuários Tab */}
+               <TabsContent value="locations">
+                  {/* <AdminLocais locais={locais} onUpdateLocais={onUpdateLocais} events={events} /> */}
+                  <AdminUsuarios
+                     usuarios={[
+                        {
+                           id: '1',
+                           nome: 'Teste',
+                           email: 'teste@email.com',
+                           tipo: 'admin',
+                           status: 'ativo',
+                           dataCadastro: 'string',
+                           ultimoAcesso: 'strin',
+                        },
+                     ]}
+                     onEditUsuario={() => {}}
+                     onDeleteUsuario={() => {}}
+                     onToggleStatus={() => {}}
                   />
                </TabsContent>
 
@@ -302,13 +339,9 @@ export function AdminDashboard({
                <TabsContent value="categories">
                   <AdminCategorias events={events} />
                </TabsContent>
-
-               {/* Locations Tab */}
-               <TabsContent value="locations">
-                  <AdminLocais locais={locais} onUpdateLocais={onUpdateLocais} events={events} />
-               </TabsContent>
             </Tabs>
          </div>
+         <Footer />
       </div>
    )
 }
