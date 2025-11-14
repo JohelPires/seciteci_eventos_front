@@ -12,11 +12,11 @@ import type { Event, Categoria, Local } from '@/app/page'
 interface MapViewProps {
    events: Event[]
    categorias: Categoria[]
-   locais: Local[]
+   // locais: Local[]
    onEventClick: (event: Event) => void
 }
 
-export function MapView({ events, categorias, locais, onEventClick }: MapViewProps) {
+export function MapView({ events, categorias, onEventClick }: MapViewProps) {
    const mapRef = useRef<HTMLDivElement>(null)
    const mapInstanceRef = useRef<any>(null)
    const markersRef = useRef<any[]>([])
@@ -96,7 +96,7 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
       markersRef.current = []
 
       const eventsWithCoords = filteredEvents.filter(
-         (event) => event.local && event.local.latitude && event.local.longitude
+         (event) => event.LocalNome && event.LocalLatitude && event.LocalLongitude
       )
       if (eventsWithCoords.length === 0) return
 
@@ -110,7 +110,7 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
          })
 
       eventsWithCoords.forEach((event) => {
-         const local = event.local
+         // const local = event.local
          const color = event.categoria?.cor?.includes('bg-')
             ? {
                  'bg-blue-600': '#2563eb',
@@ -123,7 +123,7 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
               }[event.categoria.cor] || '#64748b'
             : '#64748b'
 
-         const marker = L.marker([local!.latitude, local!.longitude], {
+         const marker = L.marker([event.LocalLatitude, event.LocalLongitude], {
             icon: createCustomIcon(color),
          }).addTo(mapInstanceRef.current)
 
@@ -132,7 +132,7 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
       })
 
       if (eventsWithCoords.length > 0) {
-         const bounds = L.latLngBounds(eventsWithCoords.map((event) => [event.local!.latitude, event.local!.longitude]))
+         const bounds = L.latLngBounds(eventsWithCoords.map((event) => [event.LocalLatitude, event.LocalLongitude]))
          mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] })
       }
    }, [filteredEvents, leafletLoaded])
@@ -267,8 +267,8 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
                         <div className="flex items-center gap-2 text-sm">
                            <Clock className="w-4 h-4 text-muted-foreground" />
                            <span>
-                              {selectedMarkerEvent.horarioAbertura.substring(11, 16)} -{' '}
-                              {selectedMarkerEvent.horarioEncerramento.substring(11, 16)}
+                              {selectedMarkerEvent.horarioAbertura?.substring(11, 16)} -{' '}
+                              {selectedMarkerEvent.horarioEncerramento?.substring(11, 16)}
                            </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
@@ -293,8 +293,8 @@ export function MapView({ events, categorias, locais, onEventClick }: MapViewPro
                   <div className="flex items-center gap-2">
                      <MapPin className="w-5 h-5 text-primary" />
                      <p className="text-sm">
-                        {filteredEvents.filter((e) => e.local && e.local.latitude && e.local.longitude).length} eventos
-                        no mapa
+                        {filteredEvents.filter((e) => e.LocalNome && e.LocalLatitude && e.LocalLongitude).length}{' '}
+                        eventos no mapa
                      </p>
                   </div>
                </CardContent>
