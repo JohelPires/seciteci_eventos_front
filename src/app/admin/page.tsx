@@ -39,47 +39,9 @@ import {
 import { set } from 'react-hook-form'
 import { AdminDashboard } from '@/components/AdminDashboard'
 
-export interface Local {
-   id: number
-   nome: string
-   endereco: string
-   numero: string
-   complemento?: string
-   bairro: string
-   cidade: string
-   estado: string
-   cep: string
-   capacidade: number
-   latitude: number
-   longitude: number
-}
-
-export interface Categoria {
-   id: number
-   nome: string
-   cor: string
-}
-
-export interface Event {
-   id: string
-   titulo: string
-   descricao: string
-   categoriaId: number
-   localId: number
-   local: Local | null
-   categoria: Categoria | null
-   dataInicio: string
-   dataFim: string
-   horarioAbertura: string
-   horarioEncerramento: string
-   capacidadeMaxima: number
-   tipoEvento: 'presencial' | 'online' | 'hibrido'
-   linkOnline?: string
-   imagemCapa?: string
-   status: 'rascunho' | 'publicado' | 'cancelado'
-   publicoAlvo?: string
-   requisitos?: string
-}
+import { Event } from '@/app/page'
+import { Categoria } from '@/app/page'
+// import { Local } from '@/app/page'
 
 // const categorias: Categoria[] = await getCategorias()
 // console.log(categorias)
@@ -101,7 +63,7 @@ export default function App() {
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
    const [categorias, setCategorias] = useState<Categoria[]>([])
-   const [locais, setLocais] = useState<Local[]>([])
+   // const [locais, setLocais] = useState<Local[]>([])
 
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
@@ -141,19 +103,19 @@ export default function App() {
       fetchData()
    }, [reload])
 
-   useEffect(() => {
-      async function fetchData() {
-         try {
-            const response = await getLocais()
+   // useEffect(() => {
+   //    async function fetchData() {
+   //       try {
+   //          const response = await getLocais()
 
-            setLocais(response)
-         } catch (error) {
-            console.log(error)
-         }
-      }
+   //          setLocais(response)
+   //       } catch (error) {
+   //          console.log(error)
+   //       }
+   //    }
 
-      fetchData()
-   }, [reload])
+   //    fetchData()
+   // }, [reload])
 
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
@@ -163,8 +125,13 @@ export default function App() {
          toast.success('Evento atualizado com sucesso!')
          setEditingEvent(null)
       } else {
+         const horarioAbertura = eventData.horarioAbertura ?? ''
+         const horarioEncerramento = eventData.horarioEncerramento ?? ''
          const newEvent: Event = {
             ...eventData,
+            status: 'rascunho',
+            horarioAbertura,
+            horarioEncerramento,
             id: Date.now().toString(),
          }
          // setEvents([newEvent, ...events])
@@ -187,6 +154,11 @@ export default function App() {
    }
 
    const handleEditEvent = (event: Event) => {
+      if (!event.horarioAbertura) {
+         // handle the case where horarioAbertura is undefined
+         // for example, you could set it to an empty string
+         event.horarioAbertura = ''
+      }
       setEditingEvent(event)
       setShowForm(true)
    }
@@ -240,11 +212,10 @@ export default function App() {
          <AdminDashboard
             events={events}
             categorias={categorias}
-            locais={locais}
             onLogout={logout}
             onUpdateEvents={setEvents}
             onUpdateCategorias={setCategorias}
-            onUpdateLocais={setLocais}
+            // onUpdateLocais={setLocais}
             onEditEvent={handleEditEvent}
             onDeleteEvent={handleDeleteEvent}
             onPublicarEvent={handlePublicarEvent}
@@ -255,7 +226,7 @@ export default function App() {
                onClose={handleCloseForm}
                editingEvent={editingEvent}
                categorias={categorias}
-               locais={locais}
+               // locais={locais}
             />
          )}
       </>
