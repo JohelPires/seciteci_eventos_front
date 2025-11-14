@@ -41,7 +41,10 @@ export function EventCard({
       })
    }
 
-   const formatTime = (timeString: string) => {
+   const formatTime = (timeString: string | undefined) => {
+      if (!timeString) {
+         return ''
+      }
       return timeString.substring(11, 16) // HH:MM
    }
 
@@ -158,8 +161,8 @@ export function EventCard({
                      <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">Local</p>
                         <p className="text-foreground truncate">
-                           {event.local
-                              ? `${event.local.nome} - ${event.local.cidade}, ${event.local.estado}`
+                           {event.LocalNome
+                              ? `${event.LocalNome} - ${event.LocalCidade}, ${event.LocalEstado}`
                               : 'Local não especificado'}
                         </p>
                      </div>
