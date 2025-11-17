@@ -318,17 +318,17 @@ export function AdminDashboard({
                <TabsContent value="locations">
                   {/* <AdminLocais locais={locais} onUpdateLocais={onUpdateLocais} events={events} /> */}
                   <AdminUsuarios
-                     usuarios={[
-                        {
-                           id: '1',
-                           nome: 'Teste',
-                           email: 'teste@email.com',
-                           tipo: 'admin',
-                           status: 'ativo',
-                           dataCadastro: 'string',
-                           ultimoAcesso: 'strin',
-                        },
-                     ]}
+                     // usuarios={[
+                     //    {
+                     //       id: '1',
+                     //       nome: 'Teste',
+                     //       email: 'teste@email.com',
+                     //       tipo: 'admin',
+                     //       status: 'ativo',
+                     //       dataCadastro: 'string',
+                     //       ultimoAcesso: 'strin',
+                     //    },
+                     // ]}
                      onEditUsuario={() => {}}
                      onDeleteUsuario={() => {}}
                      onToggleStatus={() => {}}

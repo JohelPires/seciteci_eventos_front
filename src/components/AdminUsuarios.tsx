@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import { Edit, Trash2, Search, Check, X, User, Mail, Calendar } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -6,6 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from './ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { useQuery } from '@tanstack/react-query'
+import { getUsuarios } from '@/data/data'
+import { useAuth } from '@/context/AuthContext'
 
 export interface Usuario {
    id: string
@@ -18,16 +21,31 @@ export interface Usuario {
 }
 
 interface AdminUsuariosProps {
-   usuarios: Usuario[]
+   // usuarios: Usuario[]
    onEditUsuario: (usuario: Usuario) => void
    onDeleteUsuario: (id: string) => void
    onToggleStatus: (id: string) => void
 }
 
-export function AdminUsuarios({ usuarios, onEditUsuario, onDeleteUsuario, onToggleStatus }: AdminUsuariosProps) {
+export function AdminUsuarios({ onEditUsuario, onDeleteUsuario, onToggleStatus }: AdminUsuariosProps) {
    const [searchTerm, setSearchTerm] = useState('')
    const [tipoFilter, setTipoFilter] = useState<string>('all')
    const [statusFilter, setStatusFilter] = useState<string>('all')
+   const [usuarios, setUsuarios] = useState<Usuario[]>([])
+
+   const { user, token } = useAuth()
+
+   const { data, error, isLoading } = useQuery({
+      queryKey: ['Usuarios', { token, search: searchTerm }],
+      queryFn: getUsuarios,
+   })
+
+   useEffect(() => {
+      if (data) {
+         setUsuarios(data.usuarios)
+         console.log(data.usuarios)
+      }
+   }, [data])
 
    // Filter usuarios based on search term and filters
    const filteredUsuarios = usuarios.filter((usuario) => {

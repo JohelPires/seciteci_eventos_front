@@ -115,3 +115,15 @@ export const deleteCategoria = async (id: string, token: string | null) => {
    const data = await res.json()
    return data
 }
+
+export const getUsuarios = async ({ queryKey }: { queryKey: [string, { token: string | null; search: string }] }) => {
+   if (queryKey[1].token === null) return { erro: 'Nao autorizado' }
+   const [_key, { token, search }] = queryKey
+   const res = await fetch(`${API_URL}/api/usuarios`, {
+      headers: {
+         Authorization: `Bearer ${token}`,
+      },
+   })
+   const data = await res.json()
+   return data
+}
