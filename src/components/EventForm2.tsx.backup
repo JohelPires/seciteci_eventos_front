@@ -348,7 +348,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, locais 
                                  <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                 <SelectItem value="rascunho">Rascunho</SelectItem>
+                                 <SelectItem value="rascunho">Pendente</SelectItem>
                                  <SelectItem value="publicado">Publicado</SelectItem>
                                  <SelectItem value="cancelado">Cancelado</SelectItem>
                               </SelectContent>

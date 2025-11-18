@@ -65,6 +65,17 @@ export const editEvento = async (id: string, eventData: Partial<Event>, token: s
    return data
 }
 
+export const deleteEvento = async (id: string, token: string | null) => {
+   const res = await fetch(`${API_URL}/api/eventos/${id}`, {
+      method: 'DELETE',
+      headers: {
+         Authorization: `Bearer ${token}`,
+      },
+   })
+   const data = await res.json()
+   return data
+}
+
 export const getLocais = async () => {
    const res = await fetch(`${API_URL}/api/locais`)
    const data = await res.json()

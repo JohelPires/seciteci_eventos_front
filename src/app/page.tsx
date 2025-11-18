@@ -22,7 +22,7 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { createEvento, getCategorias, getEventos, getEventosFullQuery, getLocais } from '@/data/data'
+import { createEvento, deleteEvento, getCategorias, getEventos, getEventosFullQuery, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
@@ -179,8 +179,15 @@ export default function App() {
       setShowForm(false)
    }
 
-   const handleDeleteEvent = (id: string) => {
-      setEvents(events.filter((e) => e.id !== id))
+   const handleDeleteEvent = async (id: string) => {
+      // setEvents(events.filter((e) => e.id !== id))
+      try {
+         const data = await deleteEvento(id, token)
+      } catch (error) {
+         if (error instanceof Error) {
+            toast.error(error.message)
+         }
+      }
       toast.success('Evento excluído com sucesso!')
    }
 

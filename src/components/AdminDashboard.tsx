@@ -41,6 +41,10 @@ export function AdminDashboard({
 
    const { user } = useAuth()
 
+   if (!user) {
+      return <div>Não autenticado</div>
+   }
+
    // Statistics
    const totalEvents = events.length
    const publishedEvents = events.filter((e) => e.status === 'publicado').length
@@ -206,7 +210,7 @@ export function AdminDashboard({
                                  <span className="font-semibold">{publishedEvents}</span>
                               </div>
                               <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-yellow-950/30 rounded-lg">
-                                 <span className="text-sm">Rascunhos</span>
+                                 <span className="text-sm">Pendentes</span>
                                  <span className="font-semibold">{draftEvents}</span>
                               </div>
                               <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-red-950/30 rounded-lg">

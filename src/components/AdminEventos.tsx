@@ -7,6 +7,7 @@ import { Badge } from './ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import type { Event, Categoria, Local } from '@/app/page'
+import { useAuth } from '@/context/AuthContext'
 
 interface AdminEventosProps {
    events: Event[]
@@ -27,6 +28,8 @@ export function AdminEventos({
 }: AdminEventosProps) {
    const [searchTerm, setSearchTerm] = useState('')
    const [statusFilter, setStatusFilter] = useState('all')
+
+   const { user, token } = useAuth()
 
    const getCategoria = (id: number) => categorias.find((c) => c.id === id)
    // const getLocal = (id: number) => locais.find((l) => l.id === id)
@@ -77,7 +80,7 @@ export function AdminEventos({
                   <SelectContent>
                      <SelectItem value="all">Todos os Status</SelectItem>
                      <SelectItem value="publicado">Publicado</SelectItem>
-                     <SelectItem value="rascunho">Rascunho</SelectItem>
+                     <SelectItem value="rascunho">Pendente</SelectItem>
                      <SelectItem value="cancelado">Cancelado</SelectItem>
                   </SelectContent>
                </Select>
@@ -130,7 +133,7 @@ export function AdminEventos({
                                  </TableCell>
                                  <TableCell>
                                     <Badge className={`${getStatusColor(event.status)} text-white border-0`}>
-                                       {event.status}
+                                       {event.status === 'rascunho' ? 'pendente' : event.status}
                                     </Badge>
                                  </TableCell>
                                  <TableCell className="capitalize">{event.tipoEvento}</TableCell>
