@@ -8,9 +8,9 @@ export function Footer() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                {/* Sobre */}
                <div>
-                  <div className="flex items-center gap-3 mb-4">
+                  {/* <div className="flex items-center gap-3 mb-4">
                      <Image src="/logo-mapasmt-branco.png" alt="MapasMT" width={180} height={180} />
-                  </div>
+                  </div> */}
                   <div className="flex items-center gap-3 mb-4">
                      <Image src="/layout_set_logo.png" alt="Seciteci" width={180} height={180} />
                   </div>
