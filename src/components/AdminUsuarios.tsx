@@ -115,7 +115,7 @@ export function AdminUsuarios({ onEditUsuario, onDeleteUsuario, onToggleStatus }
                      className="pl-10"
                   />
                </div>
-               <Select value={tipoFilter} onValueChange={setTipoFilter}>
+               {/* <Select value={tipoFilter} onValueChange={setTipoFilter}>
                   <SelectTrigger className="w-full sm:w-[180px]">
                      <SelectValue placeholder="Filtrar por tipo" />
                   </SelectTrigger>
@@ -136,7 +136,7 @@ export function AdminUsuarios({ onEditUsuario, onDeleteUsuario, onToggleStatus }
                      <SelectItem value="inativo">Inativo</SelectItem>
                      <SelectItem value="pendente">Pendente</SelectItem>
                   </SelectContent>
-               </Select>
+               </Select> */}
             </div>
 
             {/* Table */}
@@ -146,8 +146,8 @@ export function AdminUsuarios({ onEditUsuario, onDeleteUsuario, onToggleStatus }
                      <TableRow>
                         <TableHead>Usuário</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Status</TableHead>
+                        {/* <TableHead>Tipo</TableHead> */}
+                        {/* <TableHead>Status</TableHead> */}
                         <TableHead>Data de Cadastro</TableHead>
                         <TableHead>Último Acesso</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
@@ -175,7 +175,7 @@ export function AdminUsuarios({ onEditUsuario, onDeleteUsuario, onToggleStatus }
                                     {usuario.email}
                                  </div>
                               </TableCell>
-                              <TableCell>
+                              {/* <TableCell>
                                  <Badge className={`${getTipoColor(usuario.tipo)} text-white border-0`}>
                                     {getTipoLabel(usuario.tipo)}
                                  </Badge>
@@ -184,7 +184,7 @@ export function AdminUsuarios({ onEditUsuario, onDeleteUsuario, onToggleStatus }
                                  <Badge className={`${getStatusColor(usuario.status)} text-white border-0`}>
                                     {usuario.status}
                                  </Badge>
-                              </TableCell>
+                              </TableCell> */}
                               <TableCell>
                                  <div className="flex items-center gap-2">
                                     <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -211,7 +211,7 @@ export function AdminUsuarios({ onEditUsuario, onDeleteUsuario, onToggleStatus }
                               </TableCell>
                               <TableCell className="text-right">
                                  <div className="flex items-center justify-end gap-2">
-                                    <Button
+                                    {/* <Button
                                        variant="outline"
                                        size="sm"
                                        onClick={() => onToggleStatus(usuario.id)}
@@ -223,7 +223,7 @@ export function AdminUsuarios({ onEditUsuario, onDeleteUsuario, onToggleStatus }
                                           <Check className="w-4 h-4" />
                                        )}
                                        {usuario.status === 'ativo' ? 'Desativar' : 'Ativar'}
-                                    </Button>
+                                    </Button> */}
                                     <Button variant="ghost" size="sm" onClick={() => onEditUsuario(usuario)}>
                                        <Edit className="w-4 h-4" />
                                     </Button>

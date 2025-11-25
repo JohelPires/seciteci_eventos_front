@@ -31,7 +31,16 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-3"
                >
-                  <Image src="/logo-mapasmt-branco.png" alt="EventHub Logo" width={180} height={180} />
+                  {/* <Image src="/logo-mapasmt-branco.png" alt="EventHub Logo" width={180} height={180} /> */}
+                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+                     <MapPin className="w-6 h-6 text-[#143373]" />
+                  </div>
+                  <div className="flex flex-col">
+                     <h1 className="text-2xl font-bold text-white">CONECTE-SE</h1>
+                     <p className="text-xs text-white/80">
+                        SECITECI - Secretaria de Estado de Ciência, Tecnologia e Inovação.
+                     </p>
+                  </div>
                </motion.div>
 
                {/* Actions: Hamburger Menu + Login (sempre visíveis) */}

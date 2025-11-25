@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import type { Event, Categoria, Local } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
+import { cancelarEvento } from '@/data/data'
 
 interface AdminEventosProps {
    events: Event[]
@@ -16,6 +17,7 @@ interface AdminEventosProps {
    onEditEvent: (event: Event) => void
    onDeleteEvent: (id: string) => void
    onPublicarEvent: (id: string) => void
+   onCancelarEvent: (id: string) => void
 }
 
 export function AdminEventos({
@@ -25,6 +27,7 @@ export function AdminEventos({
    onEditEvent,
    onDeleteEvent,
    onPublicarEvent,
+   onCancelarEvent,
 }: AdminEventosProps) {
    const [searchTerm, setSearchTerm] = useState('')
    const [statusFilter, setStatusFilter] = useState('all')
@@ -144,7 +147,7 @@ export function AdminEventos({
                                              <Globe className="w-4 h-4" /> Publicar
                                           </Button>
                                        ) : (
-                                          <Button variant="outline" size="sm" onClick={() => onPublicarEvent(event.id)}>
+                                          <Button variant="outline" size="sm" onClick={() => onCancelarEvent(event.id)}>
                                              <CircleX className="w-4 h-4" /> Cancelar
                                           </Button>
                                        )}

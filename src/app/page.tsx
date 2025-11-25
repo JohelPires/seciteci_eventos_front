@@ -43,6 +43,7 @@ import { Footer } from '@/components/Footer'
 import { useQuery } from '@tanstack/react-query'
 import { get } from 'http'
 import { Separator } from '@radix-ui/react-select'
+import Image from 'next/image'
 
 export interface Local {
    id: number
@@ -238,6 +239,23 @@ export default function App() {
          {/* Navigation Bar */}
          <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
 
+         <header className="border-b border-border bg-card bg-gray-50">
+            <div className="container mx-auto px-4 py-6">
+               <div className="flex justify-center mb-4">
+                  <img className="rounded-xl shadow-2xl" src="/conecte-se.webp" alt="" />
+               </div>
+               <p className="text-justify text-xl py-3 text-gray-600">
+                  O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologia e Inovação no Estado de
+                  Mato Grosso. Existe uma comunidade muito ativa neste segmento, com uma grande produção de eventos como
+                  seminários, simpósios, congressos, encontros e outras atividades. Diante disso, a SECITECI conta com
+                  uma ferramenta de consulta e divulgação das ações das diversas instituições e atores do ecossistema de
+                  ciência, tecnologia e inovação em Mato Grosso.{' '}
+               </p>
+            </div>
+         </header>
+
+         {/* Divider
+         <div className="h-0.5 mt-10 mb-5 bg-gray-200 rounded-2xl"></div> */}
          {/* Header */}
          <header className="border-b border-border bg-card">
             <div className="container mx-auto px-4 py-6">
@@ -415,7 +433,7 @@ export default function App() {
                      </motion.div>
                   ) : (
                      <>
-                        <motion.div
+                        {/* <motion.div
                            initial={{ opacity: 0 }}
                            animate={{ opacity: 1 }}
                            className="flex items-center justify-between mb-6"
@@ -428,7 +446,7 @@ export default function App() {
                                  </span>
                               )}
                            </p>
-                        </motion.div>
+                        </motion.div> */}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                            {paginatedEvents.map((event, index) => (
@@ -523,6 +541,7 @@ export default function App() {
                </>
             )}
             {/* )} */}
+            {/* Divider */}
             <div className="h-0.5 mt-10 mb-5 bg-gray-200 rounded-2xl"></div>
             <motion.div
                initial={{ opacity: 0, x: -20 }}

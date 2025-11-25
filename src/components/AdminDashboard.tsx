@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart3, Calendar, MapPin, Tag, Users, Settings, LogOut, Activity, TrendingUp } from 'lucide-react'
+import { BarChart3, Calendar, MapPin, Tag, Users, Settings, LogOut, Activity, TrendingUp, Map } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
@@ -11,6 +11,7 @@ import type { Event, Categoria, Local } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
 import { Footer } from './Footer'
 import { AdminUsuarios } from './AdminUsuarios'
+import { MapView } from './MapView'
 
 interface AdminDashboardProps {
    events: Event[]
@@ -23,6 +24,7 @@ interface AdminDashboardProps {
    onEditEvent: (event: Event) => void
    onDeleteEvent: (id: string) => void
    onPublicarEvent: (id: string) => void
+   onCancelarEvent: (id: string) => void
 }
 
 export function AdminDashboard({
@@ -36,8 +38,10 @@ export function AdminDashboard({
    onEditEvent,
    onDeleteEvent,
    onPublicarEvent,
+   onCancelarEvent,
 }: AdminDashboardProps) {
    const [activeTab, setActiveTab] = useState('overview')
+   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
 
    const { user } = useAuth()
 
@@ -67,15 +71,19 @@ export function AdminDashboard({
       hibrido: events.filter((e) => e.tipoEvento === 'hibrido').length,
    }
 
+   const handleEventClick = (event: Event) => {
+      setSelectedEvent(event)
+   }
+
    // Recent events (last 5)
    const recentEvents = [...events]
       .sort((a, b) => new Date(b.dataInicio).getTime() - new Date(a.dataInicio).getTime())
-      .slice(0, 5)
+      .slice(0, 4)
 
    return (
       <div className="min-h-screen bg-background">
          {/* Admin Header */}
-         <header className="border-b border-border bg-card shadow-sm bg-primary">
+         <header className="border-b border-border shadow-sm bg-primary">
             <div className="container mx-auto px-4 py-4">
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -98,7 +106,7 @@ export function AdminDashboard({
             </div>
          </header>
 
-         <div className="container mx-auto px-4 py-8">
+         <div className="container mx-auto px-4 py-8 min-h-screen">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                <TabsList className="mb-8 bg-primary w-full">
                   <TabsTrigger
@@ -288,7 +296,7 @@ export function AdminDashboard({
                            <CardContent className="space-y-3">
                               {recentEvents.length > 0 ? (
                                  recentEvents.map((event) => (
-                                    <div key={event.id} className="p-3 border border-border rounded-lg">
+                                    <div key={event.id} className="p-1 border-b">
                                        <p className="font-medium text-sm">{event.titulo}</p>
                                        <p className="text-xs text-muted-foreground mt-1">
                                           {new Date(event.dataInicio).toLocaleDateString('pt-BR')}
@@ -315,6 +323,7 @@ export function AdminDashboard({
                      onEditEvent={onEditEvent}
                      onDeleteEvent={onDeleteEvent}
                      onPublicarEvent={onPublicarEvent}
+                     onCancelarEvent={onCancelarEvent}
                   />
                </TabsContent>
 
@@ -345,6 +354,25 @@ export function AdminDashboard({
                </TabsContent>
             </Tabs>
          </div>
+
+         <section className="container mx-auto px-4 mb-12">
+            <div className="h-0.5 mt-5 mb-5 bg-gray-200 rounded-2xl"></div>
+            <motion.div
+               initial={{ opacity: 0, x: -20 }}
+               animate={{ opacity: 1, x: 0 }}
+               className="flex items-center gap-4"
+            >
+               <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
+                  <Map className="w-7 h-7 text-primary-foreground" />
+               </div>
+               <div>
+                  <h1 className="text-2xl font-semibold">Mapa dos Eventos</h1>
+                  <p className="text-muted-foreground">Veja todos os eventos distribuidos no mapa</p>
+               </div>
+            </motion.div>
+            <MapView events={events} categorias={categorias} onEventClick={handleEventClick} />
+         </section>
+
          <Footer />
       </div>
    )

@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
 import {
+   cancelarEvento,
    createEvento,
    deleteEvento,
    editEvento,
@@ -169,6 +170,18 @@ export default function App() {
       toast.success('Evento excluído com sucesso!')
    }
 
+   async function handleCancelarEvento(id: string) {
+      if (!token) return alert('Você não está autenticado!')
+
+      try {
+         await cancelarEvento(id, token)
+         toast.success('Evento cancelado com sucesso!')
+         setReload(!reload)
+      } catch (err) {
+         toast.error('Erro ao cancelar evento!')
+      }
+   }
+
    const handleEditEvent = (event: Event) => {
       if (!event.horarioAbertura) {
          // handle the case where horarioAbertura is undefined
@@ -235,6 +248,7 @@ export default function App() {
             onEditEvent={handleEditEvent}
             onDeleteEvent={handleDeleteEvent}
             onPublicarEvent={handlePublicarEvent}
+            onCancelarEvent={handleCancelarEvento}
          />
          {showForm && (
             <EventForm

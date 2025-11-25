@@ -67,6 +67,81 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
       requisitos: '',
    })
 
+   // Função para extrair coordenadas do link do Google Maps
+   const extractCoordinatesFromGoogleMaps = (url: string) => {
+      if (!url) return { latitude: '', longitude: '' }
+
+      try {
+         // Padrão 1: maps.google.com/?q=lat,lng
+         const qParamMatch = url.match(/[?&]q=([-]?\d+\.\d+),([-]?\d+\.\d+)/)
+         if (qParamMatch) {
+            return {
+               latitude: qParamMatch[1],
+               longitude: qParamMatch[2],
+            }
+         }
+
+         // Padrão 2: google.com/maps/place/@lat,lng
+         const placeMatch = url.match(/@([-]?\d+\.\d+),([-]?\d+\.\d+)/)
+         if (placeMatch) {
+            return {
+               latitude: placeMatch[1],
+               longitude: placeMatch[2],
+            }
+         }
+
+         // Padrão 3: google.com/maps?ll=lat,lng
+         const llParamMatch = url.match(/[?&]ll=([-]?\d+\.\d+),([-]?\d+\.\d+)/)
+         if (llParamMatch) {
+            return {
+               latitude: llParamMatch[1],
+               longitude: llParamMatch[2],
+            }
+         }
+
+         // Padrão 4: maps.app.goo.gl (short URL) - precisamos obter a URL completa
+         if (url.includes('maps.app.goo.gl')) {
+            // Em uma aplicação real, você pode querer fazer uma requisição para obter a URL completa
+            // Por enquanto, vamos apenas retornar vazio
+            console.log('URL encurtada detectada. Em produção, considere expandir a URL para extrair coordenadas.')
+            return { latitude: '', longitude: '' }
+         }
+
+         return { latitude: '', longitude: '' }
+      } catch (error) {
+         console.error('Erro ao extrair coordenadas do Google Maps:', error)
+         return { latitude: '', longitude: '' }
+      }
+   }
+
+   // Função para lidar com a mudança do link do Google Maps
+   const handleGoogleMapsLinkChange = (url: string) => {
+      setFormData((prev) => ({ ...prev, LocalLinkGoogleMaps: url }))
+
+      // Extrair coordenadas automaticamente
+      const coordinates = extractCoordinatesFromGoogleMaps(url)
+      if (coordinates.latitude && coordinates.longitude) {
+         setFormData((prev) => ({
+            ...prev,
+            LocalLinkGoogleMaps: url,
+            LocalLatitude: coordinates.latitude,
+            LocalLongitude: coordinates.longitude,
+         }))
+      }
+   }
+
+   // Função para validar e formatar coordenadas manualmente
+   const handleCoordinateChange = (field: 'LocalLatitude' | 'LocalLongitude', value: string) => {
+      // Permitir apenas números, ponto decimal e sinal negativo
+      const cleanedValue = value.replace(/[^\d.-]/g, '')
+
+      // Validar formato de coordenada
+      const coordinateRegex = /^-?\d+(\.\d+)?$/
+      if (cleanedValue === '' || coordinateRegex.test(cleanedValue)) {
+         setFormData((prev) => ({ ...prev, [field]: cleanedValue }))
+      }
+   }
+
    useEffect(() => {
       if (editingEvent) {
          setFormData({
@@ -401,7 +476,6 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
 
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               {/* Start Date */}
-                              {/* Start Date */}
                               <div className="space-y-2">
                                  <Label htmlFor="dataInicio">Data de Início*</Label>
                                  <Input
@@ -635,28 +709,6 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  />
                               </div>
 
-                              {/* Local Latitude */}
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalLatitude">Latitude</Label>
-                                 <Input
-                                    id="LocalLatitude"
-                                    placeholder="Ex: -23.550520"
-                                    value={formData.LocalLatitude}
-                                    onChange={(e) => setFormData({ ...formData, LocalLatitude: e.target.value })}
-                                 />
-                              </div>
-
-                              {/* Local Longitude */}
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalLongitude">Longitude</Label>
-                                 <Input
-                                    id="LocalLongitude"
-                                    placeholder="Ex: -46.633309"
-                                    value={formData.LocalLongitude}
-                                    onChange={(e) => setFormData({ ...formData, LocalLongitude: e.target.value })}
-                                 />
-                              </div>
-
                               {/* Local Observations - Full Width */}
                               <div className="space-y-2 md:col-span-2">
                                  <Label htmlFor="LocalObservacoes">Observações sobre o Local</Label>
@@ -733,17 +785,56 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
 
                               {/* Google Maps Link */}
                               <div className="space-y-2">
-                                 <Label htmlFor="LocalLinkGoogleMaps">Link do Google Maps</Label>
+                                 <Label htmlFor="LocalLinkGoogleMaps" className="flex items-center gap-2">
+                                    <LinkIcon className="w-4 h-4" />
+                                    Link do Google Maps
+                                 </Label>
                                  <Input
                                     id="LocalLinkGoogleMaps"
                                     type="url"
-                                    placeholder="https://maps.google.com/..."
+                                    placeholder="https://maps.google.com/?q=-23.550520,-46.633309"
                                     value={formData.LocalLinkGoogleMaps}
-                                    onChange={(e) => setFormData({ ...formData, LocalLinkGoogleMaps: e.target.value })}
+                                    onChange={(e) => handleGoogleMapsLinkChange(e.target.value)}
                                  />
                                  <p className="text-xs text-muted-foreground">
-                                    Cole o link compartilhável do Google Maps para facilitar a localização do evento
+                                    Cole o link compartilhável do Google Maps. As coordenadas serão extraídas
+                                    automaticamente.
                                  </p>
+                                 {formData.LocalLatitude && formData.LocalLongitude && (
+                                    <motion.div
+                                       initial={{ opacity: 0, height: 0 }}
+                                       animate={{ opacity: 1, height: 'auto' }}
+                                       className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md"
+                                    >
+                                       <p className="text-xs text-green-700">
+                                          ✅ Coordenadas extraídas automaticamente!
+                                       </p>
+                                    </motion.div>
+                                 )}
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-6">
+                                 {/* Local Latitude */}
+                                 <div className="space-y-2">
+                                    <Label htmlFor="LocalLatitude">Latitude</Label>
+                                    <Input
+                                       id="LocalLatitude"
+                                       placeholder="Ex: -23.550520"
+                                       value={formData.LocalLatitude}
+                                       onChange={(e) => handleCoordinateChange('LocalLatitude', e.target.value)}
+                                    />
+                                 </div>
+
+                                 {/* Local Longitude */}
+                                 <div className="space-y-2">
+                                    <Label htmlFor="LocalLongitude">Longitude</Label>
+                                    <Input
+                                       id="LocalLongitude"
+                                       placeholder="Ex: -46.633309"
+                                       value={formData.LocalLongitude}
+                                       onChange={(e) => handleCoordinateChange('LocalLongitude', e.target.value)}
+                                    />
+                                 </div>
                               </div>
 
                               {/* Summary Card */}
@@ -774,6 +865,14 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                     <div className="flex justify-between">
                                        <span className="text-muted-foreground">Local:</span>
                                        <span>{formData.LocalNome || 'Não informado'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                       <span className="text-muted-foreground">Coordenadas:</span>
+                                       <span>
+                                          {formData.LocalLatitude && formData.LocalLongitude
+                                             ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
+                                             : 'Não informadas'}
+                                       </span>
                                     </div>
                                     <div className="flex justify-between">
                                        <span className="text-muted-foreground">Status:</span>

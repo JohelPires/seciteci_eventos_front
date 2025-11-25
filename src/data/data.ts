@@ -65,6 +65,20 @@ export const editEvento = async (id: string, eventData: Partial<Event>, token: s
    return data
 }
 
+export const cancelarEvento = async (id: string, token: string | null) => {
+   const res = await fetch(`${API_URL}/api/eventos/${id}`, {
+      method: 'PUT',
+      headers: {
+         'Content-Type': 'application/json',
+         Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: 'rascunho' }), // 👈 Apenas alteramos o status
+   })
+
+   const data = await res.json()
+   return data
+}
+
 export const deleteEvento = async (id: string, token: string | null) => {
    const res = await fetch(`${API_URL}/api/eventos/${id}`, {
       method: 'DELETE',

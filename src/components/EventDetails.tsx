@@ -169,6 +169,9 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete }: Ev
                                  {event.LocalEndereco}, {event.LocalNumero} - {event.LocalBairro}, {event.LocalCidade}/
                                  {event.LocalEstado}
                               </p>
+                              <p className="text-sm text-muted-foreground">
+                                 Link do Google Maps: {event.LocalLinkGoogleMaps}
+                              </p>
                            </div>
                         </div>
                      )}
