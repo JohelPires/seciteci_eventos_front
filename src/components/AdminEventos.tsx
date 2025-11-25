@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from './ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { EventDetails } from './EventDetails' // Importe o EventDetails
 import type { Event, Categoria, Local } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
 import { cancelarEvento } from '@/data/data'
@@ -31,6 +32,7 @@ export function AdminEventos({
 }: AdminEventosProps) {
    const [searchTerm, setSearchTerm] = useState('')
    const [statusFilter, setStatusFilter] = useState('all')
+   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null) // Estado para o evento selecionado
 
    const { user, token } = useAuth()
 
@@ -58,128 +60,169 @@ export function AdminEventos({
       }
    }
 
+   // Função para abrir os detalhes do evento
+   const handleViewEvent = (event: Event) => {
+      setSelectedEvent(event)
+   }
+
+   // Função para fechar os detalhes do evento
+   const handleCloseEventDetails = () => {
+      setSelectedEvent(null)
+   }
+
    return (
-      <Card>
-         <CardHeader>
-            <CardTitle>Gerenciar Eventos</CardTitle>
-            <CardDescription>Visualize e gerencie todos os eventos da plataforma</CardDescription>
-         </CardHeader>
-         <CardContent>
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-               <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                     placeholder="Buscar eventos..."
-                     value={searchTerm}
-                     onChange={(e) => setSearchTerm(e.target.value)}
-                     className="pl-10"
-                  />
+      <>
+         <Card>
+            <CardHeader>
+               <CardTitle>Gerenciar Eventos</CardTitle>
+               <CardDescription>Visualize e gerencie todos os eventos da plataforma</CardDescription>
+            </CardHeader>
+            <CardContent>
+               {/* Filters */}
+               <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <div className="relative flex-1">
+                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                     <Input
+                        placeholder="Buscar eventos..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                     />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                     <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filtrar por status" />
+                     </SelectTrigger>
+                     <SelectContent>
+                        <SelectItem value="all">Todos os Status</SelectItem>
+                        <SelectItem value="publicado">Publicado</SelectItem>
+                        <SelectItem value="rascunho">Pendente</SelectItem>
+                        <SelectItem value="cancelado">Cancelado</SelectItem>
+                     </SelectContent>
+                  </Select>
                </div>
-               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                     <SelectValue placeholder="Filtrar por status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                     <SelectItem value="all">Todos os Status</SelectItem>
-                     <SelectItem value="publicado">Publicado</SelectItem>
-                     <SelectItem value="rascunho">Pendente</SelectItem>
-                     <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-               </Select>
-            </div>
 
-            {/* Table */}
-            <div className="border rounded-lg">
-               <Table>
-                  <TableHeader>
-                     <TableRow>
-                        <TableHead>Título</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Local</TableHead>
-                        <TableHead>Categoria</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                     {filteredEvents.length === 0 ? (
+               {/* Table */}
+               <div className="border rounded-lg">
+                  <Table>
+                     <TableHeader>
                         <TableRow>
-                           <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                              Nenhum evento encontrado
-                           </TableCell>
+                           <TableHead>Título</TableHead>
+                           <TableHead>Data</TableHead>
+                           <TableHead>Local</TableHead>
+                           <TableHead>Categoria</TableHead>
+                           <TableHead>Status</TableHead>
+                           <TableHead>Tipo</TableHead>
+                           <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                     ) : (
-                        filteredEvents.map((event) => {
-                           const categoria = getCategoria(event.categoriaId)
-                           // const local = getLocal(event.localId)
+                     </TableHeader>
+                     <TableBody>
+                        {filteredEvents.length === 0 ? (
+                           <TableRow>
+                              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                 Nenhum evento encontrado
+                              </TableCell>
+                           </TableRow>
+                        ) : (
+                           filteredEvents.map((event) => {
+                              const categoria = getCategoria(event.categoriaId)
+                              // const local = getLocal(event.localId)
 
-                           return (
-                              <TableRow key={event.id}>
-                                 <TableCell className="font-medium">{event.titulo}</TableCell>
-                                 <TableCell>
-                                    {new Date(event.dataInicio).toLocaleDateString('pt-BR', {
-                                       day: '2-digit',
-                                       month: '2-digit',
-                                       year: 'numeric',
-                                    })}
-                                 </TableCell>
-                                 <TableCell>local</TableCell>
-                                 <TableCell>
-                                    {categoria && (
-                                       <div className="flex items-center gap-2">
-                                          <div className={`w-2 h-2 rounded-full ${categoria.cor}`} />
-                                          <span className="text-sm">{categoria.nome}</span>
-                                       </div>
-                                    )}
-                                 </TableCell>
-                                 <TableCell>
-                                    <Badge className={`${getStatusColor(event.status)} text-white border-0`}>
-                                       {event.status === 'rascunho' ? 'pendente' : event.status}
-                                    </Badge>
-                                 </TableCell>
-                                 <TableCell className="capitalize">{event.tipoEvento}</TableCell>
-                                 <TableCell className="text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                       {event.status === 'rascunho' ? (
-                                          <Button variant="outline" size="sm" onClick={() => onPublicarEvent(event.id)}>
-                                             <Globe className="w-4 h-4" /> Publicar
-                                          </Button>
-                                       ) : (
-                                          <Button variant="outline" size="sm" onClick={() => onCancelarEvent(event.id)}>
-                                             <CircleX className="w-4 h-4" /> Cancelar
-                                          </Button>
+                              return (
+                                 <TableRow key={event.id}>
+                                    <TableCell className="font-medium">{event.titulo}</TableCell>
+                                    <TableCell>
+                                       {new Date(event.dataInicio).toLocaleDateString('pt-BR', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                       })}
+                                    </TableCell>
+                                    <TableCell>local</TableCell>
+                                    <TableCell>
+                                       {categoria && (
+                                          <div className="flex items-center gap-2">
+                                             <div className={`w-2 h-2 rounded-full ${categoria.cor}`} />
+                                             <span className="text-sm">{categoria.nome}</span>
+                                          </div>
                                        )}
-                                       <Button variant="ghost" size="sm" onClick={() => onEditEvent(event)}>
-                                          <Edit className="w-4 h-4" />
-                                       </Button>
-                                       <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => {
-                                             if (confirm('Tem certeza que deseja excluir este evento?')) {
-                                                onDeleteEvent(event.id)
-                                             }
-                                          }}
-                                          className="text-destructive hover:text-destructive"
-                                       >
-                                          <Trash2 className="w-4 h-4" />
-                                       </Button>
-                                    </div>
-                                 </TableCell>
-                              </TableRow>
-                           )
-                        })
-                     )}
-                  </TableBody>
-               </Table>
-            </div>
+                                    </TableCell>
+                                    <TableCell>
+                                       <Badge className={`${getStatusColor(event.status)} text-white border-0`}>
+                                          {event.status === 'rascunho' ? 'pendente' : event.status}
+                                       </Badge>
+                                    </TableCell>
+                                    <TableCell className="capitalize">{event.tipoEvento}</TableCell>
+                                    <TableCell className="text-right">
+                                       <div className="flex items-center justify-end gap-2">
+                                          {/* Botão de Visualizar */}
 
-            <div className="mt-4 text-sm text-muted-foreground">
-               Mostrando {filteredEvents.length} de {events.length} eventos
-            </div>
-         </CardContent>
-      </Card>
+                                          {event.status === 'rascunho' ? (
+                                             <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => onPublicarEvent(event.id)}
+                                             >
+                                                <Globe className="w-4 h-4" /> Publicar
+                                             </Button>
+                                          ) : (
+                                             <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => onCancelarEvent(event.id)}
+                                             >
+                                                <CircleX className="w-4 h-4" /> Cancelar
+                                             </Button>
+                                          )}
+                                          <Button
+                                             variant="ghost"
+                                             size="sm"
+                                             onClick={() => handleViewEvent(event)}
+                                             title="Visualizar detalhes do evento"
+                                          >
+                                             <Eye className="w-4 h-4" />
+                                          </Button>
+                                          <Button variant="ghost" size="sm" onClick={() => onEditEvent(event)}>
+                                             <Edit className="w-4 h-4" />
+                                          </Button>
+                                          <Button
+                                             variant="ghost"
+                                             size="sm"
+                                             onClick={() => {
+                                                if (confirm('Tem certeza que deseja excluir este evento?')) {
+                                                   onDeleteEvent(event.id)
+                                                }
+                                             }}
+                                             className="text-destructive hover:text-destructive"
+                                          >
+                                             <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                       </div>
+                                    </TableCell>
+                                 </TableRow>
+                              )
+                           })
+                        )}
+                     </TableBody>
+                  </Table>
+               </div>
+
+               <div className="mt-4 text-sm text-muted-foreground">
+                  Mostrando {filteredEvents.length} de {events.length} eventos
+               </div>
+            </CardContent>
+         </Card>
+
+         {/* Modal de detalhes do evento */}
+         {selectedEvent && (
+            <EventDetails
+               event={selectedEvent}
+               categoria={getCategoria(selectedEvent.categoriaId)}
+               onClose={handleCloseEventDetails}
+               onEdit={onEditEvent}
+               onDelete={onDeleteEvent}
+            />
+         )}
+      </>
    )
 }

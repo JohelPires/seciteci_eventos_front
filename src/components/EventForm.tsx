@@ -180,6 +180,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
       }
    }, [editingEvent])
 
+   useEffect(() => {
+      console.log('formData:', formData)
+   }, [formData])
+
    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault()
 
@@ -657,7 +661,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  <Label htmlFor="LocalCidade">Cidade</Label>
                                  <Input
                                     id="LocalCidade"
-                                    placeholder="Ex: São Paulo"
+                                    placeholder="Ex: Cuiabá"
                                     value={formData.LocalCidade}
                                     onChange={(e) => setFormData({ ...formData, LocalCidade: e.target.value })}
                                  />
@@ -668,7 +672,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  <Label htmlFor="LocalEstado">Estado</Label>
                                  <Input
                                     id="LocalEstado"
-                                    placeholder="Ex: SP"
+                                    placeholder="Ex: MT"
                                     value={formData.LocalEstado}
                                     onChange={(e) => setFormData({ ...formData, LocalEstado: e.target.value })}
                                  />

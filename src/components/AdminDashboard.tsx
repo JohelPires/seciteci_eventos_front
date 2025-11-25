@@ -91,7 +91,10 @@ export function AdminDashboard({
                         <Settings className="w-6 h-6 text-primary-foreground" />
                      </div>
                      <div>
-                        <h1 className="text-xl text-white">Eventos Seciteci - Painel Administrativo</h1>
+                        <h1 className="text-xl text-white">
+                           {' '}
+                           <span className="font-bold"> CONECTE-SE</span> | Painel Administrativo
+                        </h1>
                         <p className="text-sm text-white/50">Gerenciamento da Plataforma</p>
                      </div>
                   </div>
