@@ -180,9 +180,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
       }
    }, [editingEvent])
 
-   useEffect(() => {
-      console.log('formData:', formData)
-   }, [formData])
+   // useEffect(() => {
+   //    console.log('formData:', formData)
+   // }, [formData])
 
    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault()

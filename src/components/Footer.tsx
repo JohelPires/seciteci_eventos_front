@@ -104,7 +104,7 @@ export function Footer() {
             {/* Copyright */}
             <div className="mt-8 pt-8 border-t border-white/10">
                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                  <p className="text-white/60 text-sm">© 2025 MapasMT. Desenvolvido pela Seciteci.</p>
+                  <p className="text-white/60 text-sm">© 2025 Conecte-se. Desenvolvido pela Seciteci.</p>
                   <div className="flex gap-6">
                      <a href="#" className="text-white/60 hover:text-white text-sm transition-colors">
                         Política de Privacidade

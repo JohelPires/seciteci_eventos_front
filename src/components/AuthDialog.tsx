@@ -78,15 +78,15 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
             <DialogHeader>
                <div className="flex items-center justify-center mb-4">
                   {/* Se '/logo-mapasmt.png' estiver no seu diretório public */}
-                  <Image
+                  {/* <Image
                      src="/logo-mapasmt.png"
                      alt="EventHub Logo"
                      width={180}
                      height={180}
                      className="w-auto h-16 object-contain"
-                  />
+                  /> */}
                </div>
-               <DialogTitle className="text-center text-2xl">Bem-vindo ao Mapas MT</DialogTitle>
+               <DialogTitle className="text-center text-2xl">Bem-vindo ao CONECTE-SE</DialogTitle>
                <DialogDescription className="text-center">Entre ou crie sua conta para continuar</DialogDescription>
             </DialogHeader>
 
