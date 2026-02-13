@@ -387,7 +387,7 @@ export default function App() {
                               Todas as categorias
                            </TabsTrigger>
                            {categoriasData &&
-                              categoriasData.map((categoria) => (
+                              categoriasData.map((categoria: Categoria) => (
                                  <TabsTrigger
                                     key={categoria.id}
                                     value={categoria.nome}
