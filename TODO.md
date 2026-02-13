@@ -7,3 +7,11 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 
 [x] logo conecte-se
 [ ] logo conecte-se no painel admin também
+
+[ ] calendário: melhorar a fonte dos dias. bold e linha divisória
+
+[ ] admin: paginações
+[ ] admin: CRUD completo de usuários
+[ ] admin: set usuario como admin
+
+[ ] get eventos pega apenas próximos? deve clicar para carregar anteriores.

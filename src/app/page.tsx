@@ -102,10 +102,6 @@ export interface Event {
    requisitos?: string
 }
 
-const categorias: Categoria[] = await getCategorias()
-
-const locais: Local[] = await getLocais()
-
 const ITEMS_PER_PAGE = 6
 
 export default function App() {
@@ -133,6 +129,14 @@ export default function App() {
    // const getLocal = (id: number) => locais.find((l) => l.id === id)
 
    const { data, error, isLoading } = useQuery({ queryKey: ['eventos'], queryFn: getEventos })
+   const { data: categoriasData, isLoading: isLoadingCategorias } = useQuery({
+      queryKey: ['categorias'],
+      queryFn: getCategorias,
+   })
+   const { data: locaisData, isLoading: isLoadingLocais } = useQuery({
+      queryKey: ['locais'],
+      queryFn: getLocais,
+   })
 
    useEffect(() => {
       if (data) {
@@ -324,7 +328,7 @@ export default function App() {
                      <div className="flex items-center justify-between">
                         <div>
                            <p className="text-sm text-muted-foreground mb-1">Categorias Ativas</p>
-                           <p className="text-foreground text-3xl font-semibold">{categorias.length}</p>
+                           <p className="text-foreground text-3xl font-semibold">{categoriasData?.length || 0}</p>
                         </div>
                         <div className="p-3 bg-primary dark:bg-purple-950 rounded-lg">
                            <Tag className="w-5 h-5 text-white dark:text-purple-400" />
@@ -382,8 +386,8 @@ export default function App() {
                            >
                               Todas as categorias
                            </TabsTrigger>
-                           {categorias &&
-                              categorias.map((categoria) => (
+                           {categoriasData &&
+                              categoriasData.map((categoria) => (
                                  <TabsTrigger
                                     key={categoria.id}
                                     value={categoria.nome}
@@ -560,7 +564,7 @@ export default function App() {
                   <p className="text-muted-foreground">Veja todos os eventos no calendário</p>
                </div>
             </motion.div>
-            <CalendarView events={events} categorias={categorias} onEventClick={handleEventClick} />
+            <CalendarView events={events} categorias={categoriasData || []} onEventClick={handleEventClick} />
             <div className="h-0.5 mt-10 mb-5 bg-gray-200 rounded-2xl"></div>
             <motion.div
                initial={{ opacity: 0, x: -20 }}
@@ -575,7 +579,7 @@ export default function App() {
                   <p className="text-muted-foreground">Veja todos os eventos distribuidos no mapa</p>
                </div>
             </motion.div>
-            <MapView events={events} categorias={categorias} onEventClick={handleEventClick} />
+            <MapView events={events} categorias={categoriasData || []} onEventClick={handleEventClick} />
          </main>
 
          <Footer />
@@ -586,8 +590,8 @@ export default function App() {
                onSubmit={handleCreateEvent}
                onClose={handleCloseForm}
                editingEvent={editingEvent}
-               categorias={categorias}
-               // locais={locais}
+               categorias={categoriasData || []}
+               // locais={locaisData || []}
             />
          )}
 
