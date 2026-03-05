@@ -1,14 +1,5 @@
 import { useState } from 'react'
-import {
-    Edit,
-    Trash2,
-    Search,
-    Check,
-    X,
-    User,
-    Mail,
-    Calendar,
-} from 'lucide-react'
+import { Edit, Trash2, Search, User, Mail, Calendar } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import {
@@ -19,7 +10,6 @@ import {
     TableHeader,
     TableRow,
 } from './ui/table'
-import { Badge } from './ui/badge'
 import {
     Card,
     CardContent,
@@ -27,13 +17,7 @@ import {
     CardHeader,
     CardTitle,
 } from './ui/card'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from './ui/select'
+
 import {
     Pagination,
     PaginationContent,

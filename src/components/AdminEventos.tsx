@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Edit, Trash2, Eye, Search, Check, Globe, CircleX } from 'lucide-react'
+import { Edit, Trash2, Eye, Search, Globe, CircleX } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import {
@@ -35,9 +35,8 @@ import {
     PaginationPrevious,
 } from './ui/pagination'
 import { EventDetails } from './EventDetails'
-import type { Event, Categoria, Local } from '@/app/page'
+import type { Event, Categoria } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
-import { cancelarEvento } from '@/data/data'
 
 interface AdminEventosProps {
     events: Event[]
@@ -65,7 +64,7 @@ export function AdminEventos({
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
 
-    const { user, token } = useAuth()
+    //  const { user, token } = useAuth()
 
     const getCategoria = (id: number) => categorias.find((c) => c.id === id)
     // const getLocal = (id: number) => locais.find((l) => l.id === id)

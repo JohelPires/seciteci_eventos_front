@@ -281,13 +281,15 @@ export default function App() {
             {/* Navigation Bar */}
             <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
 
-            <header className="border-b border-border bg-card bg-gray-50">
+            <header className="border-b border-border bg-card">
                 <div className="container mx-auto px-4 py-6">
                     <div className="flex justify-center mb-4">
-                        <img
+                        <Image
                             className="rounded-xl shadow-2xl"
                             src="/conecte-se.webp"
-                            alt=""
+                            alt="Conecte-se"
+                            width={2000}
+                            height={1000}
                         />
                     </div>
                     <p className="text-justify text-xl py-3 text-gray-600">

@@ -160,11 +160,14 @@ export const getUsuarios = async ({
 }) => {
     if (queryKey[1].token === null) return { erro: 'Nao autorizado' }
     const [_key, { token, search }] = queryKey
-    const res = await fetch(`${API_URL}/api/usuarios?limit=1000`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
+    const res = await fetch(
+        `${API_URL}/api/usuarios?limit=1000&search=${search}`,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
         },
-    })
+    )
     const data = await res.json()
     return data
 }

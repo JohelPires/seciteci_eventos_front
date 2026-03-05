@@ -14,6 +14,8 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 
 [x] listar eventos do mais recente para o mais antigo
 
+[ ] fix mobile nav bar
+
 [x] admin: paginações
 [ ] admin: CRUD completo de usuários
 [ ] admin: set usuario como admin
