@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
     X,
     Calendar as CalendarIcon,
@@ -164,53 +164,64 @@ export function EventForm({
     // Preview de imagem
     const [imageError, setImageError] = useState(false)
 
+    // ─── AbortController ref para o fetch de CEP ──────────────────────────
+    const cepAbortRef = useRef<AbortController | null>(null)
+
+    // ─── Deriva o estado inicial do editingEvent de forma estável ─────────
+    const initialData = useMemo(() => {
+        if (!editingEvent) return INITIAL_FORM_DATA
+        return {
+            titulo: editingEvent.titulo,
+            descricao: editingEvent.descricao,
+            categoriaId: editingEvent.categoriaId.toString(),
+            organizadorId: editingEvent.organizadorId?.toString() || '',
+            dataInicio: editingEvent.dataInicio.substring(0, 10),
+            dataFim: editingEvent.dataFim.substring(0, 10),
+            horarioAbertura: editingEvent.horarioAbertura || '',
+            horarioEncerramento: editingEvent.horarioEncerramento || '',
+            capacidadeMaxima: editingEvent.capacidadeMaxima.toString(),
+            vagasDisponiveis:
+                editingEvent.vagasDisponiveis?.toString() ||
+                editingEvent.capacidadeMaxima.toString(),
+            tipoEvento: editingEvent.tipoEvento,
+            linkOnline: editingEvent.linkOnline || '',
+            LocalLinkGoogleMaps: editingEvent.LocalLinkGoogleMaps || '',
+            LocalNome: editingEvent.LocalNome || '',
+            LocalEndereco: editingEvent.LocalEndereco || '',
+            LocalNumero: editingEvent.LocalNumero || '',
+            LocalComplemento: editingEvent.LocalComplemento || '',
+            LocalBairro: editingEvent.LocalBairro || '',
+            LocalCidade: editingEvent.LocalCidade || '',
+            LocalEstado: editingEvent.LocalEstado || '',
+            LocalCep: editingEvent.LocalCep || '',
+            LocalPais: editingEvent.LocalPais || 'Brasil',
+            LocalCapacidade: editingEvent.LocalCapacidade?.toString() || '',
+            LocalLatitude: editingEvent.LocalLatitude || '',
+            LocalLongitude: editingEvent.LocalLongitude || '',
+            LocalObservacoes: editingEvent.LocalObservacoes || '',
+            linkPaginaEvento: editingEvent.linkPaginaEvento || '',
+            imagemCapa: editingEvent.imagemCapa || '',
+            status: editingEvent.status,
+            publicoAlvo: editingEvent.publicoAlvo || '',
+            requisitos: editingEvent.requisitos || '',
+        }
+        // Só recalcula quando o id do evento muda, não a cada re-render do pai
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editingEvent?.id])
+
     // ─── Popula form ao editar ─────────────────────────────────────────────
     useEffect(() => {
-        if (editingEvent) {
-            setFormData({
-                titulo: editingEvent.titulo,
-                descricao: editingEvent.descricao,
-                categoriaId: editingEvent.categoriaId.toString(),
-                organizadorId: editingEvent.organizadorId?.toString() || '',
-                dataInicio: editingEvent.dataInicio.substring(0, 10),
-                dataFim: editingEvent.dataFim.substring(0, 10),
-                horarioAbertura: editingEvent.horarioAbertura || '',
-                horarioEncerramento: editingEvent.horarioEncerramento || '',
-                capacidadeMaxima: editingEvent.capacidadeMaxima.toString(),
-                vagasDisponiveis:
-                    editingEvent.vagasDisponiveis?.toString() ||
-                    editingEvent.capacidadeMaxima.toString(),
-                tipoEvento: editingEvent.tipoEvento,
-                linkOnline: editingEvent.linkOnline || '',
-                LocalLinkGoogleMaps: editingEvent.LocalLinkGoogleMaps || '',
-                LocalNome: editingEvent.LocalNome || '',
-                LocalEndereco: editingEvent.LocalEndereco || '',
-                LocalNumero: editingEvent.LocalNumero || '',
-                LocalComplemento: editingEvent.LocalComplemento || '',
-                LocalBairro: editingEvent.LocalBairro || '',
-                LocalCidade: editingEvent.LocalCidade || '',
-                LocalEstado: editingEvent.LocalEstado || '',
-                LocalCep: editingEvent.LocalCep || '',
-                LocalPais: editingEvent.LocalPais || 'Brasil',
-                LocalCapacidade: editingEvent.LocalCapacidade?.toString() || '',
-                LocalLatitude: editingEvent.LocalLatitude || '',
-                LocalLongitude: editingEvent.LocalLongitude || '',
-                LocalObservacoes: editingEvent.LocalObservacoes || '',
-                linkPaginaEvento: editingEvent.linkPaginaEvento || '',
-                imagemCapa: editingEvent.imagemCapa || '',
-                status: editingEvent.status,
-                publicoAlvo: editingEvent.publicoAlvo || '',
-                requisitos: editingEvent.requisitos || '',
-            })
-        }
-    }, [editingEvent])
+        setFormData(initialData)
+    }, [initialData])
 
     // ─── Handlers ─────────────────────────────────────────────────────────
-    const set = (field: keyof typeof INITIAL_FORM_DATA, value: string) =>
-        setFormData((prev) => ({ ...prev, [field]: value }))
+    const set = useCallback(
+        (field: keyof typeof INITIAL_FORM_DATA, value: string) =>
+            setFormData((prev) => ({ ...prev, [field]: value })),
+        [],
+    )
 
-    const handleGoogleMapsLinkChange = (url: string) => {
-        set('LocalLinkGoogleMaps', url)
+    const handleGoogleMapsLinkChange = useCallback((url: string) => {
         const coords = extractCoordinatesFromGoogleMaps(url)
         if (coords.latitude && coords.longitude) {
             setFormData((prev) => ({
@@ -219,47 +230,51 @@ export function EventForm({
                 LocalLatitude: coords.latitude,
                 LocalLongitude: coords.longitude,
             }))
-        }
-    }
-
-    const handleCoordinateChange = (
-        field: 'LocalLatitude' | 'LocalLongitude',
-        value: string,
-    ) => {
-        const cleaned = value.replace(/[^\d.-]/g, '')
-        set(field, cleaned)
-
-        // Valida range em tempo real
-        const num = parseFloat(cleaned)
-        if (cleaned && !isNaN(num)) {
-            const isLat = field === 'LocalLatitude'
-            const outOfRange = isLat
-                ? num < -90 || num > 90
-                : num < -180 || num > 180
-            setErrors4((prev) => ({
-                ...prev,
-                [field]: outOfRange
-                    ? isLat
-                        ? 'Latitude deve estar entre -90 e 90'
-                        : 'Longitude deve estar entre -180 e 180'
-                    : undefined,
-            }))
         } else {
-            setErrors4((prev) => ({ ...prev, [field]: undefined }))
+            setFormData((prev) => ({ ...prev, LocalLinkGoogleMaps: url }))
         }
-    }
+    }, [])
 
-    const handleCepChange = async (raw: string) => {
+    const handleCoordinateChange = useCallback(
+        (field: 'LocalLatitude' | 'LocalLongitude', value: string) => {
+            const cleaned = value.replace(/[^\d.-]/g, '')
+            setFormData((prev) => ({ ...prev, [field]: cleaned }))
+
+            const num = parseFloat(cleaned)
+            if (cleaned && !isNaN(num)) {
+                const isLat = field === 'LocalLatitude'
+                const outOfRange = isLat
+                    ? num < -90 || num > 90
+                    : num < -180 || num > 180
+                setErrors4((prev) => ({
+                    ...prev,
+                    [field]: outOfRange
+                        ? isLat
+                            ? 'Latitude deve estar entre -90 e 90'
+                            : 'Longitude deve estar entre -180 e 180'
+                        : undefined,
+                }))
+            } else {
+                setErrors4((prev) => ({ ...prev, [field]: undefined }))
+            }
+        },
+        [],
+    )
+
+    const handleCepChange = useCallback(async (raw: string) => {
         const formatted = formatCep(raw)
-        set('LocalCep', formatted)
+        setFormData((prev) => ({ ...prev, LocalCep: formatted }))
 
         const digits = formatted.replace(/\D/g, '')
         if (digits.length === 8) {
+            // Cancela requisição anterior pendente
+            cepAbortRef.current?.abort()
+            cepAbortRef.current = new AbortController()
+
             try {
-                const controller = new AbortController()
                 const response = await fetch(
                     `https://viacep.com.br/ws/${digits}/json/`,
-                    { signal: controller.signal },
+                    { signal: cepAbortRef.current.signal },
                 )
                 const data = await response.json()
                 if (!data.erro) {
@@ -279,10 +294,10 @@ export function EventForm({
                 }
             }
         }
-    }
+    }, [])
 
     // ─── Validações por step ───────────────────────────────────────────────
-    const validateStep1 = (): boolean => {
+    const validateStep1 = useCallback((): boolean => {
         const errs: Step1Errors = {}
         if (!formData.titulo.trim()) errs.titulo = 'O título é obrigatório'
         if (!formData.descricao.trim())
@@ -292,9 +307,9 @@ export function EventForm({
         if (!formData.categoriaId) errs.categoriaId = 'Selecione uma categoria'
         setErrors1(errs)
         return Object.keys(errs).length === 0
-    }
+    }, [formData.titulo, formData.descricao, formData.categoriaId])
 
-    const validateStep2 = (): boolean => {
+    const validateStep2 = useCallback((): boolean => {
         const errs: Step2Errors = {}
         if (!formData.dataInicio)
             errs.dataInicio = 'A data de início é obrigatória'
@@ -323,9 +338,16 @@ export function EventForm({
             errs.requisitos = `Limite de ${MAX_REQUISITOS_CHARS} caracteres excedido`
         setErrors2(errs)
         return Object.keys(errs).length === 0
-    }
+    }, [
+        formData.dataInicio,
+        formData.dataFim,
+        formData.horarioAbertura,
+        formData.horarioEncerramento,
+        formData.publicoAlvo,
+        formData.requisitos,
+    ])
 
-    const validateStep4 = (): boolean => {
+    const validateStep4 = useCallback((): boolean => {
         const errs: Step4Errors = {}
         if (formData.imagemCapa && !isValidImageUrl(formData.imagemCapa)) {
             errs.imagemCapa =
@@ -339,10 +361,10 @@ export function EventForm({
             errs.LocalLongitude = 'Longitude deve estar entre -180 e 180'
         setErrors4(errs)
         return Object.keys(errs).length === 0
-    }
+    }, [formData.imagemCapa, formData.LocalLatitude, formData.LocalLongitude])
 
     // ─── Navegação ────────────────────────────────────────────────────────
-    const nextStep = () => {
+    const nextStep = useCallback(() => {
         const valid =
             currentStep === 1
                 ? validateStep1()
@@ -350,69 +372,72 @@ export function EventForm({
                   ? validateStep2()
                   : true
         if (valid && currentStep < totalSteps) setCurrentStep((s) => s + 1)
-    }
+    }, [currentStep, totalSteps, validateStep1, validateStep2])
 
-    const prevStep = () => {
+    const prevStep = useCallback(() => {
         if (currentStep > 1) setCurrentStep((s) => s - 1)
-    }
+    }, [currentStep])
 
     // ─── Submit ───────────────────────────────────────────────────────────
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!validateStep4()) return
+    const handleSubmit = useCallback(
+        (e: React.FormEvent) => {
+            e.preventDefault()
+            if (!validateStep4()) return
 
-        const toDate = (dateStr: string) => {
-            const [y, m, d] = dateStr.split('-').map(Number)
-            return new Date(y, m - 1, d).toISOString()
-        }
+            const toDate = (dateStr: string) => {
+                const [y, m, d] = dateStr.split('-').map(Number)
+                return new Date(y, m - 1, d).toISOString()
+            }
 
-        onSubmit({
-            titulo: formData.titulo,
-            descricao: formData.descricao,
-            categoriaId: parseInt(formData.categoriaId),
-            organizadorId: formData.organizadorId
-                ? parseInt(formData.organizadorId)
-                : undefined,
-            dataInicio: toDate(formData.dataInicio),
-            dataFim: toDate(formData.dataFim),
-            horarioAbertura: formData.horarioAbertura,
-            horarioEncerramento: formData.horarioEncerramento,
-            capacidadeMaxima: formData.capacidadeMaxima
-                ? parseInt(formData.capacidadeMaxima)
-                : 100,
-            vagasDisponiveis: formData.vagasDisponiveis
-                ? parseInt(formData.vagasDisponiveis)
-                : formData.capacidadeMaxima
-                  ? parseInt(formData.capacidadeMaxima)
-                  : 100,
-            tipoEvento: formData.tipoEvento,
-            linkOnline: formData.linkOnline || undefined,
-            LocalLinkGoogleMaps: formData.LocalLinkGoogleMaps || undefined,
-            LocalNome: formData.LocalNome || undefined,
-            LocalEndereco: formData.LocalEndereco || undefined,
-            LocalNumero: formData.LocalNumero || undefined,
-            LocalComplemento: formData.LocalComplemento || undefined,
-            LocalBairro: formData.LocalBairro || undefined,
-            LocalCidade: formData.LocalCidade || undefined,
-            LocalEstado: formData.LocalEstado || undefined,
-            LocalCep: formData.LocalCep || undefined,
-            LocalPais: formData.LocalPais || undefined,
-            LocalCapacidade: formData.LocalCapacidade
-                ? parseInt(formData.LocalCapacidade)
-                : undefined,
-            LocalLatitude: formData.LocalLatitude || undefined,
-            LocalLongitude: formData.LocalLongitude || undefined,
-            LocalObservacoes: formData.LocalObservacoes || undefined,
-            linkPaginaEvento: formData.linkPaginaEvento || undefined,
-            imagemCapa: formData.imagemCapa || undefined,
-            status: 'rascunho',
-            publicoAlvo: formData.publicoAlvo || undefined,
-            requisitos: formData.requisitos || undefined,
-            categoria: null,
-        })
+            onSubmit({
+                titulo: formData.titulo,
+                descricao: formData.descricao,
+                categoriaId: parseInt(formData.categoriaId),
+                organizadorId: formData.organizadorId
+                    ? parseInt(formData.organizadorId)
+                    : undefined,
+                dataInicio: toDate(formData.dataInicio),
+                dataFim: toDate(formData.dataFim),
+                horarioAbertura: formData.horarioAbertura,
+                horarioEncerramento: formData.horarioEncerramento,
+                capacidadeMaxima: formData.capacidadeMaxima
+                    ? parseInt(formData.capacidadeMaxima)
+                    : 100,
+                vagasDisponiveis: formData.vagasDisponiveis
+                    ? parseInt(formData.vagasDisponiveis)
+                    : formData.capacidadeMaxima
+                      ? parseInt(formData.capacidadeMaxima)
+                      : 100,
+                tipoEvento: formData.tipoEvento,
+                linkOnline: formData.linkOnline || undefined,
+                LocalLinkGoogleMaps: formData.LocalLinkGoogleMaps || undefined,
+                LocalNome: formData.LocalNome || undefined,
+                LocalEndereco: formData.LocalEndereco || undefined,
+                LocalNumero: formData.LocalNumero || undefined,
+                LocalComplemento: formData.LocalComplemento || undefined,
+                LocalBairro: formData.LocalBairro || undefined,
+                LocalCidade: formData.LocalCidade || undefined,
+                LocalEstado: formData.LocalEstado || undefined,
+                LocalCep: formData.LocalCep || undefined,
+                LocalPais: formData.LocalPais || undefined,
+                LocalCapacidade: formData.LocalCapacidade
+                    ? parseInt(formData.LocalCapacidade)
+                    : undefined,
+                LocalLatitude: formData.LocalLatitude || undefined,
+                LocalLongitude: formData.LocalLongitude || undefined,
+                LocalObservacoes: formData.LocalObservacoes || undefined,
+                linkPaginaEvento: formData.linkPaginaEvento || undefined,
+                imagemCapa: formData.imagemCapa || undefined,
+                status: 'rascunho',
+                publicoAlvo: formData.publicoAlvo || undefined,
+                requisitos: formData.requisitos || undefined,
+                categoria: null,
+            })
 
-        setFormData(INITIAL_FORM_DATA)
-    }
+            setFormData(INITIAL_FORM_DATA)
+        },
+        [formData, onSubmit, validateStep4],
+    )
 
     // ─── Steps config ─────────────────────────────────────────────────────
     const steps = [
@@ -422,16 +447,38 @@ export function EventForm({
         { number: 4, title: 'Mídia e Links', icon: ImageIcon },
     ]
 
-    // ─── Helpers de exibição ──────────────────────────────────────────────
-    const formatDateDisplay = (dateStr: string) => {
-        if (!dateStr) return '-'
-        const [y, m, d] = dateStr.split('-')
-        return `${d}/${m}/${y}`
-    }
+    // ─── Valores derivados para o resumo ──────────────────────────────────
+    const categoriaNome = useMemo(
+        () =>
+            categorias.find((c) => c.id.toString() === formData.categoriaId)
+                ?.nome || '-',
+        [categorias, formData.categoriaId],
+    )
 
-    const categoriaNome =
-        categorias.find((c) => c.id.toString() === formData.categoriaId)
-            ?.nome || '-'
+    const resumoPeriodo = useMemo(() => {
+        if (!formData.dataInicio || !formData.dataFim) return '-'
+        const fmt = (s: string) => {
+            const [y, m, d] = s.split('-')
+            return `${d}/${m}/${y}`
+        }
+        return `${fmt(formData.dataInicio)} → ${fmt(formData.dataFim)}`
+    }, [formData.dataInicio, formData.dataFim])
+
+    const resumoHorario = useMemo(
+        () =>
+            formData.horarioAbertura && formData.horarioEncerramento
+                ? `${formData.horarioAbertura} às ${formData.horarioEncerramento}`
+                : '-',
+        [formData.horarioAbertura, formData.horarioEncerramento],
+    )
+
+    const resumoLocal = useMemo(
+        () =>
+            [formData.LocalNome, formData.LocalCidade, formData.LocalEstado]
+                .filter(Boolean)
+                .join(', ') || 'Não informado',
+        [formData.LocalNome, formData.LocalCidade, formData.LocalEstado],
+    )
 
     return (
         <AnimatePresence>
@@ -1389,17 +1436,11 @@ export function EventForm({
                                                         ],
                                                         [
                                                             'Período',
-                                                            formData.dataInicio &&
-                                                            formData.dataFim
-                                                                ? `${formatDateDisplay(formData.dataInicio)} → ${formatDateDisplay(formData.dataFim)}`
-                                                                : '-',
+                                                            resumoPeriodo,
                                                         ],
                                                         [
                                                             'Horário',
-                                                            formData.horarioAbertura &&
-                                                            formData.horarioEncerramento
-                                                                ? `${formData.horarioAbertura} às ${formData.horarioEncerramento}`
-                                                                : '-',
+                                                            resumoHorario,
                                                         ],
                                                         [
                                                             'Capacidade',
@@ -1407,17 +1448,7 @@ export function EventForm({
                                                                 ? `${formData.capacidadeMaxima} pessoas`
                                                                 : '100 pessoas (padrão)',
                                                         ],
-                                                        [
-                                                            'Local',
-                                                            [
-                                                                formData.LocalNome,
-                                                                formData.LocalCidade,
-                                                                formData.LocalEstado,
-                                                            ]
-                                                                .filter(Boolean)
-                                                                .join(', ') ||
-                                                                'Não informado',
-                                                        ],
+                                                        ['Local', resumoLocal],
                                                         [
                                                             'Coordenadas',
                                                             formData.LocalLatitude &&
