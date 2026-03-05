@@ -37,7 +37,7 @@ export function EventForm({
     editingEvent,
     categorias,
 }: EventFormProps) {
-    const MAX_DESCRICAO_CHARS = 250 // Aproximadamente 5 linhas
+    const MAX_DESCRICAO_CHARS = 500 // Aproximadamente 5 linhas
     const MAX_PUBLICO_ALVO_CHARS = 150 // Aproximadamente 2-3 linhas
     const MAX_REQUISITOS_CHARS = 150 // Aproximadamente 2-3 linhas
     const [currentStep, setCurrentStep] = useState(1)
@@ -157,6 +157,36 @@ export function EventForm({
         const coordinateRegex = /^-?\d+(\.\d+)?$/
         if (cleanedValue === '' || coordinateRegex.test(cleanedValue)) {
             setFormData((prev) => ({ ...prev, [field]: cleanedValue }))
+        }
+    }
+
+    const handleCepChange = async (cep: string) => {
+        // Remove non-numeric characters
+        const cleanedCep = cep.replace(/\D/g, '')
+
+        setFormData((prev) => ({ ...prev, LocalCep: cep }))
+
+        if (cleanedCep.length === 8) {
+            try {
+                const response = await fetch(
+                    `https://viacep.com.br/ws/${cleanedCep}/json/`,
+                )
+                const data = await response.json()
+
+                if (!data.erro) {
+                    setFormData((prev) => ({
+                        ...prev,
+                        LocalCep: cep,
+                        LocalEndereco: data.logradouro || prev.LocalEndereco,
+                        LocalBairro: data.bairro || prev.LocalBairro,
+                        LocalCidade: data.localidade || prev.LocalCidade,
+                        LocalEstado: data.uf || prev.LocalEstado,
+                        LocalPais: 'Brasil',
+                    }))
+                }
+            } catch (error) {
+                console.error('Erro ao buscar CEP:', error)
+            }
         }
     }
 
@@ -791,7 +821,23 @@ export function EventForm({
                                                 }
                                             />
                                         </div>
-
+                                        {/* Local Zip Code */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="LocalCep">
+                                                CEP
+                                            </Label>
+                                            <Input
+                                                id="LocalCep"
+                                                placeholder="Ex: 12345-678"
+                                                value={formData.LocalCep}
+                                                onChange={(e) =>
+                                                    handleCepChange(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                maxLength={9}
+                                            />
+                                        </div>
                                         {/* Local Address */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalEndereco">
@@ -902,25 +948,6 @@ export function EventForm({
                                                     setFormData({
                                                         ...formData,
                                                         LocalEstado:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                            />
-                                        </div>
-
-                                        {/* Local Zip Code */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="LocalCep">
-                                                CEP
-                                            </Label>
-                                            <Input
-                                                id="LocalCep"
-                                                placeholder="Ex: 12345-678"
-                                                value={formData.LocalCep}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalCep:
                                                             e.target.value,
                                                     })
                                                 }
