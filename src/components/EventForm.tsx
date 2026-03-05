@@ -9,6 +9,7 @@ import {
     ChevronRight,
     ChevronLeft,
     Check,
+    AlertCircle,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -31,165 +32,139 @@ interface EventFormProps {
     categorias: Categoria[]
 }
 
+// ─── Tipos de erro por step ───────────────────────────────────────────────────
+type Step1Errors = {
+    titulo?: string
+    descricao?: string
+    categoriaId?: string
+}
+
+type Step2Errors = {
+    dataInicio?: string
+    dataFim?: string
+    horarioAbertura?: string
+    horarioEncerramento?: string
+    publicoAlvo?: string
+    requisitos?: string
+}
+
+type Step4Errors = {
+    LocalLatitude?: string
+    LocalLongitude?: string
+    imagemCapa?: string
+}
+
+// ─── Estado inicial extraído para evitar duplicação ──────────────────────────
+const INITIAL_FORM_DATA = {
+    titulo: '',
+    descricao: '',
+    categoriaId: '',
+    organizadorId: '',
+    dataInicio: '',
+    dataFim: '',
+    horarioAbertura: '',
+    horarioEncerramento: '',
+    capacidadeMaxima: '',
+    vagasDisponiveis: '',
+    tipoEvento: 'presencial' as 'presencial' | 'online' | 'hibrido',
+    linkOnline: '',
+    LocalLinkGoogleMaps: '',
+    LocalNome: '',
+    LocalEndereco: '',
+    LocalNumero: '',
+    LocalComplemento: '',
+    LocalBairro: '',
+    LocalCidade: '',
+    LocalEstado: '',
+    LocalCep: '',
+    LocalPais: 'Brasil',
+    LocalCapacidade: '',
+    LocalLatitude: '',
+    LocalLongitude: '',
+    LocalObservacoes: '',
+    linkPaginaEvento: '',
+    imagemCapa: '',
+    status: 'rascunho' as 'rascunho' | 'publicado' | 'cancelado',
+    publicoAlvo: '',
+    requisitos: '',
+}
+
+const MAX_DESCRICAO_CHARS = 500
+const MAX_PUBLICO_ALVO_CHARS = 150
+const MAX_REQUISITOS_CHARS = 150
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatCep = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 8)
+    if (digits.length > 5) return `${digits.slice(0, 5)}-${digits.slice(5)}`
+    return digits
+}
+
+const extractCoordinatesFromGoogleMaps = (url: string) => {
+    if (!url) return { latitude: '', longitude: '' }
+    try {
+        const patterns = [
+            /[?&]q=([-]?\d+\.\d+),([-]?\d+\.\d+)/,
+            /@([-]?\d+\.\d+),([-]?\d+\.\d+)/,
+            /[?&]ll=([-]?\d+\.\d+),([-]?\d+\.\d+)/,
+        ]
+        for (const pattern of patterns) {
+            const match = url.match(pattern)
+            if (match) return { latitude: match[1], longitude: match[2] }
+        }
+        return { latitude: '', longitude: '' }
+    } catch {
+        return { latitude: '', longitude: '' }
+    }
+}
+
+const isValidImageUrl = (url: string) => {
+    try {
+        const parsed = new URL(url)
+        return (
+            ['http:', 'https:'].includes(parsed.protocol) &&
+            /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(parsed.pathname)
+        )
+    } catch {
+        return false
+    }
+}
+
+// ─── Componente de campo com erro ─────────────────────────────────────────────
+function FieldError({ message }: { message?: string }) {
+    if (!message) return null
+    return (
+        <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-1 text-xs text-red-500 mt-1"
+        >
+            <AlertCircle className="w-3 h-3 shrink-0" />
+            {message}
+        </motion.p>
+    )
+}
+
 export function EventForm({
     onSubmit,
     onClose,
     editingEvent,
     categorias,
 }: EventFormProps) {
-    const MAX_DESCRICAO_CHARS = 500 // Aproximadamente 5 linhas
-    const MAX_PUBLICO_ALVO_CHARS = 150 // Aproximadamente 2-3 linhas
-    const MAX_REQUISITOS_CHARS = 150 // Aproximadamente 2-3 linhas
     const [currentStep, setCurrentStep] = useState(1)
     const totalSteps = 4
 
-    const [formData, setFormData] = useState({
-        titulo: '',
-        descricao: '',
-        categoriaId: '',
-        organizadorId: '',
-        dataInicio: '',
-        dataFim: '',
-        horarioAbertura: '',
-        horarioEncerramento: '',
-        capacidadeMaxima: '',
-        vagasDisponiveis: '',
+    const [formData, setFormData] = useState(INITIAL_FORM_DATA)
 
-        tipoEvento: 'presencial' as 'presencial' | 'online' | 'hibrido',
-        linkOnline: '',
-        LocalLinkGoogleMaps: '',
-        LocalNome: '',
-        LocalEndereco: '',
-        LocalNumero: '',
-        LocalComplemento: '',
-        LocalBairro: '',
-        LocalCidade: '',
-        LocalEstado: '',
-        LocalCep: '',
-        LocalPais: 'Brasil',
-        LocalCapacidade: '',
-        LocalLatitude: '',
-        LocalLongitude: '',
-        LocalObservacoes: '',
-        linkPaginaEvento: '',
-        imagemCapa: '',
-        status: 'rascunho' as 'rascunho' | 'publicado' | 'cancelado',
-        publicoAlvo: '',
-        requisitos: '',
-    })
+    // Erros por step
+    const [errors1, setErrors1] = useState<Step1Errors>({})
+    const [errors2, setErrors2] = useState<Step2Errors>({})
+    const [errors4, setErrors4] = useState<Step4Errors>({})
 
-    // Função para extrair coordenadas do link do Google Maps
-    const extractCoordinatesFromGoogleMaps = (url: string) => {
-        if (!url) return { latitude: '', longitude: '' }
+    // Preview de imagem
+    const [imageError, setImageError] = useState(false)
 
-        try {
-            // Padrão 1: maps.google.com/?q=lat,lng
-            const qParamMatch = url.match(/[?&]q=([-]?\d+\.\d+),([-]?\d+\.\d+)/)
-            if (qParamMatch) {
-                return {
-                    latitude: qParamMatch[1],
-                    longitude: qParamMatch[2],
-                }
-            }
-
-            // Padrão 2: google.com/maps/place/@lat,lng
-            const placeMatch = url.match(/@([-]?\d+\.\d+),([-]?\d+\.\d+)/)
-            if (placeMatch) {
-                return {
-                    latitude: placeMatch[1],
-                    longitude: placeMatch[2],
-                }
-            }
-
-            // Padrão 3: google.com/maps?ll=lat,lng
-            const llParamMatch = url.match(
-                /[?&]ll=([-]?\d+\.\d+),([-]?\d+\.\d+)/,
-            )
-            if (llParamMatch) {
-                return {
-                    latitude: llParamMatch[1],
-                    longitude: llParamMatch[2],
-                }
-            }
-
-            // Padrão 4: maps.app.goo.gl (short URL) - precisamos obter a URL completa
-            if (url.includes('maps.app.goo.gl')) {
-                // Em uma aplicação real, você pode querer fazer uma requisição para obter a URL completa
-                // Por enquanto, vamos apenas retornar vazio
-                console.log(
-                    'URL encurtada detectada. Em produção, considere expandir a URL para extrair coordenadas.',
-                )
-                return { latitude: '', longitude: '' }
-            }
-
-            return { latitude: '', longitude: '' }
-        } catch (error) {
-            console.error('Erro ao extrair coordenadas do Google Maps:', error)
-            return { latitude: '', longitude: '' }
-        }
-    }
-
-    // Função para lidar com a mudança do link do Google Maps
-    const handleGoogleMapsLinkChange = (url: string) => {
-        setFormData((prev) => ({ ...prev, LocalLinkGoogleMaps: url }))
-
-        // Extrair coordenadas automaticamente
-        const coordinates = extractCoordinatesFromGoogleMaps(url)
-        if (coordinates.latitude && coordinates.longitude) {
-            setFormData((prev) => ({
-                ...prev,
-                LocalLinkGoogleMaps: url,
-                LocalLatitude: coordinates.latitude,
-                LocalLongitude: coordinates.longitude,
-            }))
-        }
-    }
-
-    // Função para validar e formatar coordenadas manualmente
-    const handleCoordinateChange = (
-        field: 'LocalLatitude' | 'LocalLongitude',
-        value: string,
-    ) => {
-        // Permitir apenas números, ponto decimal e sinal negativo
-        const cleanedValue = value.replace(/[^\d.-]/g, '')
-
-        // Validar formato de coordenada
-        const coordinateRegex = /^-?\d+(\.\d+)?$/
-        if (cleanedValue === '' || coordinateRegex.test(cleanedValue)) {
-            setFormData((prev) => ({ ...prev, [field]: cleanedValue }))
-        }
-    }
-
-    const handleCepChange = async (cep: string) => {
-        // Remove non-numeric characters
-        const cleanedCep = cep.replace(/\D/g, '')
-
-        setFormData((prev) => ({ ...prev, LocalCep: cep }))
-
-        if (cleanedCep.length === 8) {
-            try {
-                const response = await fetch(
-                    `https://viacep.com.br/ws/${cleanedCep}/json/`,
-                )
-                const data = await response.json()
-
-                if (!data.erro) {
-                    setFormData((prev) => ({
-                        ...prev,
-                        LocalCep: cep,
-                        LocalEndereco: data.logradouro || prev.LocalEndereco,
-                        LocalBairro: data.bairro || prev.LocalBairro,
-                        LocalCidade: data.localidade || prev.LocalCidade,
-                        LocalEstado: data.uf || prev.LocalEstado,
-                        LocalPais: 'Brasil',
-                    }))
-                }
-            } catch (error) {
-                console.error('Erro ao buscar CEP:', error)
-            }
-        }
-    }
-
+    // ─── Popula form ao editar ─────────────────────────────────────────────
     useEffect(() => {
         if (editingEvent) {
             setFormData({
@@ -197,8 +172,8 @@ export function EventForm({
                 descricao: editingEvent.descricao,
                 categoriaId: editingEvent.categoriaId.toString(),
                 organizadorId: editingEvent.organizadorId?.toString() || '',
-                dataInicio: editingEvent.dataInicio.substring(0, 16),
-                dataFim: editingEvent.dataFim.substring(0, 16),
+                dataInicio: editingEvent.dataInicio.substring(0, 10),
+                dataFim: editingEvent.dataFim.substring(0, 10),
                 horarioAbertura: editingEvent.horarioAbertura || '',
                 horarioEncerramento: editingEvent.horarioEncerramento || '',
                 capacidadeMaxima: editingEvent.capacidadeMaxima.toString(),
@@ -230,24 +205,166 @@ export function EventForm({
         }
     }, [editingEvent])
 
-    // useEffect(() => {
-    //    console.log('formData:', formData)
-    // }, [formData])
+    // ─── Handlers ─────────────────────────────────────────────────────────
+    const set = (field: keyof typeof INITIAL_FORM_DATA, value: string) =>
+        setFormData((prev) => ({ ...prev, [field]: value }))
 
+    const handleGoogleMapsLinkChange = (url: string) => {
+        set('LocalLinkGoogleMaps', url)
+        const coords = extractCoordinatesFromGoogleMaps(url)
+        if (coords.latitude && coords.longitude) {
+            setFormData((prev) => ({
+                ...prev,
+                LocalLinkGoogleMaps: url,
+                LocalLatitude: coords.latitude,
+                LocalLongitude: coords.longitude,
+            }))
+        }
+    }
+
+    const handleCoordinateChange = (
+        field: 'LocalLatitude' | 'LocalLongitude',
+        value: string,
+    ) => {
+        const cleaned = value.replace(/[^\d.-]/g, '')
+        set(field, cleaned)
+
+        // Valida range em tempo real
+        const num = parseFloat(cleaned)
+        if (cleaned && !isNaN(num)) {
+            const isLat = field === 'LocalLatitude'
+            const outOfRange = isLat
+                ? num < -90 || num > 90
+                : num < -180 || num > 180
+            setErrors4((prev) => ({
+                ...prev,
+                [field]: outOfRange
+                    ? isLat
+                        ? 'Latitude deve estar entre -90 e 90'
+                        : 'Longitude deve estar entre -180 e 180'
+                    : undefined,
+            }))
+        } else {
+            setErrors4((prev) => ({ ...prev, [field]: undefined }))
+        }
+    }
+
+    const handleCepChange = async (raw: string) => {
+        const formatted = formatCep(raw)
+        set('LocalCep', formatted)
+
+        const digits = formatted.replace(/\D/g, '')
+        if (digits.length === 8) {
+            try {
+                const controller = new AbortController()
+                const response = await fetch(
+                    `https://viacep.com.br/ws/${digits}/json/`,
+                    { signal: controller.signal },
+                )
+                const data = await response.json()
+                if (!data.erro) {
+                    setFormData((prev) => ({
+                        ...prev,
+                        LocalCep: formatted,
+                        LocalEndereco: data.logradouro || prev.LocalEndereco,
+                        LocalBairro: data.bairro || prev.LocalBairro,
+                        LocalCidade: data.localidade || prev.LocalCidade,
+                        LocalEstado: data.uf || prev.LocalEstado,
+                        LocalPais: 'Brasil',
+                    }))
+                }
+            } catch (err: unknown) {
+                if (err instanceof Error && err.name !== 'AbortError') {
+                    console.error('Erro ao buscar CEP:', err)
+                }
+            }
+        }
+    }
+
+    // ─── Validações por step ───────────────────────────────────────────────
+    const validateStep1 = (): boolean => {
+        const errs: Step1Errors = {}
+        if (!formData.titulo.trim()) errs.titulo = 'O título é obrigatório'
+        if (!formData.descricao.trim())
+            errs.descricao = 'A descrição é obrigatória'
+        else if (formData.descricao.length > MAX_DESCRICAO_CHARS)
+            errs.descricao = `Limite de ${MAX_DESCRICAO_CHARS} caracteres excedido`
+        if (!formData.categoriaId) errs.categoriaId = 'Selecione uma categoria'
+        setErrors1(errs)
+        return Object.keys(errs).length === 0
+    }
+
+    const validateStep2 = (): boolean => {
+        const errs: Step2Errors = {}
+        if (!formData.dataInicio)
+            errs.dataInicio = 'A data de início é obrigatória'
+        if (!formData.dataFim) errs.dataFim = 'A data de término é obrigatória'
+        else if (
+            formData.dataInicio &&
+            formData.dataFim < formData.dataInicio
+        ) {
+            errs.dataFim = 'A data de término não pode ser anterior ao início'
+        }
+        if (!formData.horarioAbertura)
+            errs.horarioAbertura = 'O horário de abertura é obrigatório'
+        if (!formData.horarioEncerramento)
+            errs.horarioEncerramento = 'O horário de encerramento é obrigatório'
+        if (
+            formData.horarioAbertura &&
+            formData.horarioEncerramento &&
+            formData.dataInicio === formData.dataFim &&
+            formData.horarioEncerramento <= formData.horarioAbertura
+        ) {
+            errs.horarioEncerramento = 'O encerramento deve ser após a abertura'
+        }
+        if (formData.publicoAlvo.length > MAX_PUBLICO_ALVO_CHARS)
+            errs.publicoAlvo = `Limite de ${MAX_PUBLICO_ALVO_CHARS} caracteres excedido`
+        if (formData.requisitos.length > MAX_REQUISITOS_CHARS)
+            errs.requisitos = `Limite de ${MAX_REQUISITOS_CHARS} caracteres excedido`
+        setErrors2(errs)
+        return Object.keys(errs).length === 0
+    }
+
+    const validateStep4 = (): boolean => {
+        const errs: Step4Errors = {}
+        if (formData.imagemCapa && !isValidImageUrl(formData.imagemCapa)) {
+            errs.imagemCapa =
+                'URL inválida. Use uma URL pública terminando em .jpg, .png, .webp etc.'
+        }
+        const lat = parseFloat(formData.LocalLatitude)
+        const lng = parseFloat(formData.LocalLongitude)
+        if (formData.LocalLatitude && (isNaN(lat) || lat < -90 || lat > 90))
+            errs.LocalLatitude = 'Latitude deve estar entre -90 e 90'
+        if (formData.LocalLongitude && (isNaN(lng) || lng < -180 || lng > 180))
+            errs.LocalLongitude = 'Longitude deve estar entre -180 e 180'
+        setErrors4(errs)
+        return Object.keys(errs).length === 0
+    }
+
+    // ─── Navegação ────────────────────────────────────────────────────────
+    const nextStep = () => {
+        const valid =
+            currentStep === 1
+                ? validateStep1()
+                : currentStep === 2
+                  ? validateStep2()
+                  : true
+        if (valid && currentStep < totalSteps) setCurrentStep((s) => s + 1)
+    }
+
+    const prevStep = () => {
+        if (currentStep > 1) setCurrentStep((s) => s - 1)
+    }
+
+    // ─── Submit ───────────────────────────────────────────────────────────
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
+        if (!validateStep4()) return
 
-        if (currentStep !== totalSteps) {
-            return
+        const toDate = (dateStr: string) => {
+            const [y, m, d] = dateStr.split('-').map(Number)
+            return new Date(y, m - 1, d).toISOString()
         }
-
-        const [year, month, day] = formData.dataInicio.split('-').map(Number)
-        const [yearFim, monthFim, dayFim] = formData.dataFim
-            .split('-')
-            .map(Number)
-
-        const dataInicio = new Date(year, month - 1, day)
-        const dataFim = new Date(yearFim, monthFim - 1, dayFim)
 
         onSubmit({
             titulo: formData.titulo,
@@ -256,8 +373,8 @@ export function EventForm({
             organizadorId: formData.organizadorId
                 ? parseInt(formData.organizadorId)
                 : undefined,
-            dataInicio: dataInicio.toISOString(),
-            dataFim: dataFim.toISOString(),
+            dataInicio: toDate(formData.dataInicio),
+            dataFim: toDate(formData.dataFim),
             horarioAbertura: formData.horarioAbertura,
             horarioEncerramento: formData.horarioEncerramento,
             capacidadeMaxima: formData.capacidadeMaxima
@@ -294,85 +411,27 @@ export function EventForm({
             categoria: null,
         })
 
-        setFormData({
-            titulo: '',
-            descricao: '',
-            categoriaId: '',
-            organizadorId: '',
-            dataInicio: '',
-            dataFim: '',
-            horarioAbertura: '',
-            horarioEncerramento: '',
-            capacidadeMaxima: '',
-            vagasDisponiveis: '',
-            tipoEvento: 'presencial',
-            linkOnline: '',
-            LocalLinkGoogleMaps: '',
-            LocalNome: '',
-            LocalEndereco: '',
-            LocalNumero: '',
-            LocalComplemento: '',
-            LocalBairro: '',
-            LocalCidade: '',
-            LocalEstado: '',
-            LocalCep: '',
-            LocalPais: 'Brasil',
-            LocalCapacidade: '',
-            LocalLatitude: '',
-            LocalLongitude: '',
-            LocalObservacoes: '',
-            linkPaginaEvento: '',
-            imagemCapa: '',
-            status: 'rascunho',
-            publicoAlvo: '',
-            requisitos: '',
-        })
+        setFormData(INITIAL_FORM_DATA)
     }
 
-    const nextStep = () => {
-        if (currentStep < totalSteps) {
-            setCurrentStep(currentStep + 1)
-        }
-    }
-
-    const prevStep = () => {
-        if (currentStep > 1) {
-            setCurrentStep(currentStep - 1)
-        }
-    }
-
-    const canProceed = () => {
-        switch (currentStep) {
-            case 1:
-                return (
-                    formData.titulo &&
-                    formData.descricao &&
-                    formData.categoriaId
-                )
-            case 2:
-                return (
-                    formData.dataInicio &&
-                    formData.dataFim &&
-                    formData.horarioAbertura &&
-                    formData.horarioEncerramento
-                )
-            case 3:
-                // Campos de local são opcionais
-                return true
-            case 4:
-                // Campos de mídia são opcionais
-                return false
-            default:
-                return true
-        }
-    }
-
+    // ─── Steps config ─────────────────────────────────────────────────────
     const steps = [
         { number: 1, title: 'Informações Básicas', icon: FileText },
         { number: 2, title: 'Detalhes do Evento', icon: CalendarIcon },
         { number: 3, title: 'Informações do Local', icon: MapPin },
         { number: 4, title: 'Mídia e Links', icon: ImageIcon },
     ]
+
+    // ─── Helpers de exibição ──────────────────────────────────────────────
+    const formatDateDisplay = (dateStr: string) => {
+        if (!dateStr) return '-'
+        const [y, m, d] = dateStr.split('-')
+        return `${d}/${m}/${y}`
+    }
+
+    const categoriaNome =
+        categorias.find((c) => c.id.toString() === formData.categoriaId)
+            ?.nome || '-'
 
     return (
         <AnimatePresence>
@@ -422,7 +481,6 @@ export function EventForm({
                                         currentStep > step.number
                                     const isCurrent =
                                         currentStep === step.number
-
                                     return (
                                         <div
                                             key={step.number}
@@ -479,7 +537,7 @@ export function EventForm({
                         className="flex flex-col h-[calc(90vh-200px)]"
                     >
                         <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                            {/* Step 1: Informações Básicas */}
+                            {/* ── Step 1: Informações Básicas ─────────────── */}
                             {currentStep === 1 && (
                                 <motion.div
                                     initial={{ opacity: 0, x: 20 }}
@@ -499,7 +557,7 @@ export function EventForm({
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-6">
-                                        {/* Title - Full Width */}
+                                        {/* Título */}
                                         <div className="space-y-2">
                                             <Label htmlFor="titulo">
                                                 Título do Evento*
@@ -508,18 +566,30 @@ export function EventForm({
                                                 id="titulo"
                                                 placeholder="Ex: Workshop de Node.js"
                                                 value={formData.titulo}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        titulo: e.target.value,
-                                                    })
+                                                onChange={(e) => {
+                                                    set(
+                                                        'titulo',
+                                                        e.target.value,
+                                                    )
+                                                    if (errors1.titulo)
+                                                        setErrors1((p) => ({
+                                                            ...p,
+                                                            titulo: undefined,
+                                                        }))
+                                                }}
+                                                className={
+                                                    errors1.titulo
+                                                        ? 'border-red-500 focus-visible:ring-red-500'
+                                                        : ''
                                                 }
-                                                required
+                                            />
+                                            <FieldError
+                                                message={errors1.titulo}
                                             />
                                         </div>
 
-                                        {/* Description - Full Width */}
-                                        <div className="space-y-2 md:col-span-2">
+                                        {/* Descrição */}
+                                        <div className="space-y-2">
                                             <Label htmlFor="descricao">
                                                 Descrição*
                                                 <span className="text-xs text-muted-foreground ml-2">
@@ -531,48 +601,55 @@ export function EventForm({
                                                 id="descricao"
                                                 placeholder="Descreva os principais pontos do evento..."
                                                 value={formData.descricao}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        descricao:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                                required
+                                                onChange={(e) => {
+                                                    set(
+                                                        'descricao',
+                                                        e.target.value,
+                                                    )
+                                                    if (errors1.descricao)
+                                                        setErrors1((p) => ({
+                                                            ...p,
+                                                            descricao:
+                                                                undefined,
+                                                        }))
+                                                }}
                                                 rows={4}
                                                 className={`resize-none ${
-                                                    formData.descricao.length >
-                                                    MAX_DESCRICAO_CHARS
+                                                    errors1.descricao
                                                         ? 'border-red-500 focus-visible:ring-red-500'
                                                         : ''
                                                 }`}
                                             />
-                                            {formData.descricao.length >
-                                                MAX_DESCRICAO_CHARS && (
-                                                <p className="text-xs text-red-500 mt-1">
-                                                    A descrição excedeu o limite
-                                                    de {MAX_DESCRICAO_CHARS}{' '}
-                                                    caracteres
-                                                </p>
-                                            )}
+                                            <FieldError
+                                                message={errors1.descricao}
+                                            />
                                         </div>
 
-                                        {/* Category - Full Width */}
+                                        {/* Categoria */}
                                         <div className="space-y-2">
                                             <Label htmlFor="categoriaId">
                                                 Categoria*
                                             </Label>
                                             <Select
                                                 value={formData.categoriaId}
-                                                onValueChange={(value) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        categoriaId: value,
-                                                    })
-                                                }
-                                                required
+                                                onValueChange={(value) => {
+                                                    set('categoriaId', value)
+                                                    if (errors1.categoriaId)
+                                                        setErrors1((p) => ({
+                                                            ...p,
+                                                            categoriaId:
+                                                                undefined,
+                                                        }))
+                                                }}
                                             >
-                                                <SelectTrigger id="categoriaId">
+                                                <SelectTrigger
+                                                    id="categoriaId"
+                                                    className={
+                                                        errors1.categoriaId
+                                                            ? 'border-red-500 focus:ring-red-500'
+                                                            : ''
+                                                    }
+                                                >
                                                     <SelectValue placeholder="Selecione uma categoria" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -591,12 +668,15 @@ export function EventForm({
                                                     ))}
                                                 </SelectContent>
                                             </Select>
+                                            <FieldError
+                                                message={errors1.categoriaId}
+                                            />
                                         </div>
                                     </div>
                                 </motion.div>
                             )}
 
-                            {/* Step 2: Detalhes do Evento */}
+                            {/* ── Step 2: Detalhes do Evento ──────────────── */}
                             {currentStep === 2 && (
                                 <motion.div
                                     initial={{ opacity: 0, x: 20 }}
@@ -616,7 +696,7 @@ export function EventForm({
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Start Date */}
+                                        {/* Data de Início */}
                                         <div className="space-y-2">
                                             <Label htmlFor="dataInicio">
                                                 Data de Início*
@@ -625,18 +705,30 @@ export function EventForm({
                                                 id="dataInicio"
                                                 type="date"
                                                 value={formData.dataInicio}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        dataInicio:
-                                                            e.target.value,
-                                                    })
+                                                onChange={(e) => {
+                                                    set(
+                                                        'dataInicio',
+                                                        e.target.value,
+                                                    )
+                                                    if (errors2.dataInicio)
+                                                        setErrors2((p) => ({
+                                                            ...p,
+                                                            dataInicio:
+                                                                undefined,
+                                                        }))
+                                                }}
+                                                className={
+                                                    errors2.dataInicio
+                                                        ? 'border-red-500 focus-visible:ring-red-500'
+                                                        : ''
                                                 }
-                                                required
+                                            />
+                                            <FieldError
+                                                message={errors2.dataInicio}
                                             />
                                         </div>
 
-                                        {/* End Date */}
+                                        {/* Data de Término */}
                                         <div className="space-y-2">
                                             <Label htmlFor="dataFim">
                                                 Data de Término*
@@ -645,17 +737,33 @@ export function EventForm({
                                                 id="dataFim"
                                                 type="date"
                                                 value={formData.dataFim}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        dataFim: e.target.value,
-                                                    })
+                                                min={
+                                                    formData.dataInicio ||
+                                                    undefined
                                                 }
-                                                required
+                                                onChange={(e) => {
+                                                    set(
+                                                        'dataFim',
+                                                        e.target.value,
+                                                    )
+                                                    if (errors2.dataFim)
+                                                        setErrors2((p) => ({
+                                                            ...p,
+                                                            dataFim: undefined,
+                                                        }))
+                                                }}
+                                                className={
+                                                    errors2.dataFim
+                                                        ? 'border-red-500 focus-visible:ring-red-500'
+                                                        : ''
+                                                }
+                                            />
+                                            <FieldError
+                                                message={errors2.dataFim}
                                             />
                                         </div>
 
-                                        {/* Opening Time */}
+                                        {/* Horário de Abertura */}
                                         <div className="space-y-2">
                                             <Label htmlFor="horarioAbertura">
                                                 Horário de Abertura*
@@ -664,18 +772,32 @@ export function EventForm({
                                                 id="horarioAbertura"
                                                 type="time"
                                                 value={formData.horarioAbertura}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        horarioAbertura:
-                                                            e.target.value,
-                                                    })
+                                                onChange={(e) => {
+                                                    set(
+                                                        'horarioAbertura',
+                                                        e.target.value,
+                                                    )
+                                                    if (errors2.horarioAbertura)
+                                                        setErrors2((p) => ({
+                                                            ...p,
+                                                            horarioAbertura:
+                                                                undefined,
+                                                        }))
+                                                }}
+                                                className={
+                                                    errors2.horarioAbertura
+                                                        ? 'border-red-500 focus-visible:ring-red-500'
+                                                        : ''
                                                 }
-                                                required
+                                            />
+                                            <FieldError
+                                                message={
+                                                    errors2.horarioAbertura
+                                                }
                                             />
                                         </div>
 
-                                        {/* Closing Time */}
+                                        {/* Horário de Encerramento */}
                                         <div className="space-y-2">
                                             <Label htmlFor="horarioEncerramento">
                                                 Horário de Encerramento*
@@ -686,18 +808,34 @@ export function EventForm({
                                                 value={
                                                     formData.horarioEncerramento
                                                 }
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        horarioEncerramento:
-                                                            e.target.value,
-                                                    })
+                                                onChange={(e) => {
+                                                    set(
+                                                        'horarioEncerramento',
+                                                        e.target.value,
+                                                    )
+                                                    if (
+                                                        errors2.horarioEncerramento
+                                                    )
+                                                        setErrors2((p) => ({
+                                                            ...p,
+                                                            horarioEncerramento:
+                                                                undefined,
+                                                        }))
+                                                }}
+                                                className={
+                                                    errors2.horarioEncerramento
+                                                        ? 'border-red-500 focus-visible:ring-red-500'
+                                                        : ''
                                                 }
-                                                required
+                                            />
+                                            <FieldError
+                                                message={
+                                                    errors2.horarioEncerramento
+                                                }
                                             />
                                         </div>
 
-                                        {/* Target Audience - Full Width */}
+                                        {/* Público Alvo */}
                                         <div className="space-y-2 md:col-span-2">
                                             <Label htmlFor="publicoAlvo">
                                                 Público Alvo
@@ -714,33 +852,30 @@ export function EventForm({
                                                 id="publicoAlvo"
                                                 placeholder="Ex: Desenvolvedores iniciantes e intermediários"
                                                 value={formData.publicoAlvo}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        publicoAlvo:
-                                                            e.target.value,
-                                                    })
-                                                }
+                                                onChange={(e) => {
+                                                    set(
+                                                        'publicoAlvo',
+                                                        e.target.value,
+                                                    )
+                                                    if (errors2.publicoAlvo)
+                                                        setErrors2((p) => ({
+                                                            ...p,
+                                                            publicoAlvo:
+                                                                undefined,
+                                                        }))
+                                                }}
                                                 className={
-                                                    formData.publicoAlvo
-                                                        .length >
-                                                    MAX_PUBLICO_ALVO_CHARS
+                                                    errors2.publicoAlvo
                                                         ? 'border-red-500 focus-visible:ring-red-500'
                                                         : ''
                                                 }
                                             />
-                                            {formData.publicoAlvo.length >
-                                                MAX_PUBLICO_ALVO_CHARS && (
-                                                <p className="text-xs text-red-500 mt-1">
-                                                    O público alvo excedeu o
-                                                    limite de{' '}
-                                                    {MAX_PUBLICO_ALVO_CHARS}{' '}
-                                                    caracteres
-                                                </p>
-                                            )}
+                                            <FieldError
+                                                message={errors2.publicoAlvo}
+                                            />
                                         </div>
 
-                                        {/* Requirements - Full Width */}
+                                        {/* Requisitos */}
                                         <div className="space-y-2 md:col-span-2">
                                             <Label htmlFor="requisitos">
                                                 Requisitos
@@ -754,35 +889,33 @@ export function EventForm({
                                                 id="requisitos"
                                                 placeholder="Ex: Notebook próprio e conhecimento básico de JavaScript"
                                                 value={formData.requisitos}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        requisitos:
-                                                            e.target.value,
-                                                    })
-                                                }
+                                                onChange={(e) => {
+                                                    set(
+                                                        'requisitos',
+                                                        e.target.value,
+                                                    )
+                                                    if (errors2.requisitos)
+                                                        setErrors2((p) => ({
+                                                            ...p,
+                                                            requisitos:
+                                                                undefined,
+                                                        }))
+                                                }}
                                                 className={
-                                                    formData.requisitos.length >
-                                                    MAX_REQUISITOS_CHARS
+                                                    errors2.requisitos
                                                         ? 'border-red-500 focus-visible:ring-red-500'
                                                         : ''
                                                 }
                                             />
-                                            {formData.requisitos.length >
-                                                MAX_REQUISITOS_CHARS && (
-                                                <p className="text-xs text-red-500 mt-1">
-                                                    Os requisitos excederam o
-                                                    limite de{' '}
-                                                    {MAX_REQUISITOS_CHARS}{' '}
-                                                    caracteres
-                                                </p>
-                                            )}
+                                            <FieldError
+                                                message={errors2.requisitos}
+                                            />
                                         </div>
                                     </div>
                                 </motion.div>
                             )}
 
-                            {/* Step 3: Informações do Local */}
+                            {/* ── Step 3: Informações do Local ────────────── */}
                             {currentStep === 3 && (
                                 <motion.div
                                     initial={{ opacity: 0, x: 20 }}
@@ -803,7 +936,6 @@ export function EventForm({
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Local Name */}
                                         <div className="space-y-2 md:col-span-2">
                                             <Label htmlFor="LocalNome">
                                                 Nome do Local
@@ -813,22 +945,22 @@ export function EventForm({
                                                 placeholder="Ex: Auditório Central"
                                                 value={formData.LocalNome}
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalNome:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalNome',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
-                                        {/* Local Zip Code */}
+
+                                        {/* CEP com máscara automática */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalCep">
                                                 CEP
                                             </Label>
                                             <Input
                                                 id="LocalCep"
-                                                placeholder="Ex: 12345-678"
+                                                placeholder="12345-678"
                                                 value={formData.LocalCep}
                                                 onChange={(e) =>
                                                     handleCepChange(
@@ -837,8 +969,12 @@ export function EventForm({
                                                 }
                                                 maxLength={9}
                                             />
+                                            <p className="text-xs text-muted-foreground">
+                                                Digite o CEP para preencher o
+                                                endereço automaticamente
+                                            </p>
                                         </div>
-                                        {/* Local Address */}
+
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalEndereco">
                                                 Endereço
@@ -848,16 +984,14 @@ export function EventForm({
                                                 placeholder="Ex: Rua das Flores"
                                                 value={formData.LocalEndereco}
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalEndereco:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalEndereco',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Local Number */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalNumero">
                                                 Número
@@ -867,16 +1001,14 @@ export function EventForm({
                                                 placeholder="Ex: 123"
                                                 value={formData.LocalNumero}
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalNumero:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalNumero',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Local Complement */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalComplemento">
                                                 Complemento
@@ -888,16 +1020,14 @@ export function EventForm({
                                                     formData.LocalComplemento
                                                 }
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalComplemento:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalComplemento',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Local Neighborhood */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalBairro">
                                                 Bairro
@@ -907,16 +1037,14 @@ export function EventForm({
                                                 placeholder="Ex: Jardim"
                                                 value={formData.LocalBairro}
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalBairro:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalBairro',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Local City */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalCidade">
                                                 Cidade
@@ -926,16 +1054,14 @@ export function EventForm({
                                                 placeholder="Ex: Cuiabá"
                                                 value={formData.LocalCidade}
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalCidade:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalCidade',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Local State */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalEstado">
                                                 Estado
@@ -945,16 +1071,14 @@ export function EventForm({
                                                 placeholder="Ex: MT"
                                                 value={formData.LocalEstado}
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalEstado:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalEstado',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Local Country */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalPais">
                                                 País
@@ -964,16 +1088,14 @@ export function EventForm({
                                                 placeholder="Ex: Brasil"
                                                 value={formData.LocalPais}
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalPais:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalPais',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Local Capacity */}
                                         <div className="space-y-2">
                                             <Label htmlFor="LocalCapacidade">
                                                 Capacidade do Local
@@ -985,16 +1107,14 @@ export function EventForm({
                                                 placeholder="Ex: 100"
                                                 value={formData.LocalCapacidade}
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalCapacidade:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalCapacidade',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Local Observations - Full Width */}
                                         <div className="space-y-2 md:col-span-2">
                                             <Label htmlFor="LocalObservacoes">
                                                 Observações sobre o Local
@@ -1006,11 +1126,10 @@ export function EventForm({
                                                     formData.LocalObservacoes
                                                 }
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        LocalObservacoes:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'LocalObservacoes',
+                                                        e.target.value,
+                                                    )
                                                 }
                                                 rows={3}
                                                 className="resize-none"
@@ -1020,7 +1139,7 @@ export function EventForm({
                                 </motion.div>
                             )}
 
-                            {/* Step 4: Mídia e Links */}
+                            {/* ── Step 4: Mídia e Links ────────────────────── */}
                             {currentStep === 4 && (
                                 <motion.div
                                     initial={{ opacity: 0, x: 20 }}
@@ -1038,7 +1157,7 @@ export function EventForm({
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-6">
-                                        {/* Image URL */}
+                                        {/* Imagem de Capa */}
                                         <div className="space-y-2">
                                             <Label
                                                 htmlFor="imagemCapa"
@@ -1052,39 +1171,72 @@ export function EventForm({
                                                 type="url"
                                                 placeholder="https://exemplo.com/imagem-evento.jpg"
                                                 value={formData.imagemCapa}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        imagemCapa:
-                                                            e.target.value,
-                                                    })
+                                                onChange={(e) => {
+                                                    set(
+                                                        'imagemCapa',
+                                                        e.target.value,
+                                                    )
+                                                    setImageError(false)
+                                                    if (errors4.imagemCapa)
+                                                        setErrors4((p) => ({
+                                                            ...p,
+                                                            imagemCapa:
+                                                                undefined,
+                                                        }))
+                                                }}
+                                                className={
+                                                    errors4.imagemCapa
+                                                        ? 'border-red-500 focus-visible:ring-red-500'
+                                                        : ''
                                                 }
                                             />
-                                            {formData.imagemCapa && (
-                                                <motion.div
-                                                    initial={{
-                                                        opacity: 0,
-                                                        height: 0,
-                                                    }}
-                                                    animate={{
-                                                        opacity: 1,
-                                                        height: 'auto',
-                                                    }}
-                                                    className="relative rounded-lg overflow-hidden h-48 border border-border mt-3"
-                                                >
-                                                    <img
-                                                        src={
-                                                            formData.imagemCapa
-                                                        }
-                                                        alt="Preview"
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                                                </motion.div>
-                                            )}
+                                            <FieldError
+                                                message={errors4.imagemCapa}
+                                            />
+
+                                            {/* Preview com tratamento de erro de carregamento */}
+                                            {formData.imagemCapa &&
+                                                !errors4.imagemCapa && (
+                                                    <motion.div
+                                                        initial={{
+                                                            opacity: 0,
+                                                            height: 0,
+                                                        }}
+                                                        animate={{
+                                                            opacity: 1,
+                                                            height: 'auto',
+                                                        }}
+                                                        className="relative rounded-lg overflow-hidden border border-border mt-3"
+                                                    >
+                                                        {imageError ? (
+                                                            <div className="h-32 flex flex-col items-center justify-center bg-muted gap-2 text-muted-foreground text-sm">
+                                                                <ImageIcon className="w-6 h-6" />
+                                                                <span>
+                                                                    Não foi
+                                                                    possível
+                                                                    carregar a
+                                                                    imagem
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <img
+                                                                src={
+                                                                    formData.imagemCapa
+                                                                }
+                                                                alt="Preview da capa"
+                                                                className="w-full h-48 object-cover"
+                                                                onError={() =>
+                                                                    setImageError(
+                                                                        true,
+                                                                    )
+                                                                }
+                                                            />
+                                                        )}
+                                                    </motion.div>
+                                                )}
                                         </div>
 
-                                        {/* Event Page Link */}
+                                        {/* Link da Página */}
                                         <div className="space-y-2">
                                             <Label htmlFor="linkPaginaEvento">
                                                 Link da Página do Evento
@@ -1097,16 +1249,15 @@ export function EventForm({
                                                     formData.linkPaginaEvento
                                                 }
                                                 onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        linkPaginaEvento:
-                                                            e.target.value,
-                                                    })
+                                                    set(
+                                                        'linkPaginaEvento',
+                                                        e.target.value,
+                                                    )
                                                 }
                                             />
                                         </div>
 
-                                        {/* Google Maps Link */}
+                                        {/* Google Maps */}
                                         <div className="space-y-2">
                                             <Label
                                                 htmlFor="LocalLinkGoogleMaps"
@@ -1155,8 +1306,8 @@ export function EventForm({
                                                 )}
                                         </div>
 
+                                        {/* Coordenadas */}
                                         <div className="grid grid-cols-2 gap-6">
-                                            {/* Local Latitude */}
                                             <div className="space-y-2">
                                                 <Label htmlFor="LocalLatitude">
                                                     Latitude
@@ -1173,10 +1324,19 @@ export function EventForm({
                                                             e.target.value,
                                                         )
                                                     }
+                                                    className={
+                                                        errors4.LocalLatitude
+                                                            ? 'border-red-500 focus-visible:ring-red-500'
+                                                            : ''
+                                                    }
+                                                />
+                                                <FieldError
+                                                    message={
+                                                        errors4.LocalLatitude
+                                                    }
                                                 />
                                             </div>
 
-                                            {/* Local Longitude */}
                                             <div className="space-y-2">
                                                 <Label htmlFor="LocalLongitude">
                                                     Longitude
@@ -1193,84 +1353,93 @@ export function EventForm({
                                                             e.target.value,
                                                         )
                                                     }
+                                                    className={
+                                                        errors4.LocalLongitude
+                                                            ? 'border-red-500 focus-visible:ring-red-500'
+                                                            : ''
+                                                    }
+                                                />
+                                                <FieldError
+                                                    message={
+                                                        errors4.LocalLongitude
+                                                    }
                                                 />
                                             </div>
                                         </div>
 
-                                        {/* Summary Card */}
-                                        <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                                        {/* ── Resumo completo ── */}
+                                        <div className="mt-2 p-4 bg-muted/50 rounded-lg border border-border">
                                             <h4 className="mb-3">
                                                 Resumo do Evento
                                             </h4>
                                             <div className="space-y-2 text-sm">
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">
-                                                        Título:
-                                                    </span>
-                                                    <span>
-                                                        {formData.titulo || '-'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">
-                                                        Categoria:
-                                                    </span>
-                                                    <span>
-                                                        {formData.categoriaId
-                                                            ? categorias.find(
-                                                                  (c) =>
-                                                                      c.id.toString() ===
-                                                                      formData.categoriaId,
-                                                              )?.nome || '-'
-                                                            : '-'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">
-                                                        Tipo:
-                                                    </span>
-                                                    <span className="capitalize">
-                                                        {formData.tipoEvento}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">
-                                                        Capacidade:
-                                                    </span>
-                                                    <span>
-                                                        {formData.capacidadeMaxima ||
-                                                            '-'}{' '}
-                                                        pessoas
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">
-                                                        Local:
-                                                    </span>
-                                                    <span>
-                                                        {formData.LocalNome ||
-                                                            'Não informado'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">
-                                                        Coordenadas:
-                                                    </span>
-                                                    <span>
-                                                        {formData.LocalLatitude &&
-                                                        formData.LocalLongitude
-                                                            ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
-                                                            : 'Não informadas'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">
-                                                        Status:
-                                                    </span>
-                                                    <span className="capitalize">
-                                                        {formData.status}
-                                                    </span>
-                                                </div>
+                                                {(
+                                                    [
+                                                        [
+                                                            'Título',
+                                                            formData.titulo,
+                                                        ],
+                                                        [
+                                                            'Categoria',
+                                                            categoriaNome,
+                                                        ],
+                                                        [
+                                                            'Tipo',
+                                                            formData.tipoEvento,
+                                                        ],
+                                                        [
+                                                            'Período',
+                                                            formData.dataInicio &&
+                                                            formData.dataFim
+                                                                ? `${formatDateDisplay(formData.dataInicio)} → ${formatDateDisplay(formData.dataFim)}`
+                                                                : '-',
+                                                        ],
+                                                        [
+                                                            'Horário',
+                                                            formData.horarioAbertura &&
+                                                            formData.horarioEncerramento
+                                                                ? `${formData.horarioAbertura} às ${formData.horarioEncerramento}`
+                                                                : '-',
+                                                        ],
+                                                        [
+                                                            'Capacidade',
+                                                            formData.capacidadeMaxima
+                                                                ? `${formData.capacidadeMaxima} pessoas`
+                                                                : '100 pessoas (padrão)',
+                                                        ],
+                                                        [
+                                                            'Local',
+                                                            [
+                                                                formData.LocalNome,
+                                                                formData.LocalCidade,
+                                                                formData.LocalEstado,
+                                                            ]
+                                                                .filter(Boolean)
+                                                                .join(', ') ||
+                                                                'Não informado',
+                                                        ],
+                                                        [
+                                                            'Coordenadas',
+                                                            formData.LocalLatitude &&
+                                                            formData.LocalLongitude
+                                                                ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
+                                                                : 'Não informadas',
+                                                        ],
+                                                        ['Status', 'Rascunho'],
+                                                    ] as [string, string][]
+                                                ).map(([label, value]) => (
+                                                    <div
+                                                        key={label}
+                                                        className="flex justify-between gap-4"
+                                                    >
+                                                        <span className="text-muted-foreground shrink-0">
+                                                            {label}:
+                                                        </span>
+                                                        <span className="text-right truncate">
+                                                            {value || '-'}
+                                                        </span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
@@ -1278,7 +1447,7 @@ export function EventForm({
                             )}
                         </div>
 
-                        {/* Navigation Buttons */}
+                        {/* ── Navigation Buttons ───────────────────────────── */}
                         <div className="p-6 border-t border-border bg-muted/30">
                             <div className="flex gap-3">
                                 {currentStep > 1 && (
@@ -1309,7 +1478,6 @@ export function EventForm({
                                     <Button
                                         type="button"
                                         onClick={nextStep}
-                                        disabled={!canProceed()}
                                         size="lg"
                                         className="flex items-center gap-2"
                                     >
@@ -1317,11 +1485,16 @@ export function EventForm({
                                         <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 )}
+
                                 {currentStep === totalSteps && (
                                     <Button
-                                        onClick={(e) => handleSubmit(e)}
+                                        type="submit"
                                         size="lg"
                                         className="flex items-center gap-2"
+                                        disabled={
+                                            !!errors4.LocalLatitude ||
+                                            !!errors4.LocalLongitude
+                                        }
                                     >
                                         <Check className="w-4 h-4" />
                                         {editingEvent
