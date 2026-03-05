@@ -8,7 +8,11 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 [x] logo conecte-se
 [ ] logo conecte-se no painel admin também
 
-[ ] calendário: melhorar a fonte dos dias. bold e linha divisória
+[x] calendário: melhorar a fonte dos dias. bold e linha divisória
+
+[ ] se o evento tiver mais de um dia, adicionar no calendário o mesmo evento ao longo dos dias.
+
+[x] listar eventos do mais recente para o mais antigo
 
 [ ] admin: paginações
 [ ] admin: CRUD completo de usuários
