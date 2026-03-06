@@ -10,6 +10,7 @@ import {
    ChevronLeft,
    Check,
    AlertCircle,
+   Loader2,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -94,24 +95,6 @@ const formatCep = (value: string) => {
    return digits
 }
 
-const extractCoordinatesFromGoogleMaps = (url: string) => {
-   if (!url) return { latitude: '', longitude: '' }
-   try {
-      const patterns = [
-         /[?&]q=([-]?\d+\.\d+),([-]?\d+\.\d+)/,
-         /@([-]?\d+\.\d+),([-]?\d+\.\d+)/,
-         /[?&]ll=([-]?\d+\.\d+),([-]?\d+\.\d+)/,
-      ]
-      for (const pattern of patterns) {
-         const match = url.match(pattern)
-         if (match) return { latitude: match[1], longitude: match[2] }
-      }
-      return { latitude: '', longitude: '' }
-   } catch {
-      return { latitude: '', longitude: '' }
-   }
-}
-
 const isValidImageUrl = (url: string) => {
    try {
       const parsed = new URL(url)
@@ -150,8 +133,14 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
    // Preview de imagem
    const [imageError, setImageError] = useState(false)
 
-   // ─── AbortController ref para o fetch de CEP ──────────────────────────
+   // Estado de geocodificação
+   const [isGeocoding, setIsGeocoding] = useState(false)
+   const [geocodeStatus, setGeocodeStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+   // ─── Refs ──────────────────────────────────────────────────────────────
    const cepAbortRef = useRef<AbortController | null>(null)
+   const geocodeAbortRef = useRef<AbortController | null>(null)
+   const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
    // ─── Deriva o estado inicial do editingEvent de forma estável ─────────
    const prevEventIdRef = useRef<string | undefined>(undefined)
@@ -161,6 +150,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
       if (currentId !== prevEventIdRef.current) {
          if (!editingEvent) {
             setFormData(INITIAL_FORM_DATA)
+            setGeocodeStatus('idle')
          } else {
             setFormData({
                titulo: editingEvent.titulo,
@@ -200,6 +190,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                publicoAlvo: editingEvent.publicoAlvo || '',
                requisitos: editingEvent.requisitos || '',
             })
+            // Se já tem coords ao editar, marca como sucesso
+            if (editingEvent.LocalLatitude && editingEvent.LocalLongitude) {
+               setGeocodeStatus('success')
+            }
          }
          prevEventIdRef.current = currentId
       }
@@ -217,23 +211,96 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
       [editingEvent],
    )
 
-   const handleGoogleMapsLinkChange = useCallback((url: string) => {
-      const coords = extractCoordinatesFromGoogleMaps(url)
-      if (coords.latitude && coords.longitude) {
-         setFormData((prev) => ({
-            ...prev,
-            LocalLinkGoogleMaps: url,
-            LocalLatitude: coords.latitude,
-            LocalLongitude: coords.longitude,
-         }))
-      } else {
-         setFormData((prev) => ({ ...prev, LocalLinkGoogleMaps: url }))
+   // ─── Geocodificação via Nominatim ─────────────────────────────────────
+   const geocodeAddress = useCallback(async (data: typeof INITIAL_FORM_DATA) => {
+      const parts = [
+         data.LocalEndereco,
+         data.LocalNumero,
+         data.LocalBairro,
+         data.LocalCidade,
+         data.LocalEstado,
+         data.LocalPais,
+      ].filter(Boolean)
+
+      // Precisa ao menos de cidade para geocodificar
+      if (!data.LocalCidade && !data.LocalEndereco) return
+
+      geocodeAbortRef.current?.abort()
+      geocodeAbortRef.current = new AbortController()
+
+      setIsGeocoding(true)
+      setGeocodeStatus('idle')
+
+      try {
+         const query = parts.join(', ')
+         const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
+            {
+               headers: { 'Accept-Language': 'pt-BR' },
+               signal: geocodeAbortRef.current.signal,
+            },
+         )
+         const result = await res.json()
+
+         if (result.length > 0) {
+            const { lat, lon } = result[0]
+            const mapsLink = `https://www.google.com/maps?q=${lat},${lon}`
+            setFormData((prev) => ({
+               ...prev,
+               LocalLatitude: lat,
+               LocalLongitude: lon,
+               LocalLinkGoogleMaps: mapsLink,
+            }))
+            setGeocodeStatus('success')
+         } else {
+            setGeocodeStatus('error')
+         }
+      } catch (err: unknown) {
+         if (err instanceof Error && err.name !== 'AbortError') {
+            console.error('Erro ao geocodificar endereço:', err)
+            setGeocodeStatus('error')
+         }
+      } finally {
+         setIsGeocoding(false)
       }
    }, [])
+
+   // ─── Debounce: dispara geocodificação quando endereço muda ───────────
+   useEffect(() => {
+      if (!formData.LocalCidade && !formData.LocalEndereco) return
+
+      if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current)
+
+      geocodeTimerRef.current = setTimeout(() => {
+         geocodeAddress(formData)
+      }, 1000)
+
+      return () => {
+         if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current)
+      }
+   }, [
+      formData.LocalEndereco,
+      formData.LocalNumero,
+      formData.LocalBairro,
+      formData.LocalCidade,
+      formData.LocalEstado,
+      formData.LocalPais,
+      geocodeAddress,
+   ])
 
    const handleCoordinateChange = useCallback((field: 'LocalLatitude' | 'LocalLongitude', value: string) => {
       const cleaned = value.replace(/[^\d.-]/g, '')
       setFormData((prev) => ({ ...prev, [field]: cleaned }))
+      // Ao editar manualmente, atualiza o link do Maps
+      setFormData((prev) => {
+         const lat = field === 'LocalLatitude' ? cleaned : prev.LocalLatitude
+         const lon = field === 'LocalLongitude' ? cleaned : prev.LocalLongitude
+         const mapsLink =
+            lat && lon && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lon))
+               ? `https://www.google.com/maps?q=${lat},${lon}`
+               : prev.LocalLinkGoogleMaps
+         return { ...prev, [field]: cleaned, LocalLinkGoogleMaps: mapsLink }
+      })
 
       const num = parseFloat(cleaned)
       if (cleaned && !isNaN(num)) {
@@ -276,6 +343,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                   LocalEstado: data.uf || prev.LocalEstado,
                   LocalPais: 'Brasil',
                }))
+               // A geocodificação será disparada automaticamente pelo useEffect de debounce
             }
          } catch (err: unknown) {
             if (err instanceof Error && err.name !== 'AbortError') {
@@ -405,6 +473,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
          })
 
          setFormData(INITIAL_FORM_DATA)
+         setGeocodeStatus('idle')
       },
       [formData, onSubmit, validateStep4],
    )
@@ -800,9 +869,47 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                               <p className="text-sm text-muted-foreground">
                                  {formData.tipoEvento === 'online'
                                     ? 'Este é um evento online. Os campos abaixo são opcionais.'
-                                    : 'Adicione os detalhes do local onde o evento acontecerá'}
+                                    : 'Adicione os detalhes do local onde o evento acontecerá. As coordenadas e o link do Google Maps serão gerados automaticamente.'}
                               </p>
                            </div>
+
+                           {/* Indicador de geocodificação */}
+                           <AnimatePresence>
+                              {isGeocoding && (
+                                 <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border border-border"
+                                 >
+                                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                                    Buscando coordenadas do endereço...
+                                 </motion.div>
+                              )}
+                              {!isGeocoding && geocodeStatus === 'success' && (
+                                 <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="flex items-center gap-2 text-sm text-green-700 p-3 bg-green-50 rounded-lg border border-green-200"
+                                 >
+                                    <Check className="w-4 h-4 shrink-0" />
+                                    Coordenadas e link do Google Maps gerados automaticamente!
+                                 </motion.div>
+                              )}
+                              {!isGeocoding && geocodeStatus === 'error' && (
+                                 <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="flex items-center gap-2 text-sm text-amber-700 p-3 bg-amber-50 rounded-lg border border-amber-200"
+                                 >
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    Não foi possível encontrar as coordenadas para este endereço. Você pode preenchê-las
+                                    manualmente no próximo passo.
+                                 </motion.div>
+                              )}
+                           </AnimatePresence>
 
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <div className="space-y-2 md:col-span-2">
@@ -1002,40 +1109,58 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  />
                               </div>
 
-                              {/* Google Maps */}
+                              {/* Google Maps — gerado automaticamente */}
                               <div className="space-y-2">
-                                 <Label htmlFor="LocalLinkGoogleMaps" className="flex items-center gap-2">
+                                 <Label className="flex items-center gap-2">
                                     <LinkIcon className="w-4 h-4" />
                                     Link do Google Maps
                                  </Label>
-                                 <Input
-                                    id="LocalLinkGoogleMaps"
-                                    type="url"
-                                    placeholder="https://maps.google.com/?q=-23.550520,-46.633309"
-                                    value={formData.LocalLinkGoogleMaps}
-                                    onChange={(e) => handleGoogleMapsLinkChange(e.target.value)}
-                                 />
-                                 <p className="text-xs text-muted-foreground">
-                                    Cole o link compartilhável do Google Maps. As coordenadas serão extraídas
-                                    automaticamente.
-                                 </p>
-                                 {formData.LocalLatitude && formData.LocalLongitude && (
-                                    <motion.div
-                                       initial={{ opacity: 0, height: 0 }}
-                                       animate={{ opacity: 1, height: 'auto' }}
-                                       className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md"
-                                    >
-                                       <p className="text-xs text-green-700">
-                                          ✅ Coordenadas extraídas automaticamente!
-                                       </p>
-                                    </motion.div>
+                                 {formData.LocalLinkGoogleMaps ? (
+                                    <div className="flex items-center gap-2">
+                                       <Input
+                                          readOnly
+                                          value={formData.LocalLinkGoogleMaps}
+                                          className="bg-muted text-muted-foreground cursor-default"
+                                       />
+                                       <a
+                                          href={formData.LocalLinkGoogleMaps}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="shrink-0"
+                                       >
+                                          <Button type="button" variant="outline" size="sm">
+                                             Abrir
+                                          </Button>
+                                       </a>
+                                    </div>
+                                 ) : (
+                                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-dashed border-border">
+                                       {isGeocoding ? (
+                                          <>
+                                             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
+                                             <p className="text-sm text-muted-foreground">Buscando coordenadas...</p>
+                                          </>
+                                       ) : (
+                                          <p className="text-sm text-muted-foreground italic">
+                                             Será gerado automaticamente ao preencher o endereço no passo anterior.
+                                          </p>
+                                       )}
+                                    </div>
                                  )}
                               </div>
 
-                              {/* Coordenadas */}
+                              {/* Coordenadas — preenchidas automaticamente, editáveis manualmente */}
                               <div className="grid grid-cols-2 gap-6">
                                  <div className="space-y-2">
-                                    <Label htmlFor="LocalLatitude">Latitude</Label>
+                                    <Label htmlFor="LocalLatitude" className="flex items-center gap-1.5">
+                                       Latitude
+                                       {isGeocoding && (
+                                          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                                       )}
+                                       {!isGeocoding && geocodeStatus === 'success' && formData.LocalLatitude && (
+                                          <Check className="w-3 h-3 text-green-600" />
+                                       )}
+                                    </Label>
                                     <Input
                                        id="LocalLatitude"
                                        placeholder="Ex: -23.550520"
@@ -1049,7 +1174,15 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  </div>
 
                                  <div className="space-y-2">
-                                    <Label htmlFor="LocalLongitude">Longitude</Label>
+                                    <Label htmlFor="LocalLongitude" className="flex items-center gap-1.5">
+                                       Longitude
+                                       {isGeocoding && (
+                                          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                                       )}
+                                       {!isGeocoding && geocodeStatus === 'success' && formData.LocalLongitude && (
+                                          <Check className="w-3 h-3 text-green-600" />
+                                       )}
+                                    </Label>
                                     <Input
                                        id="LocalLongitude"
                                        placeholder="Ex: -46.633309"
