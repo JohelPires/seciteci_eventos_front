@@ -21,3 +21,14 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 [ ] admin: set usuario como admin
 
 [ ] get eventos pega apenas próximos? deve clicar para carregar anteriores.
+
+[ ] link maps clicável
+[ ] link maps não pode aparecer inteiro
+[ ] link da pagina clicável
+[ ] sair do modal ao clicar fora dele
+[ ] mapa mostra apenas eventos que irão acontecer
+[ ] validação da imagem restringe demais
+
+[ ] pegar lat e long (nominatin)
+
+[x] admin: ordenar por data mais recente dos eventos
