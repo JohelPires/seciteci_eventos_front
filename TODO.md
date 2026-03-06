@@ -33,4 +33,4 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 
 [x] admin: ordenar por data mais recente dos eventos
 
-[ ] admin: proteger a página admin
+[x] admin: proteger a página admin
