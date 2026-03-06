@@ -115,9 +115,7 @@ const extractCoordinatesFromGoogleMaps = (url: string) => {
 const isValidImageUrl = (url: string) => {
    try {
       const parsed = new URL(url)
-      return (
-         ['http:', 'https:'].includes(parsed.protocol) && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(parsed.pathname)
-      )
+      return ['http:', 'https:'].includes(parsed.protocol)
    } catch {
       return false
    }
@@ -160,7 +158,6 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
 
    useEffect(() => {
       const currentId = editingEvent?.id
-      // Only update the form if we are switching to a different event (or clearing)
       if (currentId !== prevEventIdRef.current) {
          if (!editingEvent) {
             setFormData(INITIAL_FORM_DATA)
@@ -206,19 +203,18 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
          }
          prevEventIdRef.current = currentId
       }
-   }, [editingEvent]) // depends on the whole object to detect identity changes, but we guard with id ref
+   }, [editingEvent])
 
    const set = useCallback(
       (field: keyof typeof INITIAL_FORM_DATA, value: string) => {
          setFormData((prev) => {
-            // If we are editing an event and someone tries to set categoriaId to empty, ignore it
             if (editingEvent && field === 'categoriaId' && value === '') {
                return prev
             }
             return { ...prev, [field]: value }
          })
       },
-      [editingEvent], // depends on editingEvent to know when we're editing
+      [editingEvent],
    )
 
    const handleGoogleMapsLinkChange = useCallback((url: string) => {
@@ -262,7 +258,6 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
 
       const digits = formatted.replace(/\D/g, '')
       if (digits.length === 8) {
-         // Cancela requisição anterior pendente
          cepAbortRef.current?.abort()
          cepAbortRef.current = new AbortController()
 
@@ -337,7 +332,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
    const validateStep4 = useCallback((): boolean => {
       const errs: Step4Errors = {}
       if (formData.imagemCapa && !isValidImageUrl(formData.imagemCapa)) {
-         errs.imagemCapa = 'URL inválida. Use uma URL pública terminando em .jpg, .png, .webp etc.'
+         errs.imagemCapa = 'URL inválida. Use uma URL pública que comece com http:// ou https://'
       }
       const lat = parseFloat(formData.LocalLatitude)
       const lng = parseFloat(formData.LocalLongitude)
@@ -453,13 +448,17 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
 
    return (
       <AnimatePresence>
-         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+         <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={onClose}
+         >
             <motion.div
                initial={{ opacity: 0, scale: 0.95, y: 20 }}
                animate={{ opacity: 1, scale: 1, y: 0 }}
                exit={{ opacity: 0, scale: 0.95, y: 20 }}
                transition={{ duration: 0.2, ease: 'easeOut' }}
                className="bg-card rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-border"
+               onClick={(e) => e.stopPropagation()}
             >
                {/* Header */}
                <div className="px-6 py-5 border-b border-border bg-muted/30">
@@ -816,7 +815,6 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  />
                               </div>
 
-                              {/* CEP com máscara automática */}
                               <div className="space-y-2">
                                  <Label htmlFor="LocalCep">CEP</Label>
                                  <Input
@@ -954,7 +952,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  <Input
                                     id="imagemCapa"
                                     type="url"
-                                    placeholder="https://exemplo.com/imagem-evento.jpg"
+                                    placeholder="https://exemplo.com/imagem-evento"
                                     value={formData.imagemCapa}
                                     onChange={(e) => {
                                        set('imagemCapa', e.target.value)
@@ -969,17 +967,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  />
                                  <FieldError message={errors4.imagemCapa} />
 
-                                 {/* Preview com tratamento de erro de carregamento */}
                                  {formData.imagemCapa && !errors4.imagemCapa && (
                                     <motion.div
-                                       initial={{
-                                          opacity: 0,
-                                          height: 0,
-                                       }}
-                                       animate={{
-                                          opacity: 1,
-                                          height: 'auto',
-                                       }}
+                                       initial={{ opacity: 0, height: 0 }}
+                                       animate={{ opacity: 1, height: 'auto' }}
                                        className="relative rounded-lg overflow-hidden border border-border mt-3"
                                     >
                                        {imageError ? (
@@ -1030,14 +1021,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  </p>
                                  {formData.LocalLatitude && formData.LocalLongitude && (
                                     <motion.div
-                                       initial={{
-                                          opacity: 0,
-                                          height: 0,
-                                       }}
-                                       animate={{
-                                          opacity: 1,
-                                          height: 'auto',
-                                       }}
+                                       initial={{ opacity: 0, height: 0 }}
+                                       animate={{ opacity: 1, height: 'auto' }}
                                        className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md"
                                     >
                                        <p className="text-xs text-green-700">
@@ -1078,7 +1063,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                                  </div>
                               </div>
 
-                              {/* ── Resumo completo ── */}
+                              {/* Resumo completo */}
                               <div className="mt-2 p-4 bg-muted/50 rounded-lg border border-border">
                                  <h4 className="mb-3">Resumo do Evento</h4>
                                  <div className="space-y-2 text-sm">
@@ -1117,7 +1102,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
                      )}
                   </div>
 
-                  {/* ── Navigation Buttons ───────────────────────────── */}
+                  {/* Navigation Buttons */}
                   <div className="p-6 border-t border-border bg-muted/30">
                      <div className="flex gap-3">
                         {currentStep > 1 && (

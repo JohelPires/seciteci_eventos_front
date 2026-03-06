@@ -26,8 +26,8 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 [x] link maps não pode aparecer inteiro
 [x] link da pagina clicável
 [x] sair do modal ao clicar fora dele
-[ ] mapa mostra apenas eventos que irão acontecer
-[ ] validação da imagem restringe demais
+
+[x] validação da imagem restringe demais
 
 [ ] pegar lat e long (nominatin)
 
