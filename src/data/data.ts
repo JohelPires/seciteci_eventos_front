@@ -2,8 +2,54 @@ import { Categoria, Event } from '@/app/page'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
+/** Erro de API com status HTTP e mensagem do corpo quando disponível. */
+export class ApiError extends Error {
+   status: number
+
+   constructor(status: number, mensagem?: string) {
+      super(mensagem || `Erro na requisição (status ${status})`)
+      this.name = 'ApiError'
+      this.status = status
+   }
+}
+
+/**
+ * Helper central de fetch para todas as chamadas à API.
+ * - Lança ApiError quando a resposta não é OK (status incluído).
+ * - Em 401: limpa as chaves de autenticação do localStorage e redireciona para '/'.
+ * - Falha de rede propaga o erro normalmente.
+ */
+export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+   let res: Response
+   try {
+      res = await fetch(url, options)
+   } catch (error) {
+      // Falha de rede: propaga (sem silenciar)
+      throw error
+   }
+
+   if (!res.ok) {
+      if (res.status === 401 && typeof window !== 'undefined') {
+         localStorage.removeItem('authToken')
+         localStorage.removeItem('authUser')
+         window.location.href = '/'
+      }
+
+      let mensagem: string | undefined
+      try {
+         const corpo = await res.json()
+         mensagem = corpo?.message
+      } catch {
+         // corpo sem JSON: usa mensagem padrão
+      }
+      throw new ApiError(res.status, mensagem)
+   }
+
+   return res
+}
+
 export const getEventos = async () => {
-   const res = await fetch(`${API_URL}/api/eventos?status=publicado&limit=1000`)
+   const res = await authFetch(`${API_URL}/api/eventos?status=publicado&limit=1000`)
 
    const data = await res.json()
 
@@ -21,8 +67,8 @@ export const getEventosFullQuery = async (
    page: number | null = 1,
    limit: number | null = 10,
 ) => {
-   const res = await fetch(
-      `${API_URL}/api/eventos?categoria=${categoria}&cidade=${cidade}&status=${status}&tipo=${tipo}&busca=${busca}&page=${page}&limit=${limit}`,
+   const res = await authFetch(
+      `${API_URL}/api/eventos?categoria=${encodeURIComponent(categoria ?? '')}&cidade=${encodeURIComponent(cidade ?? '')}&status=${status}&tipo=${tipo}&busca=${encodeURIComponent(busca ?? '')}&page=${page}&limit=${limit}`,
    )
    const data = await res.json()
 
@@ -30,7 +76,7 @@ export const getEventosFullQuery = async (
 }
 
 export const getEventosAdmin = async (token: string | null) => {
-   const res = await fetch(`${API_URL}/api/eventos?limit=1000`, {
+   const res = await authFetch(`${API_URL}/api/eventos?limit=1000`, {
       headers: {
          Authorization: `Bearer ${token}`,
       },
@@ -41,7 +87,7 @@ export const getEventosAdmin = async (token: string | null) => {
 }
 
 export const createEvento = async (evento: Event, token: string | null) => {
-   const res = await fetch(`${API_URL}/api/eventos`, {
+   const res = await authFetch(`${API_URL}/api/eventos`, {
       method: 'POST',
       headers: {
          'Content-Type': 'application/json',
@@ -54,7 +100,7 @@ export const createEvento = async (evento: Event, token: string | null) => {
 }
 
 export const editEvento = async (id: string, eventData: Partial<Event>, token: string | null) => {
-   const res = await fetch(`${API_URL}/api/eventos/${id}`, {
+   const res = await authFetch(`${API_URL}/api/eventos/${id}`, {
       method: 'PUT',
       headers: {
          'Content-Type': 'application/json',
@@ -67,7 +113,7 @@ export const editEvento = async (id: string, eventData: Partial<Event>, token: s
 }
 
 export const cancelarEvento = async (id: string, token: string | null) => {
-   const res = await fetch(`${API_URL}/api/eventos/${id}`, {
+   const res = await authFetch(`${API_URL}/api/eventos/${id}`, {
       method: 'PUT',
       headers: {
          'Content-Type': 'application/json',
@@ -81,7 +127,7 @@ export const cancelarEvento = async (id: string, token: string | null) => {
 }
 
 export const deleteEvento = async (id: string, token: string | null) => {
-   const res = await fetch(`${API_URL}/api/eventos/${id}`, {
+   const res = await authFetch(`${API_URL}/api/eventos/${id}`, {
       method: 'DELETE',
       headers: {
          Authorization: `Bearer ${token}`,
@@ -92,20 +138,20 @@ export const deleteEvento = async (id: string, token: string | null) => {
 }
 
 export const getLocais = async () => {
-   const res = await fetch(`${API_URL}/api/locais`)
+   const res = await authFetch(`${API_URL}/api/locais`)
    const data = await res.json()
    return data.locais
 }
 
 export const getCategorias = async () => {
-   const res = await fetch(`${API_URL}/api/categorias`)
+   const res = await authFetch(`${API_URL}/api/categorias`)
 
    const data = await res.json()
    return data.categorias
 }
 
 export async function createCategoria(newCategoria: Omit<Categoria, 'id'>, token: string | null) {
-   const res = await fetch(`${API_URL}/api/categorias`, {
+   const res = await authFetch(`${API_URL}/api/categorias`, {
       method: 'POST',
       headers: {
          'Content-Type': 'application/json',
@@ -113,12 +159,11 @@ export async function createCategoria(newCategoria: Omit<Categoria, 'id'>, token
       },
       body: JSON.stringify(newCategoria),
    })
-   if (!res.ok) throw new Error('Erro ao criar categoria')
    return res.json()
 }
 
 export async function updateCategoria(categoria: Categoria, token: string | null) {
-   const res = await fetch(`${API_URL}/api/categorias/${categoria.id}`, {
+   const res = await authFetch(`${API_URL}/api/categorias/${categoria.id}`, {
       method: 'PUT',
       headers: {
          'Content-Type': 'application/json',
@@ -127,12 +172,11 @@ export async function updateCategoria(categoria: Categoria, token: string | null
 
       body: JSON.stringify(categoria),
    })
-   if (!res.ok) throw new Error('Erro ao atualizar categoria')
    return res.json()
 }
 
 export const deleteCategoria = async (id: string, token: string | null) => {
-   const res = await fetch(`${API_URL}/api/categorias/${id}`, {
+   const res = await authFetch(`${API_URL}/api/categorias/${id}`, {
       method: 'DELETE',
       headers: {
          Authorization: `Bearer ${token}`,
@@ -145,7 +189,7 @@ export const deleteCategoria = async (id: string, token: string | null) => {
 export const getUsuarios = async ({ queryKey }: { queryKey: [string, { token: string | null; search: string }] }) => {
    if (queryKey[1].token === null) return { erro: 'Nao autorizado' }
    const [_key, { token, search }] = queryKey
-   const res = await fetch(`${API_URL}/api/usuarios?limit=1000&search=${search}`, {
+   const res = await authFetch(`${API_URL}/api/usuarios?limit=1000&search=${encodeURIComponent(search)}`, {
       headers: {
          Authorization: `Bearer ${token}`,
       },
