@@ -3,6 +3,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { isTokenValid } from '@/lib/jwt'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -53,7 +54,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
    useEffect(() => {
       const { token: storedToken, user: storedUser } = getStoredAuthData()
-      if (storedToken && storedUser) {
+      if (storedToken && !isTokenValid(storedToken)) {
+         // Token expirado ou malformado: limpa a sessão persistida e segue como deslogado
+         // (o redirecionamento em 401 fica a cargo da camada data.ts)
+         localStorage.removeItem('authToken')
+         localStorage.removeItem('authUser')
+      } else if (storedToken && storedUser) {
          setToken(storedToken)
          setUser(storedUser)
       }
