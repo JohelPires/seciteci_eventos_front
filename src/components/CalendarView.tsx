@@ -22,6 +22,9 @@ interface CalendarViewProps {
     onEventClick: (event: Event) => void
 }
 
+// capacidade fixa de pontos por dia: 2 linhas de pontos dentro da célula h-32
+const MAX_DOTS_POR_DIA = 16
+
 export function CalendarView({
     events,
     categorias,
@@ -244,9 +247,8 @@ export function CalendarView({
                                                 {day}
                                             </span>
                                             <div className="flex-1 space-y-1 overflow-hidden">
-                                                {dayEvents
-                                                    .slice(0, 2)
-                                                    .map((event) => {
+                                                {dayEvents.length <= 2 ? (
+                                                    dayEvents.map((event) => {
                                                         const categoria =
                                                             event.categoria
                                                         const categoryStyle =
@@ -280,12 +282,49 @@ export function CalendarView({
                                                                 </Badge>
                                                             </motion.div>
                                                         )
-                                                    })}
-                                                {dayEvents.length > 2 && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        +{dayEvents.length - 2}{' '}
-                                                        mais
-                                                    </p>
+                                                    })
+                                                ) : (
+                                                    <>
+                                                        <div className="flex flex-wrap gap-1 content-start">
+                                                            {dayEvents
+                                                                .slice(
+                                                                    0,
+                                                                    MAX_DOTS_POR_DIA,
+                                                                )
+                                                                .map(
+                                                                    (
+                                                                        event,
+                                                                    ) => {
+                                                                        const categoria =
+                                                                            event.categoria
+                                                                        const categoryStyle =
+                                                                            categoria?.cor ||
+                                                                            'bg-slate-600'
+
+                                                                        return (
+                                                                            <span
+                                                                                key={
+                                                                                    event.id
+                                                                                }
+                                                                                title={
+                                                                                    event.titulo
+                                                                                }
+                                                                                className={`w-2 h-2 rounded-full shrink-0 ${categoryStyle}`}
+                                                                            />
+                                                                        )
+                                                                    },
+                                                                )}
+                                                        </div>
+                                                        {dayEvents.length >
+                                                            MAX_DOTS_POR_DIA && (
+                                                            <p className="text-xs text-muted-foreground">
+                                                                +
+                                                                {dayEvents.length -
+                                                                    MAX_DOTS_POR_DIA}{' '}
+                                                                mais
+                                                            </p>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
