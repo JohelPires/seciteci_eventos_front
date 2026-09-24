@@ -43,12 +43,14 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 > Marcações: 🖥️ = tarefa depende de / deve ser feita no backend
 
 ## 🔴 Críticos — Segurança
+⚠️ Implementado na branch `fix/seguranca-criticos` (commits 4beed5d..5ee17f4) — revisado, `tsc` limpo; pendente: merge para main.
+
 - [ ] 🖥️ Confirmar com backend: toda rota admin recusa não-admins no servidor (proteção real); front é só UX
-- [ ] data.ts: 11 de 13 funções sem `res.ok` → erros viram "sucesso"; criar helper `authFetch` que valida `res.ok`, trata 401 (limpa auth + redirect login) e lança erro
-- [ ] Ajustar toasts falsos de sucesso: page.tsx:198-208, admin/page.tsx:138-149, admin/page.tsx:110-112
-- [ ] Headers de segurança no next.config.ts: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy
-- [ ] `encodeURIComponent` em query params (data.ts:25,148)
-- [ ] Validar `exp` do JWT ao restaurar sessão; tratar token expirado (AuthContext.tsx:54-61)
+- [x] data.ts: 11 de 13 funções sem `res.ok` → erros viram "sucesso"; helper `authFetch` centraliza fetch, valida `res.ok` (ApiError), trata 401 (limpa auth + redirect)
+- [x] Ajustar toasts falsos de sucesso: toast.error em todos os caminhos de falha (page.tsx, admin/page.tsx, AdminCategorias com onError)
+- [x] Headers de segurança no next.config.mjs: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy (endurecer CSP com nonce é passo futuro)
+- [x] `encodeURIComponent` em query params (busca/search)
+- [x] Validar `exp` do JWT ao restaurar sessão (src/lib/jwt.ts; token não-JWT passa direto — backend valida; pendência: confirmar formato real do token do login)
 - [ ] 🖥️ Autorização do admin não deve depender de `authUser` do localStorage (manipulável no DevTools); preferir claims do JWT (requer backend expondo o role/exp no payload)
 
 ## 🔴 Críticos — Estabilidade
