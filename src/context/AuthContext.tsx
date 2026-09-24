@@ -75,8 +75,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          })
 
          if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.message || 'Falha no login. Verifique as credenciais.')
+            // O backend devolve erro no campo "error" (ex.: {"error":"Credenciais inválidas"}); aceita "message" também
+            const errorData = await response.json().catch(() => null)
+            throw new Error(errorData?.error ?? errorData?.message ?? 'Falha no login. Verifique as credenciais.')
          }
 
          const { token: receivedToken, user: userData } = await response.json()
@@ -106,8 +107,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          })
 
          if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.message || 'Falha no registro.')
+            // O backend devolve erro no campo "error"; aceita "message" também
+            const errorData = await response.json().catch(() => null)
+            throw new Error(errorData?.error ?? errorData?.message ?? 'Falha no registro.')
          }
 
          const { token: receivedToken, user: userData } = await response.json()
