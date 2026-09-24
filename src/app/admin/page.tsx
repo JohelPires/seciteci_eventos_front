@@ -4,7 +4,7 @@ import { EventForm } from '@/components/EventForm'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventosAdmin } from '@/data/data'
+import { ApiError, cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventosAdmin } from '@/data/data'
 
 import { useAuth } from '@/context/AuthContext'
 
@@ -106,11 +106,14 @@ export default function App() {
 
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
-         // setEvents(events.map((e) => (e.id === editingEvent.id ? { ...eventData, id: editingEvent.id } : e)))
-         const data = await editEvento(editingEvent.id, eventData, token)
-
-         toast.success('Evento atualizado com sucesso!')
-         setEditingEvent(null)
+         try {
+            await editEvento(editingEvent.id, eventData, token)
+            toast.success('Evento atualizado com sucesso!')
+            setEditingEvent(null)
+            setShowForm(false)
+         } catch (error) {
+            toast.error(error instanceof ApiError ? error.message : 'Erro de conexão. Tente novamente.')
+         }
       } else {
          const horarioAbertura = eventData.horarioAbertura ?? ''
          const horarioEncerramento = eventData.horarioEncerramento ?? ''
@@ -121,31 +124,29 @@ export default function App() {
             horarioEncerramento,
             id: Date.now().toString(),
          }
-         // setEvents([newEvent, ...events])
          try {
-            const data = await createEvento(newEvent, token)
-
+            await createEvento(newEvent, token)
             toast.success('Evento solicitado.')
             setAlertMessage('Evento solicitado. Aguarde a aprovação do administrador.')
             setAlertDialogOpen(true)
+            setShowForm(false)
          } catch (error) {
-            console.log(error)
+            toast.error(error instanceof ApiError ? error.message : 'Erro de conexão. Tente novamente.')
          }
       }
-      setShowForm(false)
    }
 
    const handleDeleteEvent = async (id: string) => {
       // setEvents(events.filter((e) => e.id !== id))
       try {
-         const data = await deleteEvento(id, token)
+         await deleteEvento(id, token)
          setReload(!reload)
+         toast.success('Evento excluído com sucesso!')
       } catch (error) {
          if (error instanceof Error) {
             toast.error(error.message)
          }
       }
-      toast.success('Evento excluído com sucesso!')
    }
 
    async function handleCancelarEvento(id: string) {
@@ -156,26 +157,24 @@ export default function App() {
          toast.success('Evento cancelado com sucesso!')
          setReload(!reload)
       } catch (err) {
-         toast.error('Erro ao cancelar evento!')
+         toast.error(err instanceof Error ? err.message : 'Erro ao cancelar evento!')
       }
    }
 
    const handleEditEvent = (event: Event) => {
-      if (!event.horarioAbertura) {
-         // handle the case where horarioAbertura is undefined
-         // for example, you could set it to an empty string
-         event.horarioAbertura = ''
-      }
-      setEditingEvent(event)
+      // não muta o objeto original; cria cópia já normalizada
+      setEditingEvent({ ...event, horarioAbertura: event.horarioAbertura ?? '' })
       setShowForm(true)
    }
 
    const handlePublicarEvent = async (id: string) => {
-      //   setEvents(events.map((e) => (e.id === id ? { ...e, status: 'publicado' } : e)))
-      const data = await editEvento(id, { status: 'publicado' }, token)
-
-      setReload(!reload)
-      toast.success('Evento aprovado com sucesso!')
+      try {
+         await editEvento(id, { status: 'publicado' }, token)
+         setReload(!reload)
+         toast.success('Evento aprovado com sucesso!')
+      } catch (error) {
+         toast.error(error instanceof ApiError ? error.message : 'Erro ao aprovar evento!')
+      }
    }
 
    const handleCloseForm = () => {

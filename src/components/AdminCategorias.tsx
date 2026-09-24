@@ -40,6 +40,10 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['categorias'] })
          toast.success('Categoria criada com sucesso!')
+         setIsDialogOpen(false)
+      },
+      onError: (error) => {
+         toast.error(error.message)
       },
    })
 
@@ -48,6 +52,10 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['categorias'] })
          toast.success('Categoria atualizada com sucesso!')
+         setIsDialogOpen(false)
+      },
+      onError: (error) => {
+         toast.error(error.message)
       },
    })
 
@@ -56,6 +64,9 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['categorias'] })
          toast.success('Categoria excluída com sucesso!')
+      },
+      onError: (error) => {
+         toast.error(error.message)
       },
    })
 
@@ -100,8 +111,7 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
       } else {
          createMutation.mutate({ nome, cor })
       }
-
-      setIsDialogOpen(false)
+      // o dialog só é fechado no onSuccess das mutations
    }
 
    const handleDelete = (id: number) => {

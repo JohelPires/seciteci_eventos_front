@@ -22,7 +22,7 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { createEvento, deleteEvento, getCategorias, getEventos, getEventosFullQuery, getLocais } from '@/data/data'
+import { ApiError, createEvento, deleteEvento, editEvento, getCategorias, getEventos, getEventosFullQuery, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
@@ -170,41 +170,41 @@ export default function App() {
 
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
-         // setEvents(events.map((e) => (e.id === editingEvent.id ? { ...eventData, id: editingEvent.id } : e)))
-         toast.success('Evento atualizado com sucesso!')
-         setEditingEvent(null)
+         try {
+            await editEvento(editingEvent.id, eventData, token)
+            toast.success('Evento atualizado com sucesso!')
+            setShowForm(false)
+            setEditingEvent(null)
+         } catch (error) {
+            toast.error(error instanceof ApiError ? error.message : 'Erro de conexão. Tente novamente.')
+         }
       } else {
          const newEvent: Event = {
             ...eventData,
             id: Date.now().toString(),
          }
-         // setEvents([newEvent, ...events])
          try {
-            const data = await createEvento(newEvent, token)
-            if (data.error) {
-               toast.error(data.error)
-            } else {
-               toast.success('Evento solicitado. Aguarde a aprovação do administrador.')
-               setAlertMessage('Evento solicitado. Aguarde a aprovação do administrador.')
-               setAlertDialogOpen(true)
-            }
+            await createEvento(newEvent, token)
+            toast.success('Evento solicitado. Aguarde a aprovação do administrador.')
+            setAlertMessage('Evento solicitado. Aguarde a aprovação do administrador.')
+            setAlertDialogOpen(true)
+            setShowForm(false)
          } catch (error) {
-            console.log(error)
+            toast.error(error instanceof ApiError ? error.message : 'Erro de conexão. Tente novamente.')
          }
       }
-      setShowForm(false)
    }
 
    const handleDeleteEvent = async (id: string) => {
       // setEvents(events.filter((e) => e.id !== id))
       try {
-         const data = await deleteEvento(id, token)
+         await deleteEvento(id, token)
+         toast.success('Evento excluído com sucesso!')
       } catch (error) {
          if (error instanceof Error) {
             toast.error(error.message)
          }
       }
-      toast.success('Evento excluído com sucesso!')
    }
 
    const handleEditEvent = (event: Event) => {
