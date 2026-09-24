@@ -10,12 +10,16 @@ const decodificarBase64Url = (entrada: string): string => {
    return atob(base64 + padding)
 }
 
-// Retorna true apenas se o token tiver 3 partes, payload decodificável
-// e `exp` (segundos desde o epoch) maior que o momento atual.
-// Token malformado, sem `exp` ou expirado → false.
+// Valida apenas a expiração (claim `exp`) de um token que tenha o formato JWT.
+// Decisão fail-open consciente: token sem 3 partes (não-JWT) é considerado VÁLIDO aqui,
+// porque o backend é quem valida o token de verdade; um token inválido/ausente resulta
+// em 401, que já é tratado pelo authFetch em src/data/data.ts. Assim evitamos deslogar
+// o usuário por um falso negativo local (ex.: formato opaco usado pelo backend).
+// Quando o token É um JWT, retorna true apenas se o payload decodificar e `exp`
+// (segundos desde o epoch) for maior que o momento atual; JWT sem `exp` ou expirado → false.
 export const isTokenValid = (token: string): boolean => {
    const partes = token.split('.')
-   if (partes.length !== 3) return false
+   if (partes.length !== 3) return true
 
    try {
       const payload = JSON.parse(decodificarBase64Url(partes[1])) as { exp?: unknown } | null
