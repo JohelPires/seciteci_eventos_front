@@ -1,6 +1,7 @@
 'use client'
 import { use, useEffect, useMemo, useState } from 'react'
-import { Plus, Search, Calendar, BarChart3, Users, Tag, CalendarDays, Map } from 'lucide-react'
+import { Plus, Search, Calendar, BarChart3, Users, Tag, Map, X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/Navbar'
 import { EventCard } from '@/components/EventCard'
 import { EventForm } from '@/components/EventForm'
@@ -102,7 +103,12 @@ export interface Event {
    requisitos?: string
 }
 
-const ITEMS_PER_PAGE = 6
+   const ITEMS_PER_PAGE = 6
+
+const fimDoDia = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
+
+const inicioDoDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 
 export default function App() {
    const [events, setEvents] = useState<Event[]>([])
@@ -110,6 +116,7 @@ export default function App() {
    const [editingEvent, setEditingEvent] = useState<Event | null>(null)
    const [searchTerm, setSearchTerm] = useState('')
    const [categoryFilter, setCategoryFilter] = useState('all')
+   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
    const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [currentPage, setCurrentPage] = useState(1)
@@ -230,7 +237,11 @@ export default function App() {
          event.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
          event.descricao.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesCategory = categoryFilter === 'all' || event.categoria?.nome === categoryFilter
-      return matchesSearch && matchesCategory
+      const matchesDay =
+         !selectedDate ||
+         (new Date(event.dataInicio) <= fimDoDia(selectedDate) &&
+            new Date(event.dataFim ?? event.dataInicio) >= inicioDoDia(selectedDate))
+      return matchesSearch && matchesCategory && matchesDay
    })
 
    // Pagination calculations
@@ -242,7 +253,7 @@ export default function App() {
    // Reset to page 1 when filters change
    useEffect(() => {
       setCurrentPage(1)
-   }, [searchTerm, categoryFilter])
+   }, [searchTerm, categoryFilter, selectedDate])
 
    const totalCapacity = events.reduce((sum, event) => sum + event.capacidadeMaxima, 0)
    const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
@@ -412,6 +423,15 @@ export default function App() {
                         </TabsList>
                      </Tabs>
                   )}
+
+                  {/* Calendário: filtro por dia para os cards abaixo */}
+                  <div className="mt-6">
+                     <CalendarView
+                        events={events}
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                     />
+                  </div>
                </motion.div>
             </div>
          </header>
@@ -420,6 +440,26 @@ export default function App() {
          <main id="main" className="container mx-auto px-4 py-10 mb-12">
             {/* {viewMode === 'calendar' ? ( */}
             {/* ) : ( */}
+            {/* Chip do filtro por dia */}
+            {selectedDate && (
+               <div className="mb-6 flex justify-center">
+                  <Badge className="gap-2 px-3 py-1.5 text-sm">
+                     Eventos em{' '}
+                     {selectedDate.toLocaleDateString('pt-BR', {
+                        day: 'numeric',
+                        month: 'long',
+                     })}
+                     <button
+                        type="button"
+                        onClick={() => setSelectedDate(null)}
+                        aria-label="Remover filtro de dia"
+                        className="hover:opacity-70"
+                     >
+                        <X className="w-4 h-4" />
+                     </button>
+                  </Badge>
+               </div>
+            )}
             {isLoading ? (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {Array.from({ length: 3 }).map((_, i) => (
@@ -442,7 +482,9 @@ export default function App() {
                            <p className="text-muted-foreground mb-6">
                               {searchTerm || categoryFilter !== 'all'
                                  ? 'Tente ajustar os filtros de busca'
-                                 : 'Comece criando seu primeiro evento'}
+                                 : selectedDate
+                                   ? 'Nenhum evento neste dia. Tente outro dia ou limpe o filtro'
+                                   : 'Comece criando seu primeiro evento'}
                            </p>
                            {!searchTerm && categoryFilter === 'all' && (
                               <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
@@ -563,21 +605,6 @@ export default function App() {
             )}
             {/* )} */}
             {/* Divider */}
-            <div className="h-0.5 mt-10 mb-5 bg-gray-200 rounded-2xl"></div>
-            <motion.div
-               initial={{ opacity: 0, x: -20 }}
-               animate={{ opacity: 1, x: 0 }}
-               className="flex items-center gap-4 mb-9"
-            >
-               <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-md">
-                  <CalendarDays className="w-7 h-7 text-primary-foreground" />
-               </div>
-               <div>
-                  <h1 className="text-2xl font-semibold">Calendário dos Eventos</h1>
-                  <p className="text-muted-foreground">Veja todos os eventos no calendário</p>
-               </div>
-            </motion.div>
-            <CalendarView events={events} categorias={categoriasData || []} onEventClick={handleEventClick} />
             <div className="h-0.5 mt-10 mb-5 bg-gray-200 rounded-2xl"></div>
             <motion.div
                initial={{ opacity: 0, x: -20 }}
