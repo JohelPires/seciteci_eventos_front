@@ -82,6 +82,7 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 - [ ] AdminCategorias: mutations sem onError, sem isPending no botão, dialog fecha antes do resultado (AdminCategorias.tsx:37-60,104)
 
 ## 🟠 Médios — Código
+- [ ] admin/page.tsx: useAdminGuard libera os fetch (eventos/categorias) sem checar isAllowed, e token não está nos deps do useEffect (:77,91) — dado obsoleto no primeiro load; proteger fetch e incluir token nos deps
 - [ ] Remover 324 linhas de JSX comentado (admin/page.tsx:246-569) e ~40 variáveis mortas
 - [ ] Migrar admin para TanStack Query (hoje fetch manual com useState + reload)
 - [ ] MapView: usar pacote npm `leaflet` via `next/dynamic` (ssr:false) em vez de CDN unpkg em runtime (MapView.tsx:57-85); usar tipos de @types/leaflet (remover `any`)
