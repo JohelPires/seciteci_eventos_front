@@ -10,7 +10,9 @@ import {
 import { Button } from './ui/button'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
+import { UserBadge } from './UserBadge'
 
 export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -61,28 +63,22 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                     >
                         {/* Login Button */}
 
-                        {isAuthenticated ? (
-                            <p className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-white text-sm">
-                                Olá, {user?.nome}
-                                {user?.tipoUsuario === 'admin' && (
-                                    <Button
-                                        onClick={() =>
-                                            (window.location.href = '/admin')
-                                        }
-                                        variant="ghost"
-                                        className="cursor-pointer"
-                                    >
-                                        Painel
+                        {isAuthenticated && user ? (
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <UserBadge nome={user.nome} fotoPerfil={user.fotoPerfil} papel={user.tipoUsuario} />
+                                {user.tipoUsuario === 'admin' && (
+                                    <Button asChild variant="outline" className="cursor-pointer">
+                                        <Link href="/admin">Painel</Link>
                                     </Button>
                                 )}
                                 <Button
                                     onClick={logout}
-                                    variant="outline"
-                                    className="cursor-pointer"
+                                    variant="ghost"
+                                    className="cursor-pointer text-white hover:bg-white/10 hover:text-white"
                                 >
                                     Sair
                                 </Button>
-                            </p>
+                            </div>
                         ) : (
                             <Button
                                 onClick={onOpenAuth}

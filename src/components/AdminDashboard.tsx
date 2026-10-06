@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Footer } from './Footer'
 import { AdminUsuarios } from './AdminUsuarios'
 import { MapView } from './MapView'
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { UserBadge } from './UserBadge'
 
 interface AdminDashboardProps {
    events: Event[]
@@ -80,14 +80,6 @@ export function AdminDashboard({
       setSelectedEvent(event)
    }
 
-   // Iniciais do nome para o fallback do avatar (ex.: "João Silva" → "JS")
-   const iniciais = user.nome
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((parte) => parte[0].toUpperCase())
-      .join('')
-
    // Recent events (last 5), do mais recentemente criado para o mais antigo
    const recentEvents = [...events]
       .sort(
@@ -115,20 +107,7 @@ export function AdminDashboard({
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3">
                      {/* Crachá de identidade: mostra quem opera o painel antes das saídas */}
-                     <div className="flex items-center gap-3">
-                        <Avatar className="size-9 border border-white/20">
-                           {user.fotoPerfil && <AvatarImage src={user.fotoPerfil} alt={user.nome} />}
-                           <AvatarFallback className="bg-white/15 text-white text-xs font-medium">
-                              {iniciais}
-                           </AvatarFallback>
-                        </Avatar>
-                        <div className="hidden sm:block">
-                           <p className="text-sm text-white leading-tight">{user.nome}</p>
-                           <p className="text-[10px] uppercase tracking-widest text-white/60 leading-tight">
-                              Administrador
-                           </p>
-                        </div>
-                     </div>
+                     <UserBadge nome={user.nome} fotoPerfil={user.fotoPerfil} papel={user.tipoUsuario} />
                      <div className="hidden sm:block h-8 w-px bg-white/20" aria-hidden="true" />
                      {/* Saída que preserva a sessão: nomeada pelo destino */}
                      <Button asChild variant="outline" size="sm" className="gap-1.5">

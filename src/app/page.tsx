@@ -257,23 +257,27 @@ export default function App() {
          <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
 
          <header className="border-b border-border bg-card">
-            <div className="container mx-auto px-4 py-6">
-               <div className="flex justify-center mb-4">
+            <div className="container mx-auto px-4 py-10">
+               <div className="flex justify-center mb-8">
                   <Image
-                     className="rounded-xl shadow-2xl"
+                     className="rounded-xl shadow-2xl w-full h-auto max-w-4xl"
                      src="/conecte-se.webp"
                      alt="Conecte-se"
                      width={2000}
                      height={1000}
+                     priority
                   />
                </div>
-               <p className="text-justify text-xl py-3 text-gray-600">
-                  O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologia e Inovação no Estado de
-                  Mato Grosso. Existe uma comunidade muito ativa neste segmento, com uma grande produção de eventos como
-                  seminários, simpósios, congressos, encontros e outras atividades. Diante disso, a SECITECI conta com
-                  uma ferramenta de consulta e divulgação das ações das diversas instituições e atores do ecossistema de
-                  ciência, tecnologia e inovação em Mato Grosso.{' '}
-               </p>
+               <div className="max-w-3xl mx-auto">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-primary mb-3">
+                     Agenda estadual de Ciência, Tecnologia e Inovação
+                  </p>
+                  <p className="text-lg leading-relaxed text-muted-foreground">
+                     O Conecte-se é a agenda unificada dos eventos de Ciência, Tecnologia e Inovação do Estado de Mato
+                     Grosso. Seminários, simpósios, congressos, encontros e outras ações de uma comunidade muito ativa,
+                     reunidos em uma ferramenta de consulta e divulgação mantida pela SECITECI.
+                  </p>
+               </div>
             </div>
          </header>
 
@@ -441,11 +445,11 @@ export default function App() {
                               <Calendar className="w-10 h-10 text-muted-foreground" />
                            </div>
                            <h3 className="mb-2">Nenhum evento encontrado</h3>
-                           <p className="text-muted-foreground mb-6">
-                              {searchTerm || categoryFilter !== 'all'
-                                 ? 'Tente ajustar os filtros de busca'
-                                 : 'Comece criando seu primeiro evento'}
-                           </p>
+                            <p className="text-muted-foreground mb-6">
+                               {searchTerm || categoryFilter !== 'all'
+                                  ? 'Tente ajustar os filtros de busca'
+                                  : 'Solicite o cadastro de um evento para começar'}
+                            </p>
                            {!searchTerm && categoryFilter === 'all' && (
                               <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
                                  <Plus className="w-4 h-4" />
