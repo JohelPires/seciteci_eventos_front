@@ -209,12 +209,13 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
                         <Label htmlFor="register-password">Senha</Label>
                         <div className="relative">
                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                           <Input
-                              id="register-password"
-                              type="password"
-                              placeholder="••••••••"
-                              className="pl-10"
-                              value={registerPassword}
+                            <Input
+                               id="register-password"
+                               type="password"
+                               placeholder="••••••••"
+                               className="pl-10"
+                               minLength={6}
+                               value={registerPassword}
                               onChange={(e) => setRegisterPassword(e.target.value)}
                               required
                            />
@@ -225,12 +226,13 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
                         <Label htmlFor="confirm-password">Confirmar Senha</Label>
                         <div className="relative">
                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                           <Input
-                              id="confirm-password"
-                              type="password"
-                              placeholder="••••••••"
-                              className="pl-10"
-                              value={confirmPassword}
+                            <Input
+                               id="confirm-password"
+                               type="password"
+                               placeholder="••••••••"
+                               className="pl-10"
+                               minLength={6}
+                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
                               required
                            />

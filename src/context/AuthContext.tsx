@@ -32,6 +32,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+/**
+ * Extrai a mensagem de erro do corpo da resposta da API.
+ * O backend usa dois formatos:
+ * - Validação (400): { errors: [{ msg, path, ... }] }
+ * - Auth/dominio (401, 409...): { error: string } ou { message: string }
+ */
+const extrairMensagemErro = (errorData: unknown, fallback: string): string => {
+   if (!errorData || typeof errorData !== 'object') return fallback
+   const dados = errorData as { errors?: { msg?: unknown }[]; error?: unknown; message?: unknown }
+
+   if (Array.isArray(dados.errors) && dados.errors.length > 0) {
+      const mensagens = dados.errors
+         .map((e) => (typeof e?.msg === 'string' ? e.msg : null))
+         .filter((msg): msg is string => !!msg)
+      if (mensagens.length > 0) {
+         return mensagens.join(', ')
+      }
+   }
+
+   if (typeof dados.error === 'string') return dados.error
+   if (typeof dados.message === 'string') return dados.message
+   return fallback
+}
+
 const getStoredAuthData = () => {
    if (typeof window !== 'undefined') {
       const storedToken = localStorage.getItem('authToken')
@@ -75,9 +99,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          })
 
          if (!response.ok) {
-            // O backend devolve erro no campo "error" (ex.: {"error":"Credenciais inválidas"}); aceita "message" também
+            // O backend devolve erros em "error"/"message" (auth) ou no array "errors" (validação)
             const errorData = await response.json().catch(() => null)
-            throw new Error(errorData?.error ?? errorData?.message ?? 'Falha no login. Verifique as credenciais.')
+            throw new Error(extrairMensagemErro(errorData, 'Falha no login. Verifique as credenciais.'))
          }
 
          const { token: receivedToken, user: userData } = await response.json()
@@ -107,9 +131,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          })
 
          if (!response.ok) {
-            // O backend devolve erro no campo "error"; aceita "message" também
+            // O backend devolve erros em "error"/"message" (auth) ou no array "errors" (validação)
             const errorData = await response.json().catch(() => null)
-            throw new Error(errorData?.error ?? errorData?.message ?? 'Falha no registro.')
+            throw new Error(extrairMensagemErro(errorData, 'Falha no registro.'))
          }
 
          const { token: receivedToken, user: userData } = await response.json()
