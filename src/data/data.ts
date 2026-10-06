@@ -1,4 +1,5 @@
 import { Categoria, Event } from '@/app/page'
+import { extrairMensagemErro } from '@/lib/api-error'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -38,7 +39,7 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
       let mensagem: string | undefined
       try {
          const corpo = await res.json()
-         mensagem = corpo?.message
+         mensagem = extrairMensagemErro(corpo, `Erro na requisição (status ${res.status})`)
       } catch {
          // corpo sem JSON: usa mensagem padrão
       }
