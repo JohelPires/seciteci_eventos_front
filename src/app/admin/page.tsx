@@ -119,17 +119,16 @@ export default function App() {
          const horarioEncerramento = eventData.horarioEncerramento ?? ''
          const newEvent: Event = {
             ...eventData,
-            status: 'rascunho',
+            status: 'publicado',
             horarioAbertura,
             horarioEncerramento,
             id: Date.now().toString(),
          }
          try {
             await createEvento(newEvent, token)
-            toast.success('Evento solicitado.')
-            setAlertMessage('Evento solicitado. Aguarde a aprovação do administrador.')
-            setAlertDialogOpen(true)
+            toast.success('Evento cadastrado e publicado com sucesso!')
             setShowForm(false)
+            setReload(!reload)
          } catch (error) {
             toast.error(error instanceof ApiError ? error.message : 'Erro de conexão. Tente novamente.')
          }
@@ -225,6 +224,10 @@ export default function App() {
             onUpdateEvents={setEvents}
             onUpdateCategorias={setCategorias}
             // onUpdateLocais={setLocais}
+            onNewEvent={() => {
+               setEditingEvent(null)
+               setShowForm(true)
+            }}
             onEditEvent={handleEditEvent}
             onDeleteEvent={handleDeleteEvent}
             onPublicarEvent={handlePublicarEvent}

@@ -21,6 +21,7 @@ interface AdminDashboardProps {
    onUpdateEvents: (events: Event[]) => void
    onUpdateCategorias: (categorias: Categoria[]) => void
    // onUpdateLocais: (locais: Local[]) => void
+   onNewEvent: () => void
    onEditEvent: (event: Event) => void
    onDeleteEvent: (id: string) => void
    onPublicarEvent: (id: string) => void
@@ -35,6 +36,7 @@ export function AdminDashboard({
    onUpdateEvents,
    onUpdateCategorias,
    // onUpdateLocais,
+   onNewEvent,
    onEditEvent,
    onDeleteEvent,
    onPublicarEvent,
@@ -325,6 +327,7 @@ export function AdminDashboard({
                      events={events}
                      categorias={categorias}
                      // locais={locais}
+                     onNewEvent={onNewEvent}
                      onEditEvent={onEditEvent}
                      onDeleteEvent={onDeleteEvent}
                      onPublicarEvent={onPublicarEvent}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Edit, Trash2, Eye, Search, Globe, CircleX } from 'lucide-react'
+import { Edit, Trash2, Eye, Search, Globe, CircleX, Plus } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
@@ -23,6 +23,7 @@ interface AdminEventosProps {
    events: Event[]
    categorias: Categoria[]
    // locais: Local[]
+   onNewEvent: () => void
    onEditEvent: (event: Event) => void
    onDeleteEvent: (id: string) => void
    onPublicarEvent: (id: string) => void
@@ -35,6 +36,7 @@ export function AdminEventos({
    events,
    categorias,
    // locais,
+   onNewEvent,
    onEditEvent,
    onDeleteEvent,
    onPublicarEvent,
@@ -101,8 +103,16 @@ export function AdminEventos({
       <>
          <Card>
             <CardHeader>
-               <CardTitle>Gerenciar Eventos</CardTitle>
-               <CardDescription>Visualize e gerencie todos os eventos da plataforma</CardDescription>
+               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                     <CardTitle>Gerenciar Eventos</CardTitle>
+                     <CardDescription>Visualize e gerencie todos os eventos da plataforma</CardDescription>
+                  </div>
+                  <Button onClick={onNewEvent} className="gap-2 shrink-0">
+                     <Plus className="w-4 h-4" />
+                     Novo Evento
+                  </Button>
+               </div>
             </CardHeader>
             <CardContent>
                {/* Filters */}
