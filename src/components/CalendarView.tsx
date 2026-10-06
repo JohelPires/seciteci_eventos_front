@@ -19,6 +19,8 @@ interface CalendarViewProps {
     // 'stack' (admin): grade em cima, painel embaixo — card de meia largura
     layout?: 'row' | 'stack'
     onEventClick?: (event: Event) => void
+    // false: renderiza só o calendário, centralizado e mais largo (home pública)
+    showPanel?: boolean
 }
 
 const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -80,6 +82,7 @@ export function CalendarView({
     onSelectDate,
     layout = 'row',
     onEventClick,
+    showPanel = true,
 }: CalendarViewProps) {
     const [currentDate, setCurrentDate] = useState(() => new Date())
 
@@ -157,17 +160,21 @@ export function CalendarView({
     return (
         <div
             className={
-                layout === 'row'
-                    ? 'flex flex-col lg:flex-row gap-6'
-                    : 'flex flex-col gap-6'
+                !showPanel
+                    ? 'flex justify-center'
+                    : layout === 'row'
+                      ? 'flex flex-col lg:flex-row gap-6'
+                      : 'flex flex-col gap-6'
             }
         >
-            {/* Calendário (esquerda ou topo) */}
+            {/* Calendário (esquerda, topo ou centralizado sem painel) */}
             <Card
                 className={
-                    layout === 'row'
-                        ? 'w-full lg:w-[380px] shrink-0 p-4'
-                        : 'w-full p-4'
+                    !showPanel
+                        ? 'w-full max-w-[1000px] p-4'
+                        : layout === 'row'
+                          ? 'w-full lg:w-[380px] shrink-0 p-4'
+                          : 'w-full p-4'
                 }
             >
                 {/* Navegação */}
@@ -305,7 +312,8 @@ export function CalendarView({
             </Card>
 
             {/* Painel lateral (direita) */}
-            <div className="flex-1 min-w-[220px] flex flex-col gap-4">
+            {showPanel && (
+                <div className="flex-1 min-w-[220px] flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <p className="text-sm text-muted-foreground">
                         {eventosNoMes.length}{' '}
@@ -413,6 +421,7 @@ export function CalendarView({
                     </div>
                 )}
             </div>
+            )}
         </div>
     )
 }

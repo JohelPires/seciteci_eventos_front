@@ -447,6 +447,7 @@ function AppContent() {
                         events={events}
                         selectedDate={selectedDate}
                         onSelectDate={setSelectedDate}
+                        showPanel={false}
                      />
                   </div>
                </motion.div>
