@@ -75,9 +75,11 @@ export function AdminDashboard({
       setSelectedEvent(event)
    }
 
-   // Recent events (last 5)
+   // Recent events (last 5), do mais recentemente criado para o mais antigo
    const recentEvents = [...events]
-      .sort((a, b) => new Date(b.dataInicio).getTime() - new Date(a.dataInicio).getTime())
+      .sort(
+         (a, b) => (new Date(b.dataCriacao ?? 0).getTime() || 0) - (new Date(a.dataCriacao ?? 0).getTime() || 0),
+      )
       .slice(0, 4)
 
    return (

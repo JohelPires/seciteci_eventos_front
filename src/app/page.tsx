@@ -97,9 +97,11 @@ export interface Event {
    LocalObservacoes?: string
    linkPaginaEvento?: string
    imagemCapa?: string
-   status: 'rascunho' | 'publicado' | 'cancelado'
-   publicoAlvo?: string
-   requisitos?: string
+    status: 'rascunho' | 'publicado' | 'cancelado'
+    publicoAlvo?: string
+    requisitos?: string
+    dataCriacao?: string
+    dataAtualizacao?: string
 }
 
 const ITEMS_PER_PAGE = 6

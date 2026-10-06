@@ -58,12 +58,13 @@ export function AdminEventos({
       return matchesSearch && matchesStatus
    })
 
-   const sortedEvents = filteredEvents.sort(
-      (a, b) => new Date(b.dataInicio).getTime() - new Date(a.dataInicio).getTime(),
+   // ordena do mais recentemente criado para o mais antigo (sem mutar o original)
+   const sortedEvents = [...filteredEvents].sort(
+      (a, b) => (new Date(b.dataCriacao ?? 0).getTime() || 0) - (new Date(a.dataCriacao ?? 0).getTime() || 0),
    )
 
-   const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE)
-   const paginatedEvents = filteredEvents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+   const totalPages = Math.ceil(sortedEvents.length / ITEMS_PER_PAGE)
+   const paginatedEvents = sortedEvents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
    const handleSearchChange = (value: string) => {
       setSearchTerm(value)
