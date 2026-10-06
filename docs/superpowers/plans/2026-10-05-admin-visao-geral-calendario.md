@@ -32,8 +32,9 @@
 
 ```tsx
 function CardTitle({ className, as = "h4", ...props }: React.ComponentProps<"h4"> & { as?: "h2" | "h3" | "h4" }) {
+  const Tag = as;
   return (
-    <as
+    <Tag
       data-slot="card-title"
       className={cn("leading-none", className)}
       {...props}
@@ -333,9 +334,12 @@ const container = {
    hidden: {},
    show: { transition: { staggerChildren: 0.06 } },
 }
+
+// dentro do componente (hook — não pode ficar em escopo de módulo):
+const shouldReduceMotion = useReducedMotion()
 const item = {
-   hidden: useReducedMotion() ? {} : { opacity: 0, y: 20 },
-   show: useReducedMotion() ? {} : { opacity: 1, y: 0 },
+   hidden: shouldReduceMotion ? {} : { opacity: 0, y: 20 },
+   show: shouldReduceMotion ? {} : { opacity: 1, y: 0 },
 }
 ```
 
