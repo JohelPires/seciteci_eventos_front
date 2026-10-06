@@ -12,6 +12,8 @@ import { useAuth } from '@/context/AuthContext'
 import { Footer } from './Footer'
 import { AdminUsuarios } from './AdminUsuarios'
 import { MapView } from './MapView'
+import { CalendarView } from './CalendarView'
+import { EventDetails } from './EventDetails'
 
 interface AdminDashboardProps {
    events: Event[]
@@ -42,6 +44,7 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
    const [activeTab, setActiveTab] = useState('overview')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
    const { user } = useAuth()
 
@@ -74,11 +77,6 @@ export function AdminDashboard({
    const handleEventClick = (event: Event) => {
       setSelectedEvent(event)
    }
-
-   // Recent events (last 5)
-   const recentEvents = [...events]
-      .sort((a, b) => new Date(b.dataInicio).getTime() - new Date(a.dataInicio).getTime())
-      .slice(0, 4)
 
    return (
       <div className="min-h-screen bg-background">
@@ -286,31 +284,25 @@ export function AdminDashboard({
                         </Card>
                      </motion.div>
 
-                     {/* Recent Events */}
+                     {/* Calendário de Eventos */}
                      <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.25 }}
                      >
-                        <Card>
+                        <Card className="h-full">
                            <CardHeader>
-                              <CardTitle>Eventos Recentes</CardTitle>
+                              <CardTitle as="h2">Calendário de Eventos</CardTitle>
+                              <CardDescription>Selecione um dia para ver os eventos</CardDescription>
                            </CardHeader>
-                           <CardContent className="space-y-3">
-                              {recentEvents.length > 0 ? (
-                                 recentEvents.map((event) => (
-                                    <div key={event.id} className="p-1 border-b">
-                                       <p className="font-medium text-sm">{event.titulo}</p>
-                                       <p className="text-xs text-muted-foreground mt-1">
-                                          {new Date(event.dataInicio).toLocaleDateString('pt-BR')}
-                                       </p>
-                                    </div>
-                                 ))
-                              ) : (
-                                 <p className="text-sm text-muted-foreground text-center py-4">
-                                    Nenhum evento cadastrado
-                                 </p>
-                              )}
+                           <CardContent>
+                              <CalendarView
+                                 layout="stack"
+                                 events={events}
+                                 selectedDate={selectedDate}
+                                 onSelectDate={setSelectedDate}
+                                 onEventClick={handleEventClick}
+                              />
                            </CardContent>
                         </Card>
                      </motion.div>
@@ -375,6 +367,17 @@ export function AdminDashboard({
             </motion.div>
             <MapView events={events} categorias={categorias} onEventClick={handleEventClick} />
          </section>
+
+         {/* Modal de detalhes do evento (aberto pelo calendário ou pelo mapa) */}
+         {selectedEvent && (
+            <EventDetails
+               event={selectedEvent}
+               categoria={categorias.find((c) => c.id === selectedEvent.categoriaId) ?? null}
+               onClose={() => setSelectedEvent(null)}
+               onEdit={onEditEvent}
+               onDelete={onDeleteEvent}
+            />
+         )}
 
          <Footer />
       </div>
