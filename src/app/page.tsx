@@ -649,6 +649,7 @@ function AppContent() {
                onClose={handleCloseForm}
                editingEvent={editingEvent}
                categorias={categoriasData || []}
+               closeOnOutsideClick={false}
                // locais={locaisData || []}
             />
          )}

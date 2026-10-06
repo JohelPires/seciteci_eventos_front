@@ -25,6 +25,8 @@ interface EventFormProps {
    onClose: () => void
    editingEvent?: Event | null
    categorias: Categoria[]
+   /** Impede o fechamento do modal ao clicar fora (usado no fluxo de solicitação) */
+   closeOnOutsideClick?: boolean
 }
 
 // ─── Tipos de erro por step ───────────────────────────────────────────────────
@@ -119,7 +121,7 @@ function FieldError({ message }: { message?: string }) {
    )
 }
 
-export function EventForm({ onSubmit, onClose, editingEvent, categorias }: EventFormProps) {
+export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOnOutsideClick = true }: EventFormProps) {
    const [currentStep, setCurrentStep] = useState(1)
    const totalSteps = 4
 
@@ -519,7 +521,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias }: Event
       <AnimatePresence>
          <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={onClose}
+            onClick={closeOnOutsideClick ? onClose : undefined}
          >
             <motion.div
                initial={{ opacity: 0, scale: 0.95, y: 20 }}
