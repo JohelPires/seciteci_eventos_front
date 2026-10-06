@@ -15,6 +15,10 @@ interface CalendarViewProps {
     events: Event[]
     selectedDate: Date | null
     onSelectDate: (date: Date | null) => void
+    // 'row' (padrão, home): grade à esquerda e painel ao lado em telas largas
+    // 'stack' (admin): grade em cima, painel embaixo — card de meia largura
+    layout?: 'row' | 'stack'
+    onEventClick?: (event: Event) => void
 }
 
 // máximo de pontos por dia antes de colapsar em "+N"
@@ -77,6 +81,8 @@ export function CalendarView({
     events,
     selectedDate,
     onSelectDate,
+    layout = 'row',
+    onEventClick,
 }: CalendarViewProps) {
     const [currentDate, setCurrentDate] = useState(() => new Date())
 
@@ -152,9 +158,21 @@ export function CalendarView({
         .filter((d) => d.eventos.length > 0)
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6">
-            {/* Calendário (esquerda) */}
-            <Card className="w-full lg:w-[380px] shrink-0 p-4">
+        <div
+            className={
+                layout === 'row'
+                    ? 'flex flex-col lg:flex-row gap-6'
+                    : 'flex flex-col gap-6'
+            }
+        >
+            {/* Calendário (esquerda ou topo) */}
+            <Card
+                className={
+                    layout === 'row'
+                        ? 'w-full lg:w-[380px] shrink-0 p-4'
+                        : 'w-full p-4'
+                }
+            >
                 {/* Navegação */}
                 <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                     <h2 className="capitalize text-lg font-semibold">{monthName}</h2>
@@ -246,6 +264,12 @@ export function CalendarView({
                                         : undefined
                                 }
                                 aria-pressed={isSelected}
+                                aria-label={
+                                    `${day} de ${monthOptions[month]}` +
+                                    (dayEvents.length > 0
+                                        ? `, ${dayEvents.length} ${dayEvents.length === 1 ? 'evento' : 'eventos'}`
+                                        : '')
+                                }
                                 className={`h-11 rounded-md border flex flex-col justify-between items-center py-1 px-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                                     isSelected
                                         ? 'border-primary ring-2 ring-primary/40 bg-primary/10'
@@ -298,7 +322,41 @@ export function CalendarView({
                             {monthName}
                         </span>
                     </p>
-                    {selectedDate && (
+                {selectedDate && onEventClick && (
+                    <div className="overflow-y-auto max-h-[260px] flex flex-col gap-1">
+                        {eventosAtivosNoDia(events, selectedDate).map((event) => (
+                            <button
+                                key={event.id}
+                                type="button"
+                                onClick={() => onEventClick(event)}
+                                className="w-full text-left text-sm px-3 py-2 rounded-md border border-border hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            >
+                                <span className="flex items-center gap-2 min-w-0">
+                                    <span
+                                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                            event.categoria?.cor || 'bg-slate-600'
+                                        }`}
+                                    />
+                                    <span className="font-medium truncate">{event.titulo}</span>
+                                </span>
+                                <span className="block text-xs text-muted-foreground mt-0.5">
+                                    {new Date(event.dataInicio).toLocaleTimeString('pt-BR', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
+                                    {' · '}
+                                    {event.status === 'rascunho'
+                                        ? 'Pendente'
+                                        : event.status === 'publicado'
+                                          ? 'Publicado'
+                                          : 'Cancelado'}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {selectedDate && !onEventClick && (
                         <Button
                             variant="outline"
                             size="sm"
