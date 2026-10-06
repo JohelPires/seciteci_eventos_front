@@ -198,3 +198,14 @@ export const getUsuarios = async ({ queryKey }: { queryKey: [string, { token: st
    const data = await res.json()
    return data
 }
+
+/** Promove um usuário a admin. Sem body; retorna { message, user }. */
+export const promoverUsuario = async (id: number, token: string | null) => {
+   const res = await authFetch(`${API_URL}/api/usuarios/${id}/promover`, {
+      method: 'PATCH',
+      headers: {
+         Authorization: `Bearer ${token}`,
+      },
+   })
+   return res.json()
+}

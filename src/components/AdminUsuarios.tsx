@@ -1,7 +1,20 @@
 import { useState } from 'react'
-import { Edit, Trash2, Search, User, Mail, Calendar } from 'lucide-react'
+import { Edit, Trash2, Search, User, Mail, Calendar, ShieldCheck } from 'lucide-react'
+import { toast } from 'sonner'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
+import { Badge } from './ui/badge'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from './ui/alert-dialog'
 import {
     Table,
     TableBody,
@@ -27,24 +40,22 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from './ui/pagination'
-import { useQuery } from '@tanstack/react-query'
-import { getUsuarios } from '@/data/data'
+import { getUsuarios, promoverUsuario } from '@/data/data'
 import { useAuth } from '@/context/AuthContext'
 
 export interface Usuario {
-    id: string
+    id: number
     nome: string
     email: string
-    tipo: 'admin' | 'organizador' | 'participante'
-    status: 'ativo' | 'inativo' | 'pendente'
+    tipoUsuario: 'admin' | 'organizador' | 'participante'
     dataCadastro: string
-    ultimoAcesso?: string
+    ultimoAcesso?: string | null
 }
 
 interface AdminUsuariosProps {
     onEditUsuario: (usuario: Usuario) => void
-    onDeleteUsuario: (id: string) => void
-    onToggleStatus: (id: string) => void
+    onDeleteUsuario: (id: number) => void
+    onToggleStatus: (id: number) => void
 }
 
 const ITEMS_PER_PAGE = 10
@@ -55,11 +66,11 @@ export function AdminUsuarios({
     onToggleStatus,
 }: AdminUsuariosProps) {
     const [searchTerm, setSearchTerm] = useState('')
-    const [tipoFilter, setTipoFilter] = useState<string>('all')
-    const [statusFilter, setStatusFilter] = useState<string>('all')
     const [currentPage, setCurrentPage] = useState(1)
+    const [usuarioPromover, setUsuarioPromover] = useState<Usuario | null>(null)
 
-    const { user, token } = useAuth()
+    const { token } = useAuth()
+    const queryClient = useQueryClient()
 
     // search is included in the query key to satisfy getUsuarios's type, but filtering
     // happens client-side for now. When evolving to server-side search, add debouncing
@@ -69,17 +80,24 @@ export function AdminUsuarios({
         queryFn: getUsuarios,
     })
 
+    const promoverMutation = useMutation({
+        mutationFn: (id: number) => promoverUsuario(id, token),
+        onSuccess: (data) => {
+            toast.success(data?.message ?? 'Usuário promovido a administrador.')
+            queryClient.invalidateQueries({ queryKey: ['Usuarios'] })
+        },
+        onError: (err) => {
+            toast.error(err instanceof Error ? err.message : 'Erro ao promover usuário.')
+        },
+    })
+
     const usuarios: Usuario[] = data?.usuarios ?? []
 
     const filteredUsuarios = usuarios.filter((usuario) => {
-        const matchesSearch =
+        return (
             usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
             usuario.email.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesTipo = tipoFilter === 'all' || usuario.tipo === tipoFilter
-        const matchesStatus =
-            statusFilter === 'all' || usuario.status === statusFilter
-
-        return matchesSearch && matchesTipo && matchesStatus
+        )
     })
 
     const totalPages = Math.ceil(filteredUsuarios.length / ITEMS_PER_PAGE)
@@ -93,21 +111,14 @@ export function AdminUsuarios({
         setCurrentPage(1)
     }
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'ativo':
-                return 'bg-green-500 hover:bg-green-600'
-            case 'inativo':
-                return 'bg-red-500 hover:bg-red-600'
-            case 'pendente':
-                return 'bg-yellow-500 hover:bg-yellow-600'
-            default:
-                return 'bg-gray-500 hover:bg-gray-600'
-        }
+    const confirmarPromocao = () => {
+        if (!usuarioPromover) return
+        promoverMutation.mutate(usuarioPromover.id)
+        setUsuarioPromover(null)
     }
 
-    const getTipoLabel = (tipo: string) => {
-        switch (tipo) {
+    const getTipoLabel = (tipoUsuario: string) => {
+        switch (tipoUsuario) {
             case 'admin':
                 return 'Administrador'
             case 'organizador':
@@ -115,20 +126,16 @@ export function AdminUsuarios({
             case 'participante':
                 return 'Participante'
             default:
-                return tipo
+                return tipoUsuario
         }
     }
 
-    const getTipoColor = (tipo: string) => {
-        switch (tipo) {
+    const getTipoColor = (tipoUsuario: string) => {
+        switch (tipoUsuario) {
             case 'admin':
-                return 'bg-purple-500 hover:bg-purple-600'
-            case 'organizador':
-                return 'bg-blue-500 hover:bg-blue-600'
-            case 'participante':
-                return 'bg-gray-500 hover:bg-gray-600'
+                return 'bg-purple-500 hover:bg-purple-600 text-white'
             default:
-                return 'bg-gray-500 hover:bg-gray-600'
+                return 'bg-muted text-muted-foreground'
         }
     }
 
@@ -161,6 +168,7 @@ export function AdminUsuarios({
                             <TableRow>
                                 <TableHead>Usuário</TableHead>
                                 <TableHead>Email</TableHead>
+                                <TableHead>Papel</TableHead>
                                 <TableHead>Data de Cadastro</TableHead>
                                 <TableHead>Último Acesso</TableHead>
                                 <TableHead className="text-right">
@@ -172,7 +180,7 @@ export function AdminUsuarios({
                             {isLoading ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="text-center py-8 text-muted-foreground"
                                     >
                                         Carregando usuários...
@@ -181,7 +189,7 @@ export function AdminUsuarios({
                             ) : error ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="text-center py-8 text-destructive"
                                     >
                                         Erro ao carregar usuários. Tente
@@ -191,7 +199,7 @@ export function AdminUsuarios({
                             ) : paginatedUsuarios.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="text-center py-8 text-muted-foreground"
                                     >
                                         Nenhum usuário encontrado
@@ -211,6 +219,15 @@ export function AdminUsuarios({
                                                 <Mail className="w-4 h-4 text-muted-foreground" />
                                                 {usuario.email}
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                className={getTipoColor(
+                                                    usuario.tipoUsuario,
+                                                )}
+                                            >
+                                                {getTipoLabel(usuario.tipoUsuario)}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
@@ -247,6 +264,18 @@ export function AdminUsuarios({
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                {usuario.tipoUsuario !== 'admin' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        title="Promover a administrador"
+                                                        onClick={() =>
+                                                            setUsuarioPromover(usuario)
+                                                        }
+                                                    >
+                                                        <ShieldCheck className="w-4 h-4" />
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -372,6 +401,36 @@ export function AdminUsuarios({
                     </div>
                 )}
             </CardContent>
+
+            {/* Confirmação de promoção */}
+            <AlertDialog
+                open={usuarioPromover !== null}
+                onOpenChange={(open) => {
+                    if (!open) setUsuarioPromover(null)
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Promover a administrador
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {usuarioPromover
+                                ? `${usuarioPromover.nome} (${usuarioPromover.email}) terá acesso total ao painel administrativo. Deseja continuar?`
+                                : ''}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={promoverMutation.isPending}
+                            onClick={confirmarPromocao}
+                        >
+                            Promover
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Card>
     )
 }

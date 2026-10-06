@@ -16,7 +16,7 @@ interface User {
    cpf: string | null
    dataNascimento: string | null
    fotoPerfil: string | null
-   tipoUsuario: 'admin' | 'client' | 'professional'
+   tipoUsuario: 'admin' | 'organizador' | 'participante'
    dataCadastro: string
    ultimoAcesso: string
 }
