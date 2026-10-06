@@ -21,9 +21,6 @@ interface CalendarViewProps {
     onEventClick?: (event: Event) => void
 }
 
-// máximo de pontos por dia antes de colapsar em "+N"
-const MAX_DOTS_POR_DIA = 8
-
 const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 const monthOptions = [
@@ -252,6 +249,18 @@ export function CalendarView({
                         const isSelected =
                             selectedDate !== null && sameDay(selectedDate, dataDoDia)
                         const isToday = isCurrentMonth && day === today.getDate()
+                        const temEventos = dayEvents.length > 0
+
+                        // um único caminho de classes por estado, sem conflitos
+                        const dayClasses = temEventos
+                            ? isSelected
+                              ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/50 ring-offset-2 ring-offset-background'
+                              : 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
+                            : isSelected
+                              ? 'border-primary ring-2 ring-primary/40 bg-primary/10'
+                              : isToday
+                                ? 'border-primary/60 bg-primary/5'
+                                : 'border-border hover:bg-muted/50'
 
                         return (
                             <button
@@ -259,53 +268,36 @@ export function CalendarView({
                                 type="button"
                                 onClick={() => handleDayClick(day)}
                                 title={
-                                    dayEvents.length > 0
+                                    temEventos
                                         ? dayEvents.map((e) => e.titulo).join('\n')
                                         : undefined
                                 }
                                 aria-pressed={isSelected}
                                 aria-label={
                                     `${day} de ${monthOptions[month]}` +
-                                    (dayEvents.length > 0
+                                    (temEventos
                                         ? `, ${dayEvents.length} ${dayEvents.length === 1 ? 'evento' : 'eventos'}`
                                         : '')
                                 }
-                                className={`h-11 rounded-md border flex flex-col justify-between items-center py-1 px-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                                    isSelected
-                                        ? 'border-primary ring-2 ring-primary/40 bg-primary/10'
-                                        : isToday
-                                          ? 'border-primary/60 bg-primary/5'
-                                          : 'border-border hover:bg-muted/50'
-                                }`}
+                                className={`h-11 rounded-md border flex flex-col justify-between items-center py-1 px-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${dayClasses}`}
                             >
                                 <span
                                     className={`text-xs leading-none whitespace-nowrap ${
-                                        isSelected || isToday
-                                            ? 'text-primary font-semibold'
-                                            : ''
+                                        temEventos
+                                            ? 'text-primary-foreground font-semibold'
+                                            : isSelected || isToday
+                                              ? 'text-primary font-semibold'
+                                              : ''
                                     }`}
                                 >
                                     {day}
                                 </span>
-                                {/* um ponto por evento, cor da categoria */}
-                                <div className="flex flex-wrap gap-[3px] justify-center max-w-full overflow-hidden pb-0.5">
-                                    {dayEvents
-                                        .slice(0, MAX_DOTS_POR_DIA)
-                                        .map((event) => (
-                                            <span
-                                                key={event.id}
-                                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                                    event.categoria?.cor ||
-                                                    'bg-slate-600'
-                                                }`}
-                                            />
-                                        ))}
-                                    {dayEvents.length > MAX_DOTS_POR_DIA && (
-                                        <span className="text-[8px] leading-none text-muted-foreground">
-                                            +{dayEvents.length - MAX_DOTS_POR_DIA}
-                                        </span>
-                                    )}
-                                </div>
+                                {/* dia preenchido mostra a contagem de eventos */}
+                                {temEventos && (
+                                    <span className="text-[10px] font-bold leading-none bg-primary-foreground/25 text-primary-foreground rounded-full min-w-[14px] px-1 py-px">
+                                        {dayEvents.length}
+                                    </span>
+                                )}
                             </button>
                         )
                     })}
