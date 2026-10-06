@@ -310,11 +310,11 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
          const outOfRange = isLat ? num < -90 || num > 90 : num < -180 || num > 180
          setErrors4((prev) => ({
             ...prev,
-            [field]: outOfRange
-               ? isLat
-                  ? 'Latitude deve estar entre -90 e 90'
-                  : 'Longitude deve estar entre -180 e 180'
-               : undefined,
+               [field]: outOfRange
+                  ? isLat
+                     ? 'A latitude deve estar entre -90 e 90'
+                     : 'A longitude deve estar entre -180 e 180'
+                  : undefined,
          }))
       } else {
          setErrors4((prev) => ({ ...prev, [field]: undefined }))
@@ -358,36 +358,36 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
    // ─── Validações por step ───────────────────────────────────────────────
    const validateStep1 = useCallback((): boolean => {
       const errs: Step1Errors = {}
-      if (!formData.titulo.trim()) errs.titulo = 'O título é obrigatório'
-      if (!formData.descricao.trim()) errs.descricao = 'A descrição é obrigatória'
+      if (!formData.titulo.trim()) errs.titulo = 'Informe o nome do evento'
+      if (!formData.descricao.trim()) errs.descricao = 'Informe a descrição do evento'
       else if (formData.descricao.length > MAX_DESCRICAO_CHARS)
-         errs.descricao = `Limite de ${MAX_DESCRICAO_CHARS} caracteres excedido`
-      if (!formData.categoriaId) errs.categoriaId = 'Selecione uma categoria'
+         errs.descricao = `A descrição deve ter no máximo ${MAX_DESCRICAO_CHARS} caracteres`
+      if (!formData.categoriaId) errs.categoriaId = 'Selecione a categoria do evento'
       setErrors1(errs)
       return Object.keys(errs).length === 0
    }, [formData.titulo, formData.descricao, formData.categoriaId])
 
    const validateStep2 = useCallback((): boolean => {
       const errs: Step2Errors = {}
-      if (!formData.dataInicio) errs.dataInicio = 'A data de início é obrigatória'
-      if (!formData.dataFim) errs.dataFim = 'A data de término é obrigatória'
+      if (!formData.dataInicio) errs.dataInicio = 'Informe a data de início'
+      if (!formData.dataFim) errs.dataFim = 'Informe a data de encerramento'
       else if (formData.dataInicio && formData.dataFim < formData.dataInicio) {
-         errs.dataFim = 'A data de término não pode ser anterior ao início'
+         errs.dataFim = 'A data de encerramento não pode ser anterior à data de início'
       }
-      if (!formData.horarioAbertura) errs.horarioAbertura = 'O horário de abertura é obrigatório'
-      if (!formData.horarioEncerramento) errs.horarioEncerramento = 'O horário de encerramento é obrigatório'
+      if (!formData.horarioAbertura) errs.horarioAbertura = 'Informe o horário de início'
+      if (!formData.horarioEncerramento) errs.horarioEncerramento = 'Informe o horário de encerramento'
       if (
          formData.horarioAbertura &&
          formData.horarioEncerramento &&
          formData.dataInicio === formData.dataFim &&
          formData.horarioEncerramento <= formData.horarioAbertura
       ) {
-         errs.horarioEncerramento = 'O encerramento deve ser após a abertura'
+         errs.horarioEncerramento = 'O horário de encerramento deve ser posterior ao horário de início'
       }
       if (formData.publicoAlvo.length > MAX_PUBLICO_ALVO_CHARS)
-         errs.publicoAlvo = `Limite de ${MAX_PUBLICO_ALVO_CHARS} caracteres excedido`
+         errs.publicoAlvo = `O público-alvo deve ter no máximo ${MAX_PUBLICO_ALVO_CHARS} caracteres`
       if (formData.requisitos.length > MAX_REQUISITOS_CHARS)
-         errs.requisitos = `Limite de ${MAX_REQUISITOS_CHARS} caracteres excedido`
+         errs.requisitos = `Os requisitos devem ter no máximo ${MAX_REQUISITOS_CHARS} caracteres`
       setErrors2(errs)
       return Object.keys(errs).length === 0
    }, [
@@ -407,9 +407,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
       const lat = parseFloat(formData.LocalLatitude)
       const lng = parseFloat(formData.LocalLongitude)
       if (formData.LocalLatitude && (isNaN(lat) || lat < -90 || lat > 90))
-         errs.LocalLatitude = 'Latitude deve estar entre -90 e 90'
+         errs.LocalLatitude = 'A latitude deve estar entre -90 e 90'
       if (formData.LocalLongitude && (isNaN(lng) || lng < -180 || lng > 180))
-         errs.LocalLongitude = 'Longitude deve estar entre -180 e 180'
+         errs.LocalLongitude = 'A longitude deve estar entre -180 e 180'
       setErrors4(errs)
       return Object.keys(errs).length === 0
    }, [formData.imagemCapa, formData.LocalLatitude, formData.LocalLongitude])
@@ -482,10 +482,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
 
    // ─── Steps config ─────────────────────────────────────────────────────
    const steps = [
-      { number: 1, title: 'Informações Básicas', icon: FileText },
+      { number: 1, title: 'Informações Principais', icon: FileText },
       { number: 2, title: 'Detalhes do Evento', icon: CalendarIcon },
-      { number: 3, title: 'Informações do Local', icon: MapPin },
-      { number: 4, title: 'Mídia e Links', icon: ImageIcon },
+      { number: 3, title: 'Local do Evento', icon: MapPin },
+      { number: 4, title: 'Imagem e Links', icon: ImageIcon },
    ]
 
    // ─── Valores derivados para o resumo ──────────────────────────────────
@@ -539,9 +539,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                            <CalendarIcon className="w-5 h-5 text-primary-foreground" />
                         </div>
                         <div>
-                           <h2>{editingEvent ? 'Editar Evento' : 'Criar Novo Evento'}</h2>
+                           <h2>{editingEvent ? 'Editar Evento' : 'Solicitar Cadastro de Evento'}</h2>
                            <p className="text-sm text-muted-foreground">
-                              Passo {currentStep} de {totalSteps}: {steps[currentStep - 1].title}
+                              Etapa {currentStep} de {totalSteps}: {steps[currentStep - 1].title}
                            </p>
                         </div>
                      </div>
@@ -609,19 +609,19 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                            className="space-y-6"
                         >
                            <div>
-                              <h3 className="mb-1">Informações Básicas do Evento</h3>
+                              <h3 className="mb-1">Informações Principais do Evento</h3>
                               <p className="text-sm text-muted-foreground">
-                                 Preencha os dados principais do seu evento
+                                 Informe os dados principais do evento
                               </p>
                            </div>
 
                            <div className="grid grid-cols-1 gap-6">
                               {/* Título */}
                               <div className="space-y-2">
-                                 <Label htmlFor="titulo">Título do Evento*</Label>
+                                 <Label htmlFor="titulo">Nome do Evento*</Label>
                                  <Input
                                     id="titulo"
-                                    placeholder="Ex: Workshop de Node.js"
+                                    placeholder="Ex: Seminário de Tecnologia e Inovação"
                                     value={formData.titulo}
                                     onChange={(e) => {
                                        set('titulo', e.target.value)
@@ -646,7 +646,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  </Label>
                                  <Textarea
                                     id="descricao"
-                                    placeholder="Descreva os principais pontos do evento..."
+                                    placeholder="Faça um resumo do que será o evento..."
                                     value={formData.descricao}
                                     onChange={(e) => {
                                        set('descricao', e.target.value)
@@ -666,7 +666,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
 
                               {/* Categoria */}
                               <div className="space-y-2">
-                                 <Label htmlFor="categoriaId">Categoria*</Label>
+                                 <Label htmlFor="categoriaId">Categoria do Evento*</Label>
                                  <Select
                                     key={categorias.length}
                                     value={formData.categoriaId}
@@ -683,7 +683,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                        id="categoriaId"
                                        className={errors1.categoriaId ? 'border-red-500 focus:ring-red-500' : ''}
                                     >
-                                       <SelectValue placeholder="Selecione uma categoria" />
+                                       <SelectValue placeholder="Selecione a categoria do evento" />
                                     </SelectTrigger>
                                     <SelectContent>
                                        {categorias.map((cat) => (
@@ -714,7 +714,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                            <div>
                               <h3 className="mb-1">Detalhes do Evento</h3>
                               <p className="text-sm text-muted-foreground">
-                                 Configure datas, horários e informações adicionais
+                                 Informe quando o evento acontece e para quem é destinado
                               </p>
                            </div>
 
@@ -739,9 +739,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  <FieldError message={errors2.dataInicio} />
                               </div>
 
-                              {/* Data de Término */}
+                              {/* Data de Encerramento */}
                               <div className="space-y-2">
-                                 <Label htmlFor="dataFim">Data de Término*</Label>
+                                  <Label htmlFor="dataFim">Data de Encerramento*</Label>
                                  <Input
                                     id="dataFim"
                                     type="date"
@@ -760,9 +760,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  <FieldError message={errors2.dataFim} />
                               </div>
 
-                              {/* Horário de Abertura */}
+                               {/* Horário de Início */}
                               <div className="space-y-2">
-                                 <Label htmlFor="horarioAbertura">Horário de Abertura*</Label>
+                                  <Label htmlFor="horarioAbertura">Horário de Início*</Label>
                                  <Input
                                     id="horarioAbertura"
                                     type="time"
@@ -804,17 +804,17 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  <FieldError message={errors2.horarioEncerramento} />
                               </div>
 
-                              {/* Público Alvo */}
+                               {/* Público-Alvo */}
                               <div className="space-y-2 md:col-span-2">
-                                 <Label htmlFor="publicoAlvo">
-                                    Público Alvo
+                                  <Label htmlFor="publicoAlvo">
+                                     Público-Alvo
                                     <span className="text-xs text-muted-foreground ml-2">
                                        ({formData.publicoAlvo.length}/{MAX_PUBLICO_ALVO_CHARS})
                                     </span>
                                  </Label>
                                  <Input
                                     id="publicoAlvo"
-                                    placeholder="Ex: Desenvolvedores iniciantes e intermediários"
+                                     placeholder="Ex: Estudantes e profissionais interessados no tema"
                                     value={formData.publicoAlvo}
                                     onChange={(e) => {
                                        set('publicoAlvo', e.target.value)
@@ -831,15 +831,15 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
 
                               {/* Requisitos */}
                               <div className="space-y-2 md:col-span-2">
-                                 <Label htmlFor="requisitos">
-                                    Requisitos
+                                  <Label htmlFor="requisitos">
+                                     Requisitos para Participação
                                     <span className="text-xs text-muted-foreground ml-2">
                                        ({formData.requisitos.length}/{MAX_REQUISITOS_CHARS})
                                     </span>
                                  </Label>
                                  <Input
                                     id="requisitos"
-                                    placeholder="Ex: Notebook próprio e conhecimento básico de JavaScript"
+                                     placeholder="Ex: Trazer computador próprio"
                                     value={formData.requisitos}
                                     onChange={(e) => {
                                        set('requisitos', e.target.value)
@@ -867,11 +867,11 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                            className="space-y-6"
                         >
                            <div>
-                              <h3 className="mb-1">Informações do Local</h3>
+                              <h3 className="mb-1">Local do Evento</h3>
                               <p className="text-sm text-muted-foreground">
                                  {formData.tipoEvento === 'online'
                                     ? 'Este é um evento online. Os campos abaixo são opcionais.'
-                                    : 'Adicione os detalhes do local onde o evento acontecerá. As coordenadas e o link do Google Maps serão gerados automaticamente.'}
+                                    : 'Informe o endereço onde o evento acontecerá. O link do Google Maps será gerado automaticamente.'}
                               </p>
                            </div>
 
@@ -885,7 +885,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border border-border"
                                  >
                                     <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                                    Buscando coordenadas do endereço...
+                                     Buscando o endereço informado...
                                  </motion.div>
                               )}
                               {!isGeocoding && geocodeStatus === 'success' && (
@@ -896,7 +896,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     className="flex items-center gap-2 text-sm text-green-700 p-3 bg-green-50 rounded-lg border border-green-200"
                                  >
                                     <Check className="w-4 h-4 shrink-0" />
-                                    Coordenadas e link do Google Maps gerados automaticamente!
+                                     Endereço localizado! O link do Google Maps foi gerado automaticamente.
                                  </motion.div>
                               )}
                               {!isGeocoding && geocodeStatus === 'error' && (
@@ -907,8 +907,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     className="flex items-center gap-2 text-sm text-amber-700 p-3 bg-amber-50 rounded-lg border border-amber-200"
                                  >
                                     <AlertCircle className="w-4 h-4 shrink-0" />
-                                    Não foi possível encontrar as coordenadas para este endereço. Você pode preenchê-las
-                                    manualmente no próximo passo.
+                                     Não foi possível localizar este endereço. Você poderá informá-lo manualmente
+                                     na próxima etapa.
                                  </motion.div>
                               )}
                            </AnimatePresence>
@@ -934,7 +934,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     maxLength={9}
                                  />
                                  <p className="text-xs text-muted-foreground">
-                                    Digite o CEP para preencher o endereço automaticamente
+                                     Informe o CEP para preencher o endereço automaticamente
                                  </p>
                               </div>
 
@@ -1009,7 +1009,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               </div>
 
                               <div className="space-y-2">
-                                 <Label htmlFor="LocalCapacidade">Capacidade do Local</Label>
+                                  <Label htmlFor="LocalCapacidade">Capacidade do Local (pessoas)</Label>
                                  <Input
                                     id="LocalCapacidade"
                                     type="number"
@@ -1035,7 +1035,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                         </motion.div>
                      )}
 
-                     {/* ── Step 4: Mídia e Links ────────────────────── */}
+                      {/* ── Step 4: Imagem e Links ───────────────────── */}
                      {currentStep === 4 && (
                         <motion.div
                            initial={{ opacity: 0, x: 20 }}
@@ -1045,9 +1045,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                            className="space-y-6"
                         >
                            <div>
-                              <h3 className="mb-1">Mídia e Links</h3>
+                              <h3 className="mb-1">Imagem e Links</h3>
                               <p className="text-sm text-muted-foreground">
-                                 Adicione imagens e links relacionados ao evento
+                                 Informe a imagem de capa e os links relacionados ao evento
                               </p>
                            </div>
 
@@ -1056,7 +1056,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               <div className="space-y-2">
                                  <Label htmlFor="imagemCapa" className="flex items-center gap-2">
                                     <ImageIcon className="w-4 h-4" />
-                                    URL da Imagem de Capa
+                                     Endereço (link) da Imagem de Capa
                                  </Label>
                                  <Input
                                     id="imagemCapa"
@@ -1140,12 +1140,12 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                        {isGeocoding ? (
                                           <>
                                              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
-                                             <p className="text-sm text-muted-foreground">Buscando coordenadas...</p>
+                                              <p className="text-sm text-muted-foreground">Buscando endereço...</p>
                                           </>
                                        ) : (
-                                          <p className="text-sm text-muted-foreground italic">
-                                             Será gerado automaticamente ao preencher o endereço no passo anterior.
-                                          </p>
+                                           <p className="text-sm text-muted-foreground italic">
+                                              Será gerado automaticamente após informar o endereço na etapa anterior.
+                                           </p>
                                        )}
                                     </div>
                                  )}
@@ -1154,8 +1154,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               {/* Coordenadas — preenchidas automaticamente, editáveis manualmente */}
                               <div className="grid grid-cols-2 gap-6">
                                  <div className="space-y-2">
-                                    <Label htmlFor="LocalLatitude" className="flex items-center gap-1.5">
-                                       Latitude
+                                     <Label htmlFor="LocalLatitude" className="flex items-center gap-1.5">
+                                        Latitude (localização)
                                        {isGeocoding && (
                                           <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                                        )}
@@ -1176,8 +1176,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  </div>
 
                                  <div className="space-y-2">
-                                    <Label htmlFor="LocalLongitude" className="flex items-center gap-1.5">
-                                       Longitude
+                                     <Label htmlFor="LocalLongitude" className="flex items-center gap-1.5">
+                                        Longitude (localização)
                                        {isGeocoding && (
                                           <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                                        )}
@@ -1203,27 +1203,27 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  <h4 className="mb-3">Resumo do Evento</h4>
                                  <div className="space-y-2 text-sm">
                                     {(
-                                       [
-                                          ['Título', formData.titulo],
-                                          ['Categoria', categoriaNome],
-                                          ['Tipo', formData.tipoEvento],
-                                          ['Período', resumoPeriodo],
-                                          ['Horário', resumoHorario],
-                                          [
-                                             'Capacidade',
-                                             formData.capacidadeMaxima
-                                                ? `${formData.capacidadeMaxima} pessoas`
-                                                : '100 pessoas (padrão)',
-                                          ],
-                                          ['Local', resumoLocal],
-                                          [
-                                             'Coordenadas',
-                                             formData.LocalLatitude && formData.LocalLongitude
-                                                ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
-                                                : 'Não informadas',
-                                          ],
-                                          ['Status', 'Rascunho'],
-                                       ] as [string, string][]
+                                        [
+                                           ['Nome', formData.titulo],
+                                           ['Categoria', categoriaNome],
+                                           ['Tipo', formData.tipoEvento],
+                                           ['Período', resumoPeriodo],
+                                           ['Horário', resumoHorario],
+                                           [
+                                              'Capacidade (pessoas)',
+                                              formData.capacidadeMaxima
+                                                 ? `${formData.capacidadeMaxima} pessoas`
+                                                 : '100 pessoas (padrão)',
+                                           ],
+                                           ['Local', resumoLocal],
+                                           [
+                                              'Localização',
+                                              formData.LocalLatitude && formData.LocalLongitude
+                                                 ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
+                                                 : 'Não informada',
+                                           ],
+                                           ['Situação', 'Rascunho'],
+                                        ] as [string, string][]
                                     ).map(([label, value]) => (
                                        <div key={label} className="flex justify-between gap-4">
                                           <span className="text-muted-foreground shrink-0">{label}:</span>
@@ -1249,7 +1249,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               className="flex items-center gap-2"
                            >
                               <ChevronLeft className="w-4 h-4" />
-                              Anterior
+                              Voltar
                            </Button>
                         )}
 
@@ -1261,7 +1261,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
 
                         {currentStep < totalSteps && (
                            <Button type="button" onClick={nextStep} size="lg" className="flex items-center gap-2">
-                              Próximo
+                              Continuar
                               <ChevronRight className="w-4 h-4" />
                            </Button>
                         )}
@@ -1274,7 +1274,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               disabled={!!errors4.LocalLatitude || !!errors4.LocalLongitude}
                            >
                               <Check className="w-4 h-4" />
-                              {editingEvent ? 'Atualizar Evento' : 'Solicitar Evento'}
+                              {editingEvent ? 'Salvar Alterações' : 'Enviar Solicitação'}
                            </Button>
                         )}
                      </div>

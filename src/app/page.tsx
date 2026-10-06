@@ -209,8 +209,8 @@ function AppContent() {
          }
          try {
             await createEvento(newEvent, token)
-            toast.success('Evento solicitado. Aguarde a aprovação do administrador.')
-            setAlertMessage('Evento solicitado. Aguarde a aprovação do administrador.')
+            toast.success('Solicitação enviada. Aguarde a análise da equipe responsável.')
+            setAlertMessage('Solicitação enviada. Aguarde a análise da equipe responsável.')
             setAlertDialogOpen(true)
             setShowForm(false)
          } catch (error) {
