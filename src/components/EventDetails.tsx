@@ -26,9 +26,10 @@ interface EventDetailsProps {
    onClose: () => void
    onEdit: (event: Event) => void
    onDelete: (id: string) => void
+   isOwner?: boolean
 }
 
-export function EventDetails({ event, categoria, onClose, onEdit, onDelete }: EventDetailsProps) {
+export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOwner }: EventDetailsProps) {
    const { isAuthenticated, user, logout } = useAuth()
    const categoryStyle = categoria?.cor || 'bg-slate-600'
 
@@ -111,7 +112,7 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete }: Ev
                      {categoria && (
                         <Badge className={`${categoryStyle} text-white border-0 shadow-md`}>{categoria.nome}</Badge>
                      )}
-                     {user?.tipoUsuario === 'admin' && (
+                     {(user?.tipoUsuario === 'admin' || isOwner) && (
                         <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
                            {event.status}
                         </Badge>
@@ -272,7 +273,7 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete }: Ev
                   )}
 
                   {/* Action Buttons */}
-                  {user?.tipoUsuario === 'admin' && (
+                  {(user?.tipoUsuario === 'admin' || isOwner) && (
                      <div className="flex gap-3 pt-4 border-t border-border">
                         <Button variant="outline" className="flex-1" onClick={handleEdit}>
                            <Edit className="w-4 h-4 mr-2" />

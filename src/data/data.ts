@@ -87,6 +87,17 @@ export const getEventosAdmin = async (token: string | null) => {
    return data
 }
 
+/**
+ * Lista os eventos criados pelo usuário informado.
+ * Não há endpoint dedicado no backend: busca a lista completa (todos os status)
+ * e filtra client-side por organizadorId. Comparação NaN-safe.
+ */
+export const getMeusEventos = async (token: string | null, userId: number): Promise<Event[]> => {
+   const data = await getEventosAdmin(token)
+   const eventos: Event[] = data?.eventos ?? []
+   return eventos.filter((evento) => Number(evento.organizadorId) === userId)
+}
+
 export const createEvento = async (evento: Event, token: string | null) => {
    const res = await authFetch(`${API_URL}/api/eventos`, {
       method: 'POST',

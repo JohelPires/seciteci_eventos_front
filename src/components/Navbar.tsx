@@ -1,34 +1,38 @@
 import {
-    Briefcase,
-    Users,
-    CalendarDays,
+    CalendarSearch,
+    FolderOpen,
+    PlusCircle,
     MapPin,
-    Folder,
-    Accessibility,
     Menu,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { UserBadge } from './UserBadge'
 
 export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-    const [activeTab, setActiveTab] = useState('eventos')
 
+    const router = useRouter()
     const { isAuthenticated, user, logout } = useAuth()
 
     const navItems = [
-        // { id: 'home', label: 'Home', icon: Home },
-        { id: 'oportunidades', label: 'Oportunidades', icon: Briefcase },
-        { id: 'agentes', label: 'Agentes', icon: Users },
-        { id: 'eventos', label: 'Eventos', icon: CalendarDays },
-        { id: 'espacos', label: 'Espaços', icon: MapPin },
-        { id: 'projetos', label: 'Projetos', icon: Folder },
-        { id: 'acessibilidade', label: 'Acessibilidade', icon: Accessibility },
+        { id: 'explorar', label: 'Explorar eventos', icon: CalendarSearch, href: '/' },
+        { id: 'meus-eventos', label: 'Meus eventos', icon: FolderOpen, href: '/meus-eventos', requiresAuth: true },
+        { id: 'criar', label: 'Criar evento', icon: PlusCircle, href: '/?action=create', requiresAuth: true },
     ]
+
+    const handleNavigate = (href: string, requiresAuth?: boolean) => {
+        if (requiresAuth && !isAuthenticated) {
+            onOpenAuth()
+            return
+        }
+        router.push(href)
+        setMobileMenuOpen(false)
+    }
 
     return (
         <nav className="sticky top-0 z-50 w-full bg-primary pt-1 pb-1 mb-2 shadow-black/40 shadow-2xl">
@@ -113,15 +117,8 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                             return (
                                 <button
                                     key={item.id}
-                                    onClick={() => {
-                                        setActiveTab(item.id)
-                                        setMobileMenuOpen(false)
-                                    }}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                                        activeTab === item.id
-                                            ? 'bg-white text-[#143373]'
-                                            : 'text-white hover:bg-white/10'
-                                    }`}
+                                    onClick={() => handleNavigate(item.href, item.requiresAuth)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-white hover:bg-white/10"
                                 >
                                     <Icon className="w-5 h-5" />
                                     <span>{item.label}</span>

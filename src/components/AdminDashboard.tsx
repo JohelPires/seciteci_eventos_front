@@ -8,13 +8,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { AdminEventos } from './AdminEventos'
 import { AdminCategorias } from './AdminCategorias'
 // import { AdminLocais } from './AdminLocais'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion, type Variants } from 'framer-motion'
 import type { Event, Categoria, Local } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
 import { Footer } from './Footer'
 import { AdminUsuarios } from './AdminUsuarios'
 import { MapView } from './MapView'
 import { UserBadge } from './UserBadge'
+import { CalendarView } from './CalendarView'
+import { EventDetails } from './EventDetails'
+
+// ponto colorido por status/tipo — mesma linguagem de "Eventos por Categoria"
+const STATUS_DOTS: Record<Event['status'], string> = {
+   publicado: 'bg-green-600',
+   rascunho: 'bg-amber-500',
+   cancelado: 'bg-red-600',
+}
+
+const TIPO_DOTS: Record<Event['tipoEvento'], string> = {
+   presencial: 'bg-primary',
+   online: 'bg-violet-500',
+   hibrido: 'bg-teal-500',
+}
 
 interface AdminDashboardProps {
    events: Event[]
@@ -47,8 +62,19 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
    const [activeTab, setActiveTab] = useState('overview')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
    const { user } = useAuth()
+
+   const shouldReduceMotion = useReducedMotion()
+   const container: Variants = {
+      hidden: {},
+      show: { transition: { staggerChildren: 0.06 } },
+   }
+   const item: Variants = {
+      hidden: shouldReduceMotion ? {} : { opacity: 0, y: 20 },
+      show: shouldReduceMotion ? {} : { opacity: 1, y: 0 },
+   }
 
    if (!user) {
       return <div>Não autenticado</div>
@@ -61,6 +87,9 @@ export function AdminDashboard({
    const cancelledEvents = events.filter((e) => e.status === 'cancelado').length
    const totalCapacity = events.reduce((sum, e) => sum + e.capacidadeMaxima, 0)
    const averageCapacity = totalEvents > 0 ? Math.round(totalCapacity / totalEvents) : 0
+   const categoriasComEventos = categorias.filter((cat) =>
+      events.some((e) => e.categoriaId === cat.id),
+   ).length
 
    // Events by category
    const eventsByCategory = categorias.map((cat) => ({
@@ -80,12 +109,6 @@ export function AdminDashboard({
       setSelectedEvent(event)
    }
 
-   // Recent events (last 5), do mais recentemente criado para o mais antigo
-   const recentEvents = [...events]
-      .sort(
-         (a, b) => (new Date(b.dataCriacao ?? 0).getTime() || 0) - (new Date(a.dataCriacao ?? 0).getTime() || 0),
-      )
-      .slice(0, 4)
 
    return (
       <div className="min-h-screen bg-background">
@@ -166,88 +189,125 @@ export function AdminDashboard({
 
                {/* Overview Tab */}
                <TabsContent value="overview" className="space-y-6">
+                   <motion.div
+                      variants={container}
+                      initial="hidden"
+                      animate="show"
+                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+                   >
+                      <motion.div variants={item} className="h-full">
+                         <Card className="h-full">
+                            <CardHeader className="pb-3">
+                               <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                     <CardDescription>Total de Eventos</CardDescription>
+                                     <CardTitle className="text-3xl">{totalEvents}</CardTitle>
+                                  </div>
+                                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                     <Calendar className="w-5 h-5 text-muted-foreground" />
+                                  </div>
+                               </div>
+                            </CardHeader>
+                            <CardContent>
+                               <p className="text-sm text-muted-foreground">Todos os status</p>
+                            </CardContent>
+                         </Card>
+                      </motion.div>
+
+                      <motion.div variants={item} className="h-full">
+                         <Card className="h-full">
+                            <CardHeader className="pb-3">
+                               <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                     <CardDescription>Eventos Publicados</CardDescription>
+                                     <CardTitle className="text-3xl text-green-600">{publishedEvents}</CardTitle>
+                                  </div>
+                                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                     <TrendingUp className="w-5 h-5 text-muted-foreground" />
+                                  </div>
+                               </div>
+                            </CardHeader>
+                            <CardContent>
+                               <p className="text-sm text-muted-foreground">
+                                  {totalEvents > 0 ? Math.round((publishedEvents / totalEvents) * 100) : 0}% do total
+                               </p>
+                            </CardContent>
+                         </Card>
+                      </motion.div>
+
+                      <motion.div variants={item} className="h-full">
+                         <Card className="h-full">
+                            <CardHeader className="pb-3">
+                               <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                     <CardDescription>Vagas Totais</CardDescription>
+                                     <CardTitle className="text-3xl">{totalCapacity.toLocaleString()}</CardTitle>
+                                  </div>
+                                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                     <Users className="w-5 h-5 text-muted-foreground" />
+                                  </div>
+                               </div>
+                            </CardHeader>
+                            <CardContent>
+                               <p className="text-sm text-muted-foreground">Média: {averageCapacity} pessoas</p>
+                            </CardContent>
+                         </Card>
+                      </motion.div>
+
+                      <motion.div variants={item} className="h-full">
+                         <Card className="h-full">
+                            <CardHeader className="pb-3">
+                               <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                     <CardDescription>Categorias Ativas</CardDescription>
+                                     <CardTitle className="text-3xl">{categorias.length}</CardTitle>
+                                  </div>
+                                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                     <Tag className="w-5 h-5 text-muted-foreground" />
+                                  </div>
+                               </div>
+                            </CardHeader>
+                            <CardContent>
+                               <p className="text-sm text-muted-foreground">
+                                  {categoriasComEventos} com eventos
+                               </p>
+                            </CardContent>
+                         </Card>
+                      </motion.div>
+                   </motion.div>
+
                   <motion.div
-                     initial={{ opacity: 0, y: 20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+                     variants={container}
+                     initial="hidden"
+                     animate="show"
+                     className="grid grid-cols-1 lg:grid-cols-2 gap-6"
                   >
-                     <Card>
-                        <CardHeader className="pb-3">
-                           <CardDescription>Total de Eventos</CardDescription>
-                           <CardTitle className="text-3xl">{totalEvents}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Calendar className="w-4 h-4" />
-                              <span>Todos os status</span>
-                           </div>
-                        </CardContent>
-                     </Card>
-
-                     <Card>
-                        <CardHeader className="pb-3">
-                           <CardDescription>Eventos Publicados</CardDescription>
-                           <CardTitle className="text-3xl text-green-600">{publishedEvents}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <TrendingUp className="w-4 h-4" />
-                              <span>
-                                 {totalEvents > 0 ? Math.round((publishedEvents / totalEvents) * 100) : 0}% do total
-                              </span>
-                           </div>
-                        </CardContent>
-                     </Card>
-
-                     <Card>
-                        <CardHeader className="pb-3">
-                           <CardDescription>Vagas Totais</CardDescription>
-                           <CardTitle className="text-3xl">{totalCapacity.toLocaleString()}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Users className="w-4 h-4" />
-                              <span>Média: {averageCapacity} pessoas</span>
-                           </div>
-                        </CardContent>
-                     </Card>
-
-                     <Card>
-                        <CardHeader className="pb-3">
-                           <CardDescription>Categorias Ativas</CardDescription>
-                           <CardTitle className="text-3xl">{categorias.length}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Tag className="w-4 h-4" />
-                              {/* <span>{locais.length} locais cadastrados</span> */}
-                           </div>
-                        </CardContent>
-                     </Card>
-                  </motion.div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                      {/* Events by Status */}
-                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                     >
-                        <Card>
+                     <motion.div variants={item} className="h-full">
+                        <Card className="h-full">
                            <CardHeader>
                               <CardTitle>Eventos por Status</CardTitle>
                            </CardHeader>
                            <CardContent className="space-y-3">
-                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-sky-950/30 rounded-lg">
-                                 <span className="text-sm">Publicados</span>
+                              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                 <span className="flex items-center gap-2 text-sm">
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOTS.publicado}`} />
+                                    Publicados
+                                 </span>
                                  <span className="font-semibold">{publishedEvents}</span>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-yellow-950/30 rounded-lg">
-                                 <span className="text-sm">Pendentes</span>
+                              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                 <span className="flex items-center gap-2 text-sm">
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOTS.rascunho}`} />
+                                    Pendentes
+                                 </span>
                                  <span className="font-semibold">{draftEvents}</span>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-red-950/30 rounded-lg">
-                                 <span className="text-sm">Cancelados</span>
+                              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                 <span className="flex items-center gap-2 text-sm">
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOTS.cancelado}`} />
+                                    Cancelados
+                                 </span>
                                  <span className="font-semibold">{cancelledEvents}</span>
                               </div>
                            </CardContent>
@@ -255,26 +315,31 @@ export function AdminDashboard({
                      </motion.div>
 
                      {/* Events by Type */}
-                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                     >
-                        <Card>
+                     <motion.div variants={item} className="h-full">
+                        <Card className="h-full">
                            <CardHeader>
                               <CardTitle>Eventos por Tipo</CardTitle>
                            </CardHeader>
                            <CardContent className="space-y-3">
-                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-blue-950/30 rounded-lg">
-                                 <span className="text-sm">Presencial</span>
+                              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                 <span className="flex items-center gap-2 text-sm">
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${TIPO_DOTS.presencial}`} />
+                                    Presencial
+                                 </span>
                                  <span className="font-semibold">{eventsByType.presencial}</span>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-purple-950/30 rounded-lg">
-                                 <span className="text-sm">Online</span>
+                              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                 <span className="flex items-center gap-2 text-sm">
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${TIPO_DOTS.online}`} />
+                                    Online
+                                 </span>
                                  <span className="font-semibold">{eventsByType.online}</span>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-teal-950/30 rounded-lg">
-                                 <span className="text-sm">Híbrido</span>
+                              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                 <span className="flex items-center gap-2 text-sm">
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${TIPO_DOTS.hibrido}`} />
+                                    Híbrido
+                                 </span>
                                  <span className="font-semibold">{eventsByType.hibrido}</span>
                               </div>
                            </CardContent>
@@ -282,61 +347,69 @@ export function AdminDashboard({
                      </motion.div>
 
                      {/* Events by Category */}
-                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                     >
-                        <Card>
+                     <motion.div variants={item} className="h-full">
+                        <Card className="h-full">
                            <CardHeader>
                               <CardTitle>Eventos por Categoria</CardTitle>
                            </CardHeader>
-                           <CardContent className="space-y-2">
-                              {eventsByCategory.map((item, index) => (
-                                 <div
-                                    key={index}
-                                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
-                                 >
-                                    <div className="flex items-center gap-2">
-                                       <div className={`w-3 h-3 rounded-full ${item.cor}`} />
-                                       <span className="text-sm">{item.categoria}</span>
+                           <CardContent className="space-y-1">
+                              {eventsByCategory.map((itemCategoria) => {
+                                 const maxCount = Math.max(
+                                    ...eventsByCategory.map((i) => i.count),
+                                    1,
+                                 )
+                                 return (
+                                    <div
+                                       key={itemCategoria.categoria}
+                                       className="flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-muted/50"
+                                    >
+                                       <div className="flex items-center gap-2 min-w-0 flex-1">
+                                          <div className={`w-3 h-3 rounded-full shrink-0 ${itemCategoria.cor}`} />
+                                          <span className="text-sm truncate">{itemCategoria.categoria}</span>
+                                       </div>
+                                       <div className="flex items-center gap-2 w-24 shrink-0">
+                                          <div className="h-1.5 rounded-full bg-muted flex-1 overflow-hidden">
+                                             <div
+                                                className={`h-full rounded-full ${itemCategoria.cor}`}
+                                                style={{
+                                                   width: `${
+                                                      itemCategoria.count === 0
+                                                         ? 0
+                                                         : Math.max(100 * (itemCategoria.count / maxCount), 2)
+                                                   }%`,
+                                                }}
+                                             />
+                                          </div>
+                                          <span className="text-xs font-semibold w-5 text-right">
+                                             {itemCategoria.count}
+                                          </span>
+                                       </div>
                                     </div>
-                                    <span className="font-semibold">{item.count}</span>
-                                 </div>
-                              ))}
+                                 )
+                              })}
                            </CardContent>
                         </Card>
                      </motion.div>
 
-                     {/* Recent Events */}
-                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
-                     >
-                        <Card>
+                     {/* Calendário de Eventos */}
+                     <motion.div variants={item} className="h-full">
+                        <Card className="h-full">
                            <CardHeader>
-                              <CardTitle>Eventos Recentes</CardTitle>
+                              <CardTitle as="h2">Calendário de Eventos</CardTitle>
+                              <CardDescription>Selecione um dia para ver os eventos</CardDescription>
                            </CardHeader>
-                           <CardContent className="space-y-3">
-                              {recentEvents.length > 0 ? (
-                                 recentEvents.map((event) => (
-                                    <div key={event.id} className="p-1 border-b">
-                                       <p className="font-medium text-sm">{event.titulo}</p>
-                                       <p className="text-xs text-muted-foreground mt-1">
-                                          {new Date(event.dataInicio).toLocaleDateString('pt-BR')}
-                                       </p>
-                                    </div>
-                                 ))
-                              ) : (
-                                 <p className="text-sm text-muted-foreground text-center py-4">
-                                    Nenhum evento cadastrado
-                                 </p>
-                              )}
+                           <CardContent>
+                              <CalendarView
+                                 layout="stack"
+                                 events={events}
+                                 selectedDate={selectedDate}
+                                 onSelectDate={setSelectedDate}
+                                 onEventClick={handleEventClick}
+                              />
                            </CardContent>
-                        </Card>
-                     </motion.div>
-                  </div>
+                         </Card>
+                      </motion.div>
+                  </motion.div>
                </TabsContent>
 
                {/* Events Tab */}
@@ -398,6 +471,17 @@ export function AdminDashboard({
             </motion.div>
             <MapView events={events} categorias={categorias} onEventClick={handleEventClick} />
          </section>
+
+         {/* Modal de detalhes do evento (aberto pelo calendário ou pelo mapa) */}
+         {selectedEvent && (
+            <EventDetails
+               event={selectedEvent}
+               categoria={categorias.find((c) => c.id === selectedEvent.categoriaId) ?? null}
+               onClose={() => setSelectedEvent(null)}
+               onEdit={onEditEvent}
+               onDelete={onDeleteEvent}
+            />
+         )}
 
          <Footer />
       </div>

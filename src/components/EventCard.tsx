@@ -16,6 +16,7 @@ interface EventCardProps {
    onPublicar?: (id: string) => void
    index: number
    isAdmin?: boolean
+   isOwner?: boolean
 }
 
 export function EventCard({
@@ -28,9 +29,11 @@ export function EventCard({
    onPublicar,
    index,
    isAdmin,
+   isOwner,
 }: EventCardProps) {
    const { isAuthenticated, user, logout } = useAuth()
    const categoryStyle = event.categoria?.cor || 'bg-slate-600'
+   const podeGerenciar = isAdmin || isOwner
 
    const formatDate = (dateString: string) => {
       const date = new Date(dateString)
@@ -108,7 +111,7 @@ export function EventCard({
                   {event.categoria && (
                      <Badge className={`${categoryStyle} text-white border-0 shadow-md`}>{event.categoria.nome}</Badge>
                   )}
-                  {user?.tipoUsuario === 'admin' && (
+                  {(user?.tipoUsuario === 'admin' || isOwner) && (
                      <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
                         {event.status}
                      </Badge>
@@ -189,6 +192,29 @@ export function EventCard({
                         <Edit className="w-4 h-4 mr-2" />
                         Aprovar
                      </Button>
+                     <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                           onEdit(event)
+                        }}
+                     >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Editar
+                     </Button>
+                     <Button
+                        variant="destructive"
+                        size="sm"
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => onDelete(event.id)}
+                     >
+                        <Trash2 className="w-4 h-4" />
+                     </Button>
+                  </div>
+               )}
+               {isOwner && !isAdmin && (
+                  <div className="flex gap-2 mt-3">
                      <Button
                         variant="outline"
                         size="sm"
