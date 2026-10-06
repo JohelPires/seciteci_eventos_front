@@ -1,5 +1,5 @@
 'use client'
-import { use, useEffect, useMemo, useState } from 'react'
+import { Suspense, use, useEffect, useMemo, useState } from 'react'
 import { Plus, Search, Calendar, BarChart3, Users, Tag, Map, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/Navbar'
@@ -23,10 +23,11 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { ApiError, createEvento, deleteEvento, editEvento, getCategorias, getEventos, getEventosFullQuery, getLocais } from '@/data/data'
+import { ApiError, createEvento, deleteEvento, editEvento, getCategorias, getEventos, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Alert } from '@/components/ui/alert'
 import {
    AlertDialog,
@@ -110,7 +111,11 @@ const fimDoDia = (d: Date) =>
 
 const inicioDoDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 
-export default function App() {
+function AppContent() {
+   const router = useRouter()
+   const searchParams = useSearchParams()
+   const action = searchParams.get('action')
+
    const [events, setEvents] = useState<Event[]>([])
    const [showForm, setShowForm] = useState(false)
    const [editingEvent, setEditingEvent] = useState<Event | null>(null)
@@ -147,6 +152,18 @@ export default function App() {
       queryKey: ['locais'],
       queryFn: getLocais,
    })
+
+   // Menu "Criar evento" navega para /?action=create:
+   // logado abre o form; deslogado abre o dialog de autenticação.
+   useEffect(() => {
+      if (action !== 'create') return
+      if (isAuthenticated) {
+         setShowForm(true)
+      } else {
+         setAuthDialogOpen(true)
+      }
+      router.replace('/', { scroll: false })
+   }, [action, isAuthenticated, router])
 
    useEffect(() => {
       if (data) {
@@ -674,8 +691,16 @@ export default function App() {
                      Ok
                   </AlertDialogCancel>
                </AlertDialogFooter>
-            </AlertDialogContent>
-         </AlertDialog>
-      </div>
+             </AlertDialogContent>
+          </AlertDialog>
+       </div>
+   )
+}
+
+export default function App() {
+   return (
+      <Suspense>
+         <AppContent />
+      </Suspense>
    )
 }
