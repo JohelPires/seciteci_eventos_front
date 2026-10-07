@@ -17,7 +17,7 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
     const router = useRouter()
-    const { isAuthenticated, user, logout } = useAuth()
+    const { isAuthenticated, user, userRole, isAdmin, logout } = useAuth()
 
     const navItems = [
         { id: 'explorar', label: 'Explorar eventos', icon: CalendarSearch, href: '/' },
@@ -69,8 +69,8 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
 
                         {isAuthenticated && user ? (
                             <div className="flex items-center gap-2 sm:gap-3">
-                                <UserBadge nome={user.nome} fotoPerfil={user.fotoPerfil} papel={user.tipoUsuario} />
-                                {user.tipoUsuario === 'admin' && (
+                                <UserBadge nome={user.nome} fotoPerfil={user.fotoPerfil} papel={userRole ?? user.tipoUsuario} />
+                                {isAdmin && (
                                     <Button asChild variant="outline" className="cursor-pointer">
                                         <Link href="/admin">Painel</Link>
                                     </Button>
