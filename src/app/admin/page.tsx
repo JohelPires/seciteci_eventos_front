@@ -25,17 +25,17 @@ import { useRouter } from 'next/navigation'
 const ITEMS_PER_PAGE = 20
 
 function useAdminGuard() {
-   const { isAuthenticated, user, loading } = useAuth()
+   const { isAuthenticated, isAdmin, loading } = useAuth()
    const router = useRouter()
 
    useEffect(() => {
-      if (loading) return // espera resolver o localStorage
-      if (!isAuthenticated || user?.tipoUsuario !== 'admin') {
+      if (loading) return // espera resolver o token do localStorage
+      if (!isAuthenticated || !isAdmin) {
          router.replace('/')
       }
-   }, [isAuthenticated, user, loading, router])
+   }, [isAuthenticated, isAdmin, loading, router])
 
-   return { isAllowed: isAuthenticated && user?.tipoUsuario === 'admin', loading }
+   return { isAllowed: isAuthenticated && isAdmin, loading }
 }
 
 export default function App() {
@@ -56,13 +56,17 @@ export default function App() {
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
    const [reload, setReload] = useState(false)
 
-   const { token, isAuthenticated, user, logout } = useAuth()
+   const { token, logout } = useAuth()
+   const { isAllowed, loading } = useAdminGuard()
 
    // Helper functions
    // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
    // const getLocal = (id: number) => locais.find((l) => l.id === id)
 
    useEffect(() => {
+      // Só busca eventos admin quando a permissão está resolvida — não antes do redirect
+      if (!isAllowed || !token) return
+
       async function fetchData() {
          try {
             const response = await getEventosAdmin(token)
@@ -74,9 +78,12 @@ export default function App() {
       }
 
       fetchData()
-   }, [reload])
+   }, [reload, isAllowed, token])
 
    useEffect(() => {
+      // Evita fetch redundante durante o redirect (endpoint público, mas a página não renderiza sem permissão)
+      if (!isAllowed) return
+
       async function fetchData() {
          try {
             const response = await getCategorias()
@@ -88,7 +95,7 @@ export default function App() {
       }
 
       fetchData()
-   }, [reload])
+   }, [reload, isAllowed])
 
    // useEffect(() => {
    //    async function fetchData() {
@@ -210,7 +217,6 @@ export default function App() {
 
    const totalCapacity = events.reduce((sum, event) => sum + event.capacidadeMaxima, 0)
    const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
-   const { isAllowed, loading } = useAdminGuard()
 
    if (loading) return null
    if (!isAllowed) return null
