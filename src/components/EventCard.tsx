@@ -15,7 +15,6 @@ interface EventCardProps {
    onClick: (event: Event) => void
    onPublicar?: (id: string) => void
    index: number
-   isAdmin?: boolean
    isOwner?: boolean
 }
 
@@ -28,10 +27,9 @@ export function EventCard({
    onClick,
    onPublicar,
    index,
-   isAdmin,
    isOwner,
 }: EventCardProps) {
-   const { isAuthenticated, user, logout } = useAuth()
+   const { isAuthenticated, user, logout, isAdmin } = useAuth()
    const categoryStyle = event.categoria?.cor || 'bg-slate-600'
    const podeGerenciar = isAdmin || isOwner
 
@@ -111,7 +109,7 @@ export function EventCard({
                   {event.categoria && (
                      <Badge className={`${categoryStyle} text-white border-0 shadow-md`}>{event.categoria.nome}</Badge>
                   )}
-                  {(user?.tipoUsuario === 'admin' || isOwner) && (
+                  {(isAdmin || isOwner) && (
                      <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
                         {event.status}
                      </Badge>
