@@ -70,6 +70,42 @@ npm start
 
 No dev local `NEXT_PUBLIC_BASE_PATH` fica vazio (app na raiz).
 
+## Deploy no EasyPanel (ambiente de testes/staging)
+
+| Assunto | Valor |
+| --- | --- |
+| Front | `https://seciteci-seciteci-eventos-front.qmono1.easypanel.host` |
+| API | `https://seciteci-seciteci-eventos.qmono1.easypanel.host` |
+
+Como funciona:
+
+- O EasyPanel builda o `Dockerfile` do repositório e injeta as envs do
+  serviço como **build args** (a doc deles: "passes project and service
+  environment values, including GIT_SHA, as build arguments"). Por isso o
+  `Dockerfile` declara `ARG NEXT_PUBLIC_API_URL` (além de `APP_CAMINHO`):
+  sem o `ARG`, o valor não chega ao `npm run build` e o bundle sai SEM a
+  URL da API — o front carrega, mas as chamadas viram
+  `/undefined/api/...` (404 no próprio host) e nada acessa a API/banco.
+- No serviço do front, defina a env de build (e use **Force Rebuild**
+  depois de mudá-la — o valor é baked no bundle):
+
+  ```
+  NEXT_PUBLIC_API_URL=https://seciteci-seciteci-eventos.qmono1.easypanel.host
+  ```
+
+- `NEXT_PUBLIC_API_URL` fica vazia no build da VM (o pipeline não passa
+  esse build arg; lá o valor vem do segredo `app_env`, que sobrescreve o
+  ARG) — mudar aqui não afeta a produção da VM.
+- Sem `basePath` nesse ambiente: o app responde na raiz.
+- Se o CORS da API não permitir o domínio do front, configure o
+  `CORS_ORIGINS`/equivalente no serviço da API.
+- Diagnóstico rápido quando "o front carrega mas não pega dados":
+  - `curl https://.../saude` → 200 (front no ar);
+  - conferir o CSP do front: sem a origem da API em `connect-src`,
+    `NEXT_PUBLIC_API_URL` não existiu no build;
+  - `curl https://...front.../api/eventos` → 404 confirma bundle sem URL
+    (a API não é servida pelo host do front).
+
 ## Comandos
 
 - `npm run dev` / `npm run build` / `npm start`

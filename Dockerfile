@@ -10,6 +10,10 @@
 # - APP_CAMINHO (build arg): o prefixo do endereço → o build espera na raiz
 #   da imagem `NEXT_PUBLIC_BASE_PATH`, o `basePath` do Next (endereço POR
 #   CAMINHO; trocar de endereço = re-buildar).
+# - NEXT_PUBLIC_API_URL (build arg): a URL da API, inlinada no bundle no
+#   build. O pipeline da VM NÃO passa esse build arg (vem do segredo
+#   `app_env` abaixo, que sobrescreve); quem passa é o EasyPanel, que injeta
+#   as envs do serviço como build args.
 # - app_env (segredo do BuildKit): o build precisa das `NEXT_PUBLIC_*`
 #   (vão inlinadas no bundle). Lida só durante o RUN do build; não fica em
 #   camada da imagem.
@@ -25,6 +29,7 @@ RUN npm ci
 # Copiar o restante do projeto e gerar o build de produção.
 COPY . .
 ARG APP_CAMINHO=
+ARG NEXT_PUBLIC_API_URL
 RUN --mount=type=secret,id=app_env,required=false \
     set -a && \
     if [ -f /run/secrets/app_env ]; then . /run/secrets/app_env; fi && \
