@@ -30,18 +30,30 @@ diagnostico:vm:
     - |
       echo "== containers do app =="
       docker ps -a --filter name=conectese-prod --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
-      echo "== estado do web =="
+      echo "== state do web =="
       docker inspect conectese-prod-web-1 --format 'Status={{.State.Status}} Running={{.State.Running}} Health={{.State.Health.Status}}'
       echo "== últimas respostas do healthcheck =="
       docker inspect conectese-prod-web-1 --format '{{range .State.Health.Log}}{{.Output}}-----{{end}}' | tail -c 1000
       echo
-      echo "== labels =="
+      echo "== redes do container =="
+      docker inspect conectese-prod-web-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} ipc={{$v.IPAddress}} | {{end}}'
+      echo
+      echo "== labels (do web) =="
       docker inspect conectese-prod-web-1 --format '{{range $k, $v := .Config.Labels}}{{$k}}={{$v}}
       {{end}}'
+      echo "== labels Traefik do app que FUNCIONA (api), para comparar =="
+      API_ID=$(docker ps -aq --filter name=conectese-api-prod | head -1)
+      docker inspect "$API_ID" --format '{{range $k, $v := .Config.Labels}}{{if (hasPrefix $k "traefik.")}}{{$k}}={{$v}}
+      {{end}}{{end}}'
+      echo "== runtime basePath: bare /saude vs sob prefixo =="
+      docker exec conectese-prod-web-1 sh -c 'wget -q -S -O - http://127.0.0.1:3000/saude 2>&1 | head -n 3; echo; wget -q -S -O - http://127.0.0.1:3000/dev/secitec/conectese/saude 2>&1 | head -n 3'
+      echo
+      echo "== .env do ambiente (verificação) =="
+      grep -vE 'TOKEN|KEY|PASSWORD|SECRET' /opt/apps/conectese/prod/.env
       echo "== logs do container =="
-      docker logs --tail 50 conectese-prod-web-1 2>&1
-      echo "== redes =="
-      docker network ls | grep -E 'NAME|conectese'
+      docker logs --tail 40 conectese-prod-web-1 2>&1
       echo "== Traefik da VM direto (:80, sem o proxy do RISC no meio) =="
       curl -si --max-time 5 -H 'Host: apps.risc.unemat.br' http://127.0.0.1/dev/secitec/conectese/saude | head -n 3
       curl -s -o /dev/null -w "portal-hml pela VM: %{http_code}\n" --max-time 5 -H 'Host: apps.risc.unemat.br' http://127.0.0.1/dev/secitec/portal-hml/
+      echo "== journal do Traefik (30 min) =="
+      journalctl -u traefik --since "30 min ago" --no-pager 2>&1 | grep -iE 'conectese|error|warn|router' | tail -n 30

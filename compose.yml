@@ -15,6 +15,11 @@ services:
     image: ${IMAGEM}:${IMAGEM_TAG}
     restart: unless-stopped
     env_file: .env
+    # O `basePath` do Next é lido do next.config.mjs TAMBÉM no `next start`
+    # (além do build). O .env do pipeline traz APP_CAMINHO (nome do template
+    # de CI) — reexportamos aqui com o nome que o app espera.
+    environment:
+      NEXT_PUBLIC_BASE_PATH: ${APP_CAMINHO}
     labels:
       - traefik.enable=true
       - traefik.docker.network=${COMPOSE_PROJECT_NAME}_default
