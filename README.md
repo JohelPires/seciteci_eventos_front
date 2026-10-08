@@ -49,6 +49,11 @@ Como funciona (detalhes no README do `fic_dev/secitec-servidor`):
 - O `basePath` cobre `<Link>`, `router.push/replace` e `redirect()`, mas
   NÃO prefixa `src` cru de imagem, `window.location` nem ícones de
   `metadata` — use `comBase()` (`src/lib/caminho-base.ts`).
+- O Next lê o `basePath` do `next.config.mjs` TAMBÉM no runtime
+  (`next start`), não só no build: o `compose.yml` exporta
+  `NEXT_PUBLIC_BASE_PATH=${APP_CAMINHO}` no container (o pipeline só
+  fornece `APP_CAMINHO`). Sem isso o app sobe na raiz e 404a sob o
+  prefixo — o healthcheck falha e o deploy não sobe.
 - Rota de saúde: `src/app/saude/route.ts` (200 sem depender da API).
 - Sem banco no compose: o front só fala com a API.
 - Rollback: re-run da pipeline de um commit anterior.
