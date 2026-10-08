@@ -1,0 +1,27 @@
+# Fora do contexto do build (imagem menor e sem segredos locais).
+node_modules
+.next
+out
+build
+.git
+.gitignore
+.gitlab
+.vscode
+.idea
+docs
+superpowers
+
+# Segredos e envs locais (o build recebe variáveis por build-arg/secret).
+secrets
+.env*
+!.env.example
+
+# Arquivos mortos e auxiliares
+*.backup
+*.tsbuildinfo
+TODO.md
+
+# Os arquivos de publicação não entram na imagem
+Dockerfile
+docker-compose.yml
+compose.yml

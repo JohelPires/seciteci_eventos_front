@@ -16,6 +16,11 @@ try {
    // URL inválida: segue sem liberar origem extra
 }
 
+// Caminho base (endereço por CAMINHO na VM da SECITECI): o pipeline passa
+// APP_CAMINHO no build e ele vira `basePath`/`assetPrefix` do Next; vazio
+// no dev local (app na raiz). Trocar de endereço = re-buildar.
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+
 const csp = [
    "default-src 'self'",
    "script-src 'self' 'unsafe-inline' 'unsafe-eval' unpkg.com",
@@ -31,6 +36,8 @@ const csp = [
 
 const nextConfig = {
    reactStrictMode: true,
+   basePath,
+   assetPrefix: basePath || undefined,
    outputFileTracingRoot: import.meta.dirname,
    async headers() {
       return [

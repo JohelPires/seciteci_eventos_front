@@ -46,6 +46,7 @@ import { useQuery } from '@tanstack/react-query'
 import { get } from 'http'
 import { Separator } from '@radix-ui/react-select'
 import Image from 'next/image'
+import { comBase } from '@/lib/caminho-base'
 
 export interface Local {
    id: number
@@ -291,7 +292,7 @@ function AppContent() {
                <div className="flex justify-center mb-8">
                   <Image
                      className="rounded-xl shadow-2xl w-full h-auto max-w-4xl"
-                     src="/conecte-se.webp"
+                     src={comBase('/conecte-se.webp')}
                      alt="Conecte-se"
                      width={2000}
                      height={1000}

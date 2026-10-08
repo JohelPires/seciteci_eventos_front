@@ -1,5 +1,6 @@
 import { Calendar, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react'
 import Image from 'next/image'
+import { comBase } from '@/lib/caminho-base'
 
 export function Footer() {
    return (
@@ -12,7 +13,7 @@ export function Footer() {
                      <Image src="/logo-mapasmt-branco.png" alt="MapasMT" width={180} height={180} />
                   </div> */}
                   <div className="flex items-center gap-3 mb-4">
-                     <Image src="/layout_set_logo.png" alt="Seciteci" width={180} height={180} />
+                     <Image src={comBase('/layout_set_logo.png')} alt="Seciteci" width={180} height={180} />
                   </div>
                   {/* <p className="text-white/80 text-sm leading-relaxed">
                      Plataforma de eventos da Seciteci no Estado do Mato Grosso

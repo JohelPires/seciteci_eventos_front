@@ -1,0 +1,31 @@
+# O CONECTE-SE (front Next) na VM da SECITECI, pela convenção de
+# fic_dev/secitec-servidor: Traefik da VM, roteamento por caminho. O job
+# `publicar:producao` do .gitlab-ci.yml copia este arquivo para
+# /opt/apps/conectese/<ambiente>/compose.yml e escreve o .env ao lado (a
+# APP_ENV do GitLab + IMAGEM, IMAGEM_TAG, APP_HOST, APP_CAMINHO,
+# COMPOSE_PROJECT_NAME). Detalhes: README.md.
+#
+# DIFERENTE do modelo: o prefixo NÃO é retirado (sem o middleware
+# `stripprefix`). O front é buildado com `basePath` = APP_CAMINHO, e o Next
+# só atende o que chega SOB o basePath — com o prefixo retirado, toda
+# página daria 404.
+# Sem banco: o front só fala com a API (NEXT_PUBLIC_API_URL, inlinada no build).
+services:
+  web:
+    image: ${IMAGEM}:${IMAGEM_TAG}
+    restart: unless-stopped
+    env_file: .env
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${COMPOSE_PROJECT_NAME}_default
+      # O caminho exato ou + "/…" (nunca "/conectesexyz" por engano).
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${APP_HOST}`) && (Path(`${APP_CAMINHO}`) || PathPrefix(`${APP_CAMINHO}/`))
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=web
+      - traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=3000
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000${APP_CAMINHO}/saude >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 384m

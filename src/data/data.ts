@@ -1,5 +1,6 @@
 import { Categoria, Event } from '@/app/page'
 import { extrairMensagemErro } from '@/lib/api-error'
+import { comBase } from '@/lib/caminho-base'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -33,7 +34,8 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
       if (res.status === 401 && typeof window !== 'undefined') {
          localStorage.removeItem('authToken')
          localStorage.removeItem('authUser')
-         window.location.href = '/'
+         // window.location não recebe o basePath do Next: usa comBase.
+         window.location.href = comBase('/')
       }
 
       let mensagem: string | undefined

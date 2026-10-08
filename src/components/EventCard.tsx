@@ -5,6 +5,7 @@ import { Badge } from './ui/badge'
 import { motion } from 'framer-motion'
 import type { Event, Categoria, Local } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
+import { comBase } from '@/lib/caminho-base'
 
 interface EventCardProps {
    event: Event
@@ -94,7 +95,7 @@ export function EventCard({
                ) : (
                   <>
                      <motion.img
-                        src="/evento_sem_imagem.png"
+                        src={comBase('/evento_sem_imagem.png')}
                         alt="Imagem não disponível"
                         className="w-full h-full object-cover"
                         whileHover={{ scale: 1.05 }}

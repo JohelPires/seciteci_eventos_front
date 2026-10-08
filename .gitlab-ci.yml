@@ -1,0 +1,18 @@
+# Publicação na VM da SECITECI pela convenção de fic_dev/secitec-servidor
+# (front buildado com caminho base: Next `basePath` — deploy/secitec do
+# portal-inovacao-web é o exemplo de referência).
+include:
+  - project: 'fic_dev/secitec-servidor'
+    file: 'gitlab/deploy.gitlab-ci.yml'
+
+variables:
+  APP: conectese
+  # COMPOSE_ARQUIVO (compose.yml na raiz), DOCKERFILE, DOCKER_CONTEXTO:
+  # já são os padrões do modelo.
+
+# O modelo publica produção com o botão; aqui o merge na main publica
+# automaticamente (sobrescrevo só o gatilho do job).
+publicar:producao:
+  extends: [.publicar-na-vm, .ambiente:producao]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
