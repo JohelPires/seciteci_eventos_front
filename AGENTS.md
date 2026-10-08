@@ -39,7 +39,7 @@ Next.js 15 (App Router, Turbopack), React 19, TypeScript strict, Tailwind v4, sh
 - Pendências em `TODO.md`; `src/guidelines/Guidelines.md` é template vazio.
 
 ## Deploy (EasyPanel — testes/staging)
-- Front: `seciteci-seciteci-eventos-front.qmono1.easypanel.host`; API: `seciteci-seciteci-eventos.qmono1.easypanel.host` (mesma API/DB).
+- Front: `seciteci-seciteci-eventos-front.qmono1.easypanel.host`; API: `seciteci-seciteci-eventos.qmono1.easypanel.host` (mesma API/DB). O contrato OpenAPI da API fica em `<NEXT_PUBLIC_API_URL>/api-docs.json`.
 - `NEXT_PUBLIC_API_URL` é inlinada NO BUILD. O Dockerfile declara `ARG NEXT_PUBLIC_API_URL` (o EasyPanel injeta as envs do serviço como build args; sem o `ARG` o bundle sai sem a URL e as chamadas viram `.../undefined/api/...` — 404 no próprio host).
 - Mudar a URL lá = definir a env no serviço e **Force Rebuild** (valor baked no bundle).
 - Diagnóstico de "front carrega mas sem dados": CSP do front sem a origem da API em `connect-src` ⇒ a var não existiu no build.

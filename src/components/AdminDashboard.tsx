@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { BarChart3, Calendar, MapPin, Tag, Users, Settings, LogOut, ExternalLink, Activity, TrendingUp, Map } from 'lucide-react'
+import { BarChart3, Calendar, MapPin, Tag, Users, Settings, ExternalLink, Activity, TrendingUp, Map } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Footer } from './Footer'
 import { AdminUsuarios } from './AdminUsuarios'
 import { MapView } from './MapView'
-import { UserBadge } from './UserBadge'
+import { UserMenu } from './UserMenu'
 import { CalendarView } from './CalendarView'
 import { EventDetails } from './EventDetails'
 
@@ -35,7 +35,6 @@ interface AdminDashboardProps {
    events: Event[]
    categorias: Categoria[]
    // locais: Local[]
-   onLogout: () => void
    onUpdateEvents: (events: Event[]) => void
    onUpdateCategorias: (categorias: Categoria[]) => void
    // onUpdateLocais: (locais: Local[]) => void
@@ -50,7 +49,6 @@ export function AdminDashboard({
    events,
    categorias,
    // locais,
-   onLogout,
    onUpdateEvents,
    onUpdateCategorias,
    // onUpdateLocais,
@@ -64,7 +62,7 @@ export function AdminDashboard({
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
-    const { user, userRole } = useAuth()
+    const { user } = useAuth()
 
    const shouldReduceMotion = useReducedMotion()
    const container: Variants = {
@@ -129,8 +127,8 @@ export function AdminDashboard({
                      </div>
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3">
-                     {/* Crachá de identidade: mostra quem opera o painel antes das saídas */}
-                     <UserBadge nome={user.nome} fotoPerfil={user.fotoPerfil} papel={userRole ?? user.tipoUsuario} />
+                     {/* Crachá do usuário como menu de conta (senha + sair) */}
+                     <UserMenu />
                      <div className="hidden sm:block h-8 w-px bg-white/20" aria-hidden="true" />
                      {/* Saída que preserva a sessão: nomeada pelo destino */}
                      <Button asChild variant="outline" size="sm" className="gap-1.5">
@@ -138,16 +136,6 @@ export function AdminDashboard({
                            <ExternalLink className="w-4 h-4" />
                            Ver o site
                         </Link>
-                     </Button>
-                     {/* Saída que encerra a sessão */}
-                     <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onLogout}
-                        className="gap-1.5 text-white hover:bg-white/10 hover:text-white"
-                     >
-                        <LogOut className="w-4 h-4" />
-                        Sair
                      </Button>
                   </div>
                </div>

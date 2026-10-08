@@ -11,13 +11,13 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { UserBadge } from './UserBadge'
+import { UserMenu } from './UserMenu'
 
 export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
     const router = useRouter()
-    const { isAuthenticated, user, userRole, isAdmin, logout } = useAuth()
+    const { isAuthenticated, user, isAdmin } = useAuth()
 
     const navItems = [
         { id: 'explorar', label: 'Explorar eventos', icon: CalendarSearch, href: '/' },
@@ -69,19 +69,12 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
 
                         {isAuthenticated && user ? (
                             <div className="flex items-center gap-2 sm:gap-3">
-                                <UserBadge nome={user.nome} fotoPerfil={user.fotoPerfil} papel={userRole ?? user.tipoUsuario} />
+                                <UserMenu />
                                 {isAdmin && (
                                     <Button asChild variant="outline" className="cursor-pointer">
                                         <Link href="/admin">Painel</Link>
                                     </Button>
                                 )}
-                                <Button
-                                    onClick={logout}
-                                    variant="ghost"
-                                    className="cursor-pointer text-white hover:bg-white/10 hover:text-white"
-                                >
-                                    Sair
-                                </Button>
                             </div>
                         ) : (
                             <Button

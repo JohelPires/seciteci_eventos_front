@@ -56,7 +56,7 @@ export default function App() {
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
    const [reload, setReload] = useState(false)
 
-   const { token, logout } = useAuth()
+   const { token } = useAuth()
    const { isAllowed, loading } = useAdminGuard()
 
    // Helper functions
@@ -224,10 +224,9 @@ export default function App() {
       <>
          <Toaster />
          <AdminDashboard
-            events={events}
-            categorias={categorias}
-            onLogout={logout}
-            onUpdateEvents={setEvents}
+             events={events}
+             categorias={categorias}
+             onUpdateEvents={setEvents}
             onUpdateCategorias={setCategorias}
             // onUpdateLocais={setLocais}
             onNewEvent={() => {

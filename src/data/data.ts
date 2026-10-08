@@ -21,7 +21,11 @@ export class ApiError extends Error {
  * - Em 401: limpa as chaves de autenticação do localStorage e redireciona para '/'.
  * - Falha de rede propaga o erro normalmente.
  */
-export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+export const authFetch = async (
+   url: string,
+   options: RequestInit = {},
+   { redirecionar401 = true }: { redirecionar401?: boolean } = {},
+): Promise<Response> => {
    let res: Response
    try {
       res = await fetch(url, options)
@@ -31,7 +35,8 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
    }
 
    if (!res.ok) {
-      if (res.status === 401 && typeof window !== 'undefined') {
+      // 401 que NÃO é fim de sessão (ex.: senha atual incorreta) não desloga o usuário
+      if (res.status === 401 && redirecionar401 && typeof window !== 'undefined') {
          localStorage.removeItem('authToken')
          localStorage.removeItem('authUser')
          // window.location não recebe o basePath do Next: usa comBase.
@@ -221,4 +226,27 @@ export const promoverUsuario = async (id: number, token: string | null) => {
       },
    })
    return res.json()
+}
+
+/**
+ * Altera a senha do usuário autenticado (PATCH /api/auth/senha).
+ * O 401 aqui significa "senha atual incorreta" (ou sessão expirada): o
+ * redirecionar401: false evita deslogar o usuário ao errar a senha atual.
+ */
+export const alterarSenha = async (
+   dados: { senhaAtual: string; novaSenha: string },
+   token: string | null,
+): Promise<void> => {
+   await authFetch(
+      `${API_URL}/api/auth/senha`,
+      {
+         method: 'PATCH',
+         headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+         },
+         body: JSON.stringify(dados),
+      },
+      { redirecionar401: false },
+   )
 }
