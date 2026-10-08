@@ -9,6 +9,9 @@ variables:
   APP: conectese
   # COMPOSE_ARQUIVO (compose.yml na raiz), DOCKERFILE, DOCKER_CONTEXTO:
   # já são os padrões do modelo.
+stages:
+  - deploy
+  - diagnostico
 
 # O modelo publica produção com o botão; aqui o merge na main publica
 # automaticamente (sobrescrevo só o gatilho do job).
@@ -16,3 +19,29 @@ publicar:producao:
   extends: [.publicar-na-vm, .ambiente:producao]
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+
+# TEMPORÁRIO (debug do primeiro deploy): se a publicação falhar, roda no
+# runner da VM e mostra o estado do container, os labels e o Traefik local.
+diagnostico:vm:
+  stage: diagnostico
+  tags: [secitec-vps]
+  when: on_failure
+  script:
+    - |
+      echo "== containers do app =="
+      docker ps -a --filter name=conectese-prod --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+      echo "== estado do web =="
+      docker inspect conectese-prod-web-1 --format 'Status={{.State.Status}} Running={{.State.Running}} Health={{.State.Health.Status}}'
+      echo "== últimas respostas do healthcheck =="
+      docker inspect conectese-prod-web-1 --format '{{range .State.Health.Log}}{{.Output}}-----{{end}}' | tail -c 1000
+      echo
+      echo "== labels =="
+      docker inspect conectese-prod-web-1 --format '{{range $k, $v := .Config.Labels}}{{$k}}={{$v}}
+      {{end}}'
+      echo "== logs do container =="
+      docker logs --tail 50 conectese-prod-web-1 2>&1
+      echo "== redes =="
+      docker network ls | grep -E 'NAME|conectese'
+      echo "== Traefik da VM direto (:80, sem o proxy do RISC no meio) =="
+      curl -si --max-time 5 -H 'Host: apps.risc.unemat.br' http://127.0.0.1/dev/secitec/conectese/saude | head -n 3
+      curl -s -o /dev/null -w "portal-hml pela VM: %{http_code}\n" --max-time 5 -H 'Host: apps.risc.unemat.br' http://127.0.0.1/dev/secitec/portal-hml/
