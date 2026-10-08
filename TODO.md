@@ -51,7 +51,7 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 - [x] Headers de segurança no next.config.mjs: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy (endurecer CSP com nonce é passo futuro)
 - [x] `encodeURIComponent` em query params (busca/search)
 - [x] Validar `exp` do JWT ao restaurar sessão (src/lib/jwt.ts; token não-JWT passa direto — backend valida; pendência: confirmar formato real do token do login)
-- [ ] 🖥️ Autorização do admin não deve depender de `authUser` do localStorage (manipulável no DevTools); preferir claims do JWT (requer backend expondo o role/exp no payload)
+- [x] 🖥️ Autorização do admin não depende mais de authUser do localStorage: role vem do claim `tipo` do JWT (AuthContext: userRole/isAdmin; jwt.ts: obterClaims, fail-closed). Pendência backend correlata: reemitir token ao mudar tipo de usuário (promote exige re-login)
 
 ## 🔴 Críticos — Estabilidade
 - [ ] Remover imports mortos/quebrados: page.tsx:40 (`set` de react-hook-form), :44 (`get` de `http`), :45 (`Separator` de `@radix-ui/react-select`), layout.tsx:5 (`Query` de react-query)
@@ -82,7 +82,7 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 - [ ] AdminCategorias: mutations sem onError, sem isPending no botão, dialog fecha antes do resultado (AdminCategorias.tsx:37-60,104)
 
 ## 🟠 Médios — Código
-- [ ] admin/page.tsx: useAdminGuard libera os fetch (eventos/categorias) sem checar isAllowed, e token não está nos deps do useEffect (:77,91) — dado obsoleto no primeiro load; proteger fetch e incluir token nos deps
+- [x] admin/page.tsx: useAdminGuard gating dos fetches por isAllowed; token nos deps
 - [ ] Remover 324 linhas de JSX comentado (admin/page.tsx:246-569) e ~40 variáveis mortas
 - [ ] Migrar admin para TanStack Query (hoje fetch manual com useState + reload)
 - [ ] MapView: usar pacote npm `leaflet` via `next/dynamic` (ssr:false) em vez de CDN unpkg em runtime (MapView.tsx:57-85); usar tipos de @types/leaflet (remover `any`)

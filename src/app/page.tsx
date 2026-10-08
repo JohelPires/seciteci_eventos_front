@@ -102,6 +102,8 @@ export interface Event {
     status: 'rascunho' | 'publicado' | 'cancelado'
     publicoAlvo?: string
     requisitos?: string
+    financiadorTipo?: 'publico' | 'privado' | null
+    financiadorNome?: string | null
     dataCriacao?: string
     dataAtualizacao?: string
 }

@@ -17,6 +17,7 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Event, Categoria } from '@/app/page'
 
@@ -84,6 +85,8 @@ const INITIAL_FORM_DATA = {
    status: 'rascunho' as 'rascunho' | 'publicado' | 'cancelado',
    publicoAlvo: '',
    requisitos: '',
+   financiadorTipo: '' as '' | 'publico' | 'privado',
+   financiadorNome: '',
 }
 
 const MAX_DESCRICAO_CHARS = 500
@@ -191,6 +194,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                status: editingEvent.status,
                publicoAlvo: editingEvent.publicoAlvo || '',
                requisitos: editingEvent.requisitos || '',
+               financiadorTipo: editingEvent.financiadorTipo || '',
+               financiadorNome: editingEvent.financiadorNome || '',
             })
             // Se já tem coords ao editar, marca como sucesso
             if (editingEvent.LocalLatitude && editingEvent.LocalLongitude) {
@@ -310,11 +315,11 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
          const outOfRange = isLat ? num < -90 || num > 90 : num < -180 || num > 180
          setErrors4((prev) => ({
             ...prev,
-               [field]: outOfRange
-                  ? isLat
-                     ? 'A latitude deve estar entre -90 e 90'
-                     : 'A longitude deve estar entre -180 e 180'
-                  : undefined,
+            [field]: outOfRange
+               ? isLat
+                  ? 'A latitude deve estar entre -90 e 90'
+                  : 'A longitude deve estar entre -180 e 180'
+               : undefined,
          }))
       } else {
          setErrors4((prev) => ({ ...prev, [field]: undefined }))
@@ -471,6 +476,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
             status: 'rascunho',
             publicoAlvo: formData.publicoAlvo || undefined,
             requisitos: formData.requisitos || undefined,
+            financiadorTipo: formData.financiadorTipo || undefined,
+            financiadorNome: formData.financiadorNome || undefined,
             categoria: null,
          })
 
@@ -516,6 +523,12 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
          [formData.LocalNome, formData.LocalCidade, formData.LocalEstado].filter(Boolean).join(', ') || 'Não informado',
       [formData.LocalNome, formData.LocalCidade, formData.LocalEstado],
    )
+
+   const resumoFinanciamento = useMemo(() => {
+      if (!formData.financiadorTipo) return ''
+      const tipo = formData.financiadorTipo === 'publico' ? 'Público' : 'Privado'
+      return formData.financiadorNome ? `${tipo} — ${formData.financiadorNome}` : tipo
+   }, [formData.financiadorTipo, formData.financiadorNome])
 
    return (
       <AnimatePresence>
@@ -610,9 +623,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                         >
                            <div>
                               <h3 className="mb-1">Informações Principais do Evento</h3>
-                              <p className="text-sm text-muted-foreground">
-                                 Informe os dados principais do evento
-                              </p>
+                              <p className="text-sm text-muted-foreground">Informe os dados principais do evento</p>
                            </div>
 
                            <div className="grid grid-cols-1 gap-6">
@@ -741,7 +752,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
 
                               {/* Data de Encerramento */}
                               <div className="space-y-2">
-                                  <Label htmlFor="dataFim">Data de Encerramento*</Label>
+                                 <Label htmlFor="dataFim">Data de Encerramento*</Label>
                                  <Input
                                     id="dataFim"
                                     type="date"
@@ -760,9 +771,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  <FieldError message={errors2.dataFim} />
                               </div>
 
-                               {/* Horário de Início */}
+                              {/* Horário de Início */}
                               <div className="space-y-2">
-                                  <Label htmlFor="horarioAbertura">Horário de Início*</Label>
+                                 <Label htmlFor="horarioAbertura">Horário de Início*</Label>
                                  <Input
                                     id="horarioAbertura"
                                     type="time"
@@ -804,17 +815,17 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  <FieldError message={errors2.horarioEncerramento} />
                               </div>
 
-                               {/* Público-Alvo */}
+                              {/* Público-Alvo */}
                               <div className="space-y-2 md:col-span-2">
-                                  <Label htmlFor="publicoAlvo">
-                                     Público-Alvo
+                                 <Label htmlFor="publicoAlvo">
+                                    Público-Alvo
                                     <span className="text-xs text-muted-foreground ml-2">
                                        ({formData.publicoAlvo.length}/{MAX_PUBLICO_ALVO_CHARS})
                                     </span>
                                  </Label>
                                  <Input
                                     id="publicoAlvo"
-                                     placeholder="Ex: Estudantes e profissionais interessados no tema"
+                                    placeholder="Ex: Estudantes e profissionais interessados no tema"
                                     value={formData.publicoAlvo}
                                     onChange={(e) => {
                                        set('publicoAlvo', e.target.value)
@@ -831,15 +842,15 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
 
                               {/* Requisitos */}
                               <div className="space-y-2 md:col-span-2">
-                                  <Label htmlFor="requisitos">
-                                     Requisitos para Participação
+                                 <Label htmlFor="requisitos">
+                                    Requisitos para Participação
                                     <span className="text-xs text-muted-foreground ml-2">
                                        ({formData.requisitos.length}/{MAX_REQUISITOS_CHARS})
                                     </span>
                                  </Label>
                                  <Input
                                     id="requisitos"
-                                     placeholder="Ex: Trazer computador próprio"
+                                    placeholder="Ex: Trazer computador próprio"
                                     value={formData.requisitos}
                                     onChange={(e) => {
                                        set('requisitos', e.target.value)
@@ -853,6 +864,52 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  />
                                  <FieldError message={errors2.requisitos} />
                               </div>
+
+                              {/* Financiamento */}
+                              <div className="space-y-2">
+                                 <Label>Natureza do Financiador (opcional)</Label>
+                                 <ToggleGroup
+                                    type="single"
+                                    variant="outline"
+                                    className="w-full"
+                                    value={formData.financiadorTipo || ''}
+                                    onValueChange={(value) => {
+                                       set('financiadorTipo', value)
+                                       if (!value) set('financiadorNome', '')
+                                    }}
+                                 >
+                                    <ToggleGroupItem value="publico" className="flex-1">
+                                       Público
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="privado" className="flex-1">
+                                       Privado
+                                    </ToggleGroupItem>
+                                 </ToggleGroup>
+                              </div>
+
+                              <AnimatePresence>
+                                 {formData.financiadorTipo && (
+                                    <motion.div
+                                       initial={{ opacity: 0, y: -4 }}
+                                       animate={{ opacity: 1, y: 0 }}
+                                       exit={{ opacity: 0, y: -4 }}
+                                       transition={{ duration: 0.2 }}
+                                       className="space-y-2"
+                                    >
+                                       <Label htmlFor="financiadorNome">Nome do Financiador</Label>
+                                       <Input
+                                          id="financiadorNome"
+                                          placeholder={
+                                             formData.financiadorTipo === 'publico'
+                                                ? 'Ex: Secretaria Municipal de Cultura'
+                                                : 'Ex: Patrocinador da empresa XYZ'
+                                          }
+                                          value={formData.financiadorNome}
+                                          onChange={(e) => set('financiadorNome', e.target.value)}
+                                       />
+                                    </motion.div>
+                                 )}
+                              </AnimatePresence>
                            </div>
                         </motion.div>
                      )}
@@ -885,7 +942,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border border-border"
                                  >
                                     <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                                     Buscando o endereço informado...
+                                    Buscando o endereço informado...
                                  </motion.div>
                               )}
                               {!isGeocoding && geocodeStatus === 'success' && (
@@ -896,7 +953,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     className="flex items-center gap-2 text-sm text-green-700 p-3 bg-green-50 rounded-lg border border-green-200"
                                  >
                                     <Check className="w-4 h-4 shrink-0" />
-                                     Endereço localizado! O link do Google Maps foi gerado automaticamente.
+                                    Endereço localizado! O link do Google Maps foi gerado automaticamente.
                                  </motion.div>
                               )}
                               {!isGeocoding && geocodeStatus === 'error' && (
@@ -907,8 +964,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     className="flex items-center gap-2 text-sm text-amber-700 p-3 bg-amber-50 rounded-lg border border-amber-200"
                                  >
                                     <AlertCircle className="w-4 h-4 shrink-0" />
-                                     Não foi possível localizar este endereço. Você poderá informá-lo manualmente
-                                     na próxima etapa.
+                                    Não foi possível localizar este endereço. Você poderá informá-lo manualmente na
+                                    próxima etapa.
                                  </motion.div>
                               )}
                            </AnimatePresence>
@@ -934,7 +991,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     maxLength={9}
                                  />
                                  <p className="text-xs text-muted-foreground">
-                                     Informe o CEP para preencher o endereço automaticamente
+                                    Informe o CEP para preencher o endereço automaticamente
                                  </p>
                               </div>
 
@@ -1009,7 +1066,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               </div>
 
                               <div className="space-y-2">
-                                  <Label htmlFor="LocalCapacidade">Capacidade do Local (pessoas)</Label>
+                                 <Label htmlFor="LocalCapacidade">Capacidade do Local (pessoas)</Label>
                                  <Input
                                     id="LocalCapacidade"
                                     type="number"
@@ -1035,7 +1092,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                         </motion.div>
                      )}
 
-                      {/* ── Step 4: Imagem e Links ───────────────────── */}
+                     {/* ── Step 4: Imagem e Links ───────────────────── */}
                      {currentStep === 4 && (
                         <motion.div
                            initial={{ opacity: 0, x: 20 }}
@@ -1056,7 +1113,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               <div className="space-y-2">
                                  <Label htmlFor="imagemCapa" className="flex items-center gap-2">
                                     <ImageIcon className="w-4 h-4" />
-                                     Endereço (link) da Imagem de Capa
+                                    Endereço (link) da Imagem de Capa
                                  </Label>
                                  <Input
                                     id="imagemCapa"
@@ -1140,12 +1197,12 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                        {isGeocoding ? (
                                           <>
                                              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
-                                              <p className="text-sm text-muted-foreground">Buscando endereço...</p>
+                                             <p className="text-sm text-muted-foreground">Buscando endereço...</p>
                                           </>
                                        ) : (
-                                           <p className="text-sm text-muted-foreground italic">
-                                              Será gerado automaticamente após informar o endereço na etapa anterior.
-                                           </p>
+                                          <p className="text-sm text-muted-foreground italic">
+                                             Será gerado automaticamente após informar o endereço na etapa anterior.
+                                          </p>
                                        )}
                                     </div>
                                  )}
@@ -1154,8 +1211,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               {/* Coordenadas — preenchidas automaticamente, editáveis manualmente */}
                               <div className="grid grid-cols-2 gap-6">
                                  <div className="space-y-2">
-                                     <Label htmlFor="LocalLatitude" className="flex items-center gap-1.5">
-                                        Latitude (localização)
+                                    <Label htmlFor="LocalLatitude" className="flex items-center gap-1.5">
+                                       Latitude (localização)
                                        {isGeocoding && (
                                           <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                                        )}
@@ -1176,8 +1233,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  </div>
 
                                  <div className="space-y-2">
-                                     <Label htmlFor="LocalLongitude" className="flex items-center gap-1.5">
-                                        Longitude (localização)
+                                    <Label htmlFor="LocalLongitude" className="flex items-center gap-1.5">
+                                       Longitude (localização)
                                        {isGeocoding && (
                                           <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                                        )}
@@ -1203,27 +1260,28 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  <h4 className="mb-3">Resumo do Evento</h4>
                                  <div className="space-y-2 text-sm">
                                     {(
-                                        [
-                                           ['Nome', formData.titulo],
-                                           ['Categoria', categoriaNome],
-                                           ['Tipo', formData.tipoEvento],
-                                           ['Período', resumoPeriodo],
-                                           ['Horário', resumoHorario],
-                                           [
-                                              'Capacidade (pessoas)',
-                                              formData.capacidadeMaxima
-                                                 ? `${formData.capacidadeMaxima} pessoas`
-                                                 : '100 pessoas (padrão)',
-                                           ],
-                                           ['Local', resumoLocal],
-                                           [
-                                              'Localização',
-                                              formData.LocalLatitude && formData.LocalLongitude
-                                                 ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
-                                                 : 'Não informada',
-                                           ],
-                                           ['Situação', 'Rascunho'],
-                                        ] as [string, string][]
+                                       [
+                                          ['Nome', formData.titulo],
+                                          ['Categoria', categoriaNome],
+                                          ['Tipo', formData.tipoEvento],
+                                          ['Período', resumoPeriodo],
+                                          ['Horário', resumoHorario],
+                                          [
+                                             'Capacidade (pessoas)',
+                                             formData.capacidadeMaxima
+                                                ? `${formData.capacidadeMaxima} pessoas`
+                                                : '100 pessoas (padrão)',
+                                          ],
+                                          ['Local', resumoLocal],
+                                          [
+                                             'Localização',
+                                             formData.LocalLatitude && formData.LocalLongitude
+                                                ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
+                                                : 'Não informada',
+                                          ],
+                                          ['Financiamento', resumoFinanciamento],
+                                          ['Situação', 'Rascunho'],
+                                       ] as [string, string][]
                                     ).map(([label, value]) => (
                                        <div key={label} className="flex justify-between gap-4">
                                           <span className="text-muted-foreground shrink-0">{label}:</span>

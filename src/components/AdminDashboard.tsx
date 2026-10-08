@@ -64,7 +64,7 @@ export function AdminDashboard({
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
-   const { user } = useAuth()
+    const { user, userRole } = useAuth()
 
    const shouldReduceMotion = useReducedMotion()
    const container: Variants = {
@@ -130,7 +130,7 @@ export function AdminDashboard({
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3">
                      {/* Crachá de identidade: mostra quem opera o painel antes das saídas */}
-                     <UserBadge nome={user.nome} fotoPerfil={user.fotoPerfil} papel={user.tipoUsuario} />
+                     <UserBadge nome={user.nome} fotoPerfil={user.fotoPerfil} papel={userRole ?? user.tipoUsuario} />
                      <div className="hidden sm:block h-8 w-px bg-white/20" aria-hidden="true" />
                      {/* Saída que preserva a sessão: nomeada pelo destino */}
                      <Button asChild variant="outline" size="sm" className="gap-1.5">

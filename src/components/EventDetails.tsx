@@ -12,6 +12,7 @@ import {
    Trash2,
    Link,
    ExternalLink,
+   HandCoins,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -30,7 +31,7 @@ interface EventDetailsProps {
 }
 
 export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOwner }: EventDetailsProps) {
-   const { isAuthenticated, user, logout } = useAuth()
+   const { isAuthenticated, user, logout, isAdmin } = useAuth()
    const categoryStyle = categoria?.cor || 'bg-slate-600'
 
    const getStatusBadge = (status: string) => {
@@ -112,7 +113,7 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                      {categoria && (
                         <Badge className={`${categoryStyle} text-white border-0 shadow-md`}>{categoria.nome}</Badge>
                      )}
-                     {(user?.tipoUsuario === 'admin' || isOwner) && (
+                     {(isAdmin || isOwner) && (
                         <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
                            {event.status}
                         </Badge>
@@ -244,7 +245,7 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                   </div>
 
                   {/* Additional Information */}
-                  {(event.publicoAlvo || event.requisitos) && (
+                  {(event.publicoAlvo || event.requisitos || event.financiadorTipo || event.financiadorNome) && (
                      <div className="space-y-4 mb-6 pt-4 border-t border-border">
                         {event.publicoAlvo && (
                            <div className="flex items-start gap-3">
@@ -258,22 +259,38 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                            </div>
                         )}
 
-                        {event.requisitos && (
-                           <div className="flex items-start gap-3">
-                              <div className="p-2.5 rounded-lg bg-muted">
-                                 <FileText className="w-5 h-5 text-foreground/70" />
-                              </div>
-                              <div>
-                                 <p className="text-sm text-muted-foreground">Requisitos</p>
-                                 <p className="text-foreground">{event.requisitos}</p>
-                              </div>
-                           </div>
-                        )}
+                         {event.requisitos && (
+                            <div className="flex items-start gap-3">
+                               <div className="p-2.5 rounded-lg bg-muted">
+                                  <FileText className="w-5 h-5 text-foreground/70" />
+                               </div>
+                               <div>
+                                  <p className="text-sm text-muted-foreground">Requisitos</p>
+                                  <p className="text-foreground">{event.requisitos}</p>
+                               </div>
+                            </div>
+                         )}
+
+                         {(event.financiadorTipo || event.financiadorNome) && (
+                            <div className="flex items-start gap-3">
+                               <div className="p-2.5 rounded-lg bg-muted">
+                                  <HandCoins className="w-5 h-5 text-foreground/70" />
+                               </div>
+                               <div>
+                                  <p className="text-sm text-muted-foreground">Financiamento</p>
+                                  <p className="text-foreground">
+                                     {[event.financiadorTipo === 'publico' ? 'Público' : 'Privado', event.financiadorNome]
+                                        .filter(Boolean)
+                                        .join(' — ')}
+                                  </p>
+                               </div>
+                            </div>
+                         )}
                      </div>
                   )}
 
                   {/* Action Buttons */}
-                  {(user?.tipoUsuario === 'admin' || isOwner) && (
+                  {(isAdmin || isOwner) && (
                      <div className="flex gap-3 pt-4 border-t border-border">
                         <Button variant="outline" className="flex-1" onClick={handleEdit}>
                            <Edit className="w-4 h-4 mr-2" />

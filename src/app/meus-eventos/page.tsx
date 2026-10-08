@@ -44,7 +44,7 @@ const ITEMS_PER_PAGE = 6
 export default function MeusEventos() {
    const router = useRouter()
    const queryClient = useQueryClient()
-   const { token, user, isAuthenticated, loading } = useAuth()
+   const { token, user, isAuthenticated, loading, tokenId } = useAuth()
 
    const [currentPage, setCurrentPage] = useState(1)
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -66,9 +66,9 @@ export default function MeusEventos() {
    })
 
    const { data: eventos, error, isLoading, refetch } = useQuery({
-      queryKey: ['meus-eventos', user?.id],
-      queryFn: () => getMeusEventos(token!, user!.id),
-      enabled: isAuthenticated && !!user,
+      queryKey: ['meus-eventos', tokenId],
+      queryFn: () => getMeusEventos(token!, tokenId !== null ? tokenId : user!.id),
+      enabled: isAuthenticated && ((tokenId !== null) || !!user),
    })
 
    // Categorias para o EventForm
