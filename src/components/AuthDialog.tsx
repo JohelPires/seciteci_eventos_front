@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Button } from './ui/button'
@@ -9,6 +9,7 @@ import { Mail, Lock, User } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner' // Importar toast para exibir mensagens de erro
 import { useAuth } from '@/context/AuthContext' // Importar o hook de autenticação
+import { RedefinirSenhaDialog } from './RedefinirSenhaDialog'
 
 /**
  * Interface simplificada: não precisa mais de onLogin/onRegister,
@@ -23,10 +24,23 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
    // Acesso às funções de login e registro do Contexto
    const { login, register } = useAuth()
 
+   // Modo: 'auth' mostra Entrar/Cadastrar; 'recuperar' mostra o fluxo de redefinição
+   const [modo, setModo] = useState<'auth' | 'recuperar'>('auth')
+   // Aba ativa entre Entrar/Cadastrar (controlada para conseguir voltar ao login pós-redefinição)
+   const [aba, setAba] = useState<'login' | 'register'>('login')
+
    // Estados de Login
    const [loginEmail, setLoginEmail] = useState('')
    const [loginPassword, setLoginPassword] = useState('')
    const [isLoginLoading, setIsLoginLoading] = useState(false)
+
+   // A cada reabertura do diálogo, reinicia no modo/aba padrão
+   useEffect(() => {
+      if (open) {
+         setModo('auth')
+         setAba('login')
+      }
+   }, [open])
 
    // Estados de Registro
    const [registerName, setRegisterName] = useState('')
@@ -73,8 +87,9 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
    }
 
    return (
-      <Dialog open={open} onOpenChange={onClose}>
-         <DialogContent className="sm:max-w-[480px]">
+      <>
+         <Dialog open={open && modo === 'auth'} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
                <div className="flex items-center justify-center mb-4">
                   {/* Se '/logo-mapasmt.png' estiver no seu diretório public */}
@@ -90,7 +105,7 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
                <DialogDescription className="text-center">Entre ou crie sua conta para continuar</DialogDescription>
             </DialogHeader>
 
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs value={aba} onValueChange={(valor) => setAba(valor as 'login' | 'register')} className="w-full">
                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="login">Entrar</TabsTrigger>
                   <TabsTrigger value="register">Cadastrar</TabsTrigger>
@@ -134,6 +149,7 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
                      <div className="flex justify-end">
                         <button
                            type="button"
+                           onClick={() => setModo('recuperar')}
                            className="text-sm text-primary hover:text-primary-foreground/80 transition-colors"
                         >
                            Esqueceu a senha?
@@ -250,6 +266,20 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
                </TabsContent>
             </Tabs>
          </DialogContent>
-      </Dialog>
+         </Dialog>
+
+         <RedefinirSenhaDialog
+            open={open && modo === 'recuperar'}
+            onOpenChange={(aberto) => {
+               if (!aberto) setModo('auth')
+            }}
+            emailInicial={loginEmail}
+            onConcluido={(email) => {
+               setLoginEmail(email)
+               setAba('login')
+               setModo('auth')
+            }}
+         />
+      </>
    )
 }

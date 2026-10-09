@@ -250,3 +250,40 @@ export const alterarSenha = async (
       { redirecionar401: false },
    )
 }
+
+/**
+ * Solicita o código de recuperação (POST /api/auth/esqueci-senha).
+ * A resposta é sempre 200 genérico (o backend não revela quais e-mails existem);
+ * rotas públicas: redirecionar401: false evita jogar o usuário para a home.
+ */
+export const esqueciSenha = async (email: string): Promise<void> => {
+   await authFetch(
+      `${API_URL}/api/auth/esqueci-senha`,
+      {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({ email }),
+      },
+      { redirecionar401: false },
+   )
+}
+
+/**
+ * Redefine a senha com o código recebido por e-mail (POST /api/auth/redefinir-senha).
+ * 400 = dados inválidos ou código inválido/expirado (máx. 5 tentativas).
+ */
+export const redefinirSenha = async (dados: { email: string; codigo: string; novaSenha: string }): Promise<void> => {
+   await authFetch(
+      `${API_URL}/api/auth/redefinir-senha`,
+      {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify(dados),
+      },
+      { redirecionar401: false },
+   )
+}
