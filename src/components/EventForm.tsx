@@ -165,12 +165,12 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
             setGeocodeStatus('idle')
          } else {
             setFormData({
-               titulo: editingEvent.titulo,
-               descricao: editingEvent.descricao,
+               titulo: editingEvent.titulo || '',
+               descricao: editingEvent.descricao || '',
                categoriaId: editingEvent.categoriaId?.toString() || editingEvent.categoria?.id?.toString() || '',
                organizadorId: editingEvent.organizadorId?.toString() || '',
-               dataInicio: editingEvent.dataInicio.substring(0, 10),
-               dataFim: editingEvent.dataFim.substring(0, 10),
+               dataInicio: (editingEvent.dataInicio || '').substring(0, 10),
+               dataFim: (editingEvent.dataFim || '').substring(0, 10),
                horarioAbertura: editingEvent.horarioAbertura
                   ? new Date(editingEvent.horarioAbertura).toISOString().slice(11, 16)
                   : '',
@@ -180,7 +180,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                capacidadeMaxima: editingEvent.capacidadeMaxima?.toString() || '',
                vagasDisponiveis:
                   editingEvent.vagasDisponiveis?.toString() || editingEvent.capacidadeMaxima?.toString() || '',
-               tipoEvento: editingEvent.tipoEvento,
+               tipoEvento: editingEvent.tipoEvento || 'presencial',
                linkOnline: editingEvent.linkOnline || '',
                LocalLinkGoogleMaps: editingEvent.LocalLinkGoogleMaps || '',
                LocalNome: editingEvent.LocalNome || '',

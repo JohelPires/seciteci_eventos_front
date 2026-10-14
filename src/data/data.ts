@@ -56,6 +56,20 @@ export const authFetch = async (
    return res
 }
 
+/**
+ * A API pode devolver `null` em campos de texto (eventos legados sem
+ * `titulo`/`descricao`). Normaliza para string vazia para que
+ * `.length`/`.toLowerCase()`/`.substring()` nunca quebrem no front.
+ */
+const normalizarEvento = (evento: Event): Event => ({
+   ...evento,
+   titulo: evento.titulo ?? '',
+   descricao: evento.descricao ?? '',
+})
+
+const normalizarEventos = (eventos: Event[] | undefined | null): Event[] =>
+   (eventos ?? []).map(normalizarEvento)
+
 export const getEventos = async () => {
    const res = await authFetch(`${API_URL}/api/eventos?status=publicado&limit=1000`)
 
@@ -63,7 +77,7 @@ export const getEventos = async () => {
 
    // await new Promise((resolve) => setTimeout(resolve, 3000))
 
-   return data
+   return { ...data, eventos: normalizarEventos(data?.eventos) }
 }
 
 export const getEventosFullQuery = async (
@@ -80,7 +94,7 @@ export const getEventosFullQuery = async (
    )
    const data = await res.json()
 
-   return data
+   return { ...data, eventos: normalizarEventos(data?.eventos) }
 }
 
 export const getEventosAdmin = async (token: string | null) => {
@@ -91,7 +105,7 @@ export const getEventosAdmin = async (token: string | null) => {
    })
    const data = await res.json()
 
-   return data
+   return { ...data, eventos: normalizarEventos(data?.eventos) }
 }
 
 /**
@@ -101,7 +115,7 @@ export const getEventosAdmin = async (token: string | null) => {
  */
 export const getMeusEventos = async (token: string | null, userId: number): Promise<Event[]> => {
    const data = await getEventosAdmin(token)
-   const eventos: Event[] = data?.eventos ?? []
+   const eventos: Event[] = normalizarEventos(data?.eventos)
    return eventos.filter((evento) => Number(evento.organizadorId) === userId)
 }
 
