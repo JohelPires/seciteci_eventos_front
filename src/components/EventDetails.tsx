@@ -13,6 +13,7 @@ import {
    Link,
    ExternalLink,
    HandCoins,
+   CircleX,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -126,6 +127,20 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                   <h2 className="mb-4">{event.titulo}</h2>
 
                   <p className="text-muted-foreground mb-6">{event.descricao}</p>
+
+                  {event.status === 'cancelado' && event.motivoCancelamento && (
+                     <div className="mb-6 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                        <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                           <CircleX className="w-5 h-5 text-destructive" />
+                        </div>
+                        <div className="min-w-0">
+                           <p className="text-sm font-medium text-destructive">Motivo do cancelamento</p>
+                           <p className="text-foreground whitespace-pre-line break-words">
+                              {event.motivoCancelamento}
+                           </p>
+                        </div>
+                     </div>
+                  )}
 
                   {/* Event Details Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

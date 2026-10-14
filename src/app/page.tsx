@@ -102,6 +102,7 @@ export interface Event {
    linkPaginaEvento?: string
    imagemCapa?: string
     status: 'rascunho' | 'publicado' | 'cancelado'
+    motivoCancelamento?: string
     publicoAlvo?: string
     requisitos?: string
     financiadorTipo?: 'publico' | 'privado' | null

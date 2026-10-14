@@ -43,6 +43,7 @@ interface AdminDashboardProps {
    onDeleteEvent: (id: string) => void
    onPublicarEvent: (id: string) => void
    onCancelarEvent: (id: string) => void
+   onReativarEvent: (id: string) => void
 }
 
 export function AdminDashboard({
@@ -57,6 +58,7 @@ export function AdminDashboard({
    onDeleteEvent,
    onPublicarEvent,
    onCancelarEvent,
+   onReativarEvent,
 }: AdminDashboardProps) {
    const [activeTab, setActiveTab] = useState('overview')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -411,6 +413,7 @@ export function AdminDashboard({
                      onDeleteEvent={onDeleteEvent}
                      onPublicarEvent={onPublicarEvent}
                      onCancelarEvent={onCancelarEvent}
+                     onReativarEvent={onReativarEvent}
                   />
                </TabsContent>
 

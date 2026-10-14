@@ -65,6 +65,7 @@ const normalizarEvento = (evento: Event): Event => ({
    ...evento,
    titulo: evento.titulo ?? '',
    descricao: evento.descricao ?? '',
+   motivoCancelamento: evento.motivoCancelamento ?? '',
 })
 
 const normalizarEventos = (eventos: Event[] | undefined | null): Event[] =>
@@ -150,14 +151,18 @@ export const editEvento = async (id: string, eventData: Partial<Event>, token: s
    return data
 }
 
-export const cancelarEvento = async (id: string, token: string | null) => {
+export const cancelarEvento = async (id: string, token: string | null, motivo?: string) => {
    const res = await authFetch(`${API_URL}/api/eventos/${id}`, {
       method: 'PUT',
       headers: {
          'Content-Type': 'application/json',
          Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ status: 'rascunho' }), // 👈 Apenas alteramos o status
+      body: JSON.stringify({
+         status: 'cancelado',
+         // Motivo opcional; a API limpa o campo automaticamente ao reativar.
+         motivoCancelamento: motivo?.trim() || undefined,
+      }),
    })
 
    const data = await res.json()

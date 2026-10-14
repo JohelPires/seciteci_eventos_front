@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Edit, Trash2, Eye, Search, Globe, CircleX, Plus } from 'lucide-react'
+import { Edit, Trash2, Eye, Search, Globe, CircleX, Plus, RotateCcw } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
@@ -28,6 +28,7 @@ interface AdminEventosProps {
    onDeleteEvent: (id: string) => void
    onPublicarEvent: (id: string) => void
    onCancelarEvent: (id: string) => void
+   onReativarEvent: (id: string) => void
 }
 
 const ITEMS_PER_PAGE = 10
@@ -41,6 +42,7 @@ export function AdminEventos({
    onDeleteEvent,
    onPublicarEvent,
    onCancelarEvent,
+   onReativarEvent,
 }: AdminEventosProps) {
    const [searchTerm, setSearchTerm] = useState('')
    const [statusFilter, setStatusFilter] = useState('all')
@@ -191,48 +193,54 @@ export function AdminEventos({
                                     </TableCell>
                                     <TableCell className="capitalize">{event.tipoEvento}</TableCell>
                                     <TableCell className="text-right">
-                                       <div className="flex items-center justify-end gap-2">
-                                          {event.status === 'rascunho' ? (
-                                             <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => onPublicarEvent(event.id)}
-                                             >
-                                                <Globe className="w-4 h-4" /> Publicar
-                                             </Button>
-                                          ) : (
-                                             <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => onCancelarEvent(event.id)}
-                                             >
-                                                <CircleX className="w-4 h-4" /> Cancelar
-                                             </Button>
-                                          )}
-                                          <Button
-                                             variant="ghost"
-                                             size="sm"
-                                             onClick={() => handleViewEvent(event)}
-                                             title="Visualizar detalhes do evento"
-                                          >
-                                             <Eye className="w-4 h-4" />
-                                          </Button>
-                                          <Button variant="ghost" size="sm" onClick={() => onEditEvent(event)}>
-                                             <Edit className="w-4 h-4" />
-                                          </Button>
-                                          <Button
-                                             variant="ghost"
-                                             size="sm"
-                                             onClick={() => {
-                                                if (confirm('Tem certeza que deseja excluir este evento?')) {
-                                                   onDeleteEvent(event.id)
-                                                }
-                                             }}
-                                             className="text-destructive hover:text-destructive"
-                                          >
-                                             <Trash2 className="w-4 h-4" />
-                                          </Button>
-                                       </div>
+                                        <div className="flex items-center justify-end gap-2">
+                                           {event.status === 'rascunho' && (
+                                              <Button
+                                                 variant="outline"
+                                                 size="sm"
+                                                 onClick={() => onPublicarEvent(event.id)}
+                                              >
+                                                 <Globe className="w-4 h-4" /> Publicar
+                                              </Button>
+                                           )}
+                                           {event.status === 'publicado' && (
+                                              <Button
+                                                 variant="outline"
+                                                 size="sm"
+                                                 onClick={() => onCancelarEvent(event.id)}
+                                              >
+                                                 <CircleX className="w-4 h-4" /> Cancelar
+                                              </Button>
+                                           )}
+                                           {event.status === 'cancelado' && (
+                                              <Button
+                                                 variant="outline"
+                                                 size="sm"
+                                                 onClick={() => onReativarEvent(event.id)}
+                                              >
+                                                 <RotateCcw className="w-4 h-4" /> Reativar
+                                              </Button>
+                                           )}
+                                           <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleViewEvent(event)}
+                                              title="Visualizar detalhes do evento"
+                                           >
+                                              <Eye className="w-4 h-4" />
+                                           </Button>
+                                           <Button variant="ghost" size="sm" onClick={() => onEditEvent(event)}>
+                                              <Edit className="w-4 h-4" />
+                                           </Button>
+                                           <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => onDeleteEvent(event.id)}
+                                              className="text-destructive hover:text-destructive"
+                                           >
+                                              <Trash2 className="w-4 h-4" />
+                                           </Button>
+                                        </div>
                                     </TableCell>
                                  </TableRow>
                               )

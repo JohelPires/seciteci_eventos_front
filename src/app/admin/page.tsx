@@ -5,6 +5,9 @@ import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
 import { ApiError, cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventosAdmin } from '@/data/data'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 import { useAuth } from '@/context/AuthContext'
 
@@ -55,6 +58,12 @@ export default function App() {
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
    const [reload, setReload] = useState(false)
+
+   // Confirmações centralizadas (status e exclusão) — abertas a partir de qualquer ação do painel
+   const [statusTarget, setStatusTarget] = useState<{ id: string; titulo: string; next: 'publicado' | 'cancelado' } | null>(null)
+   const [motivoCancelamento, setMotivoCancelamento] = useState('')
+   const [deleteTarget, setDeleteTarget] = useState<Event | null>(null)
+   const [isSubmitting, setIsSubmitting] = useState(false)
 
    const { token } = useAuth()
    const { isAllowed, loading } = useAdminGuard()
@@ -142,45 +151,71 @@ export default function App() {
       }
    }
 
-   const handleDeleteEvent = async (id: string) => {
-      // setEvents(events.filter((e) => e.id !== id))
+   const handleRequestDelete = (id: string) => {
+      const alvo = events.find((e) => e.id === id)
+      if (alvo) setDeleteTarget(alvo)
+   }
+
+   const confirmDelete = async () => {
+      if (!deleteTarget) return
+      if (!token) {
+         toast.error('Você não está autenticado!')
+         return
+      }
+      setIsSubmitting(true)
       try {
-         await deleteEvento(id, token)
-         setReload(!reload)
+         await deleteEvento(deleteTarget.id, token)
          toast.success('Evento excluído com sucesso!')
-      } catch (error) {
-         if (error instanceof Error) {
-            toast.error(error.message)
-         }
-      }
-   }
-
-   async function handleCancelarEvento(id: string) {
-      if (!token) return alert('Você não está autenticado!')
-
-      try {
-         await cancelarEvento(id, token)
-         toast.success('Evento cancelado com sucesso!')
+         setDeleteTarget(null)
          setReload(!reload)
-      } catch (err) {
-         toast.error(err instanceof Error ? err.message : 'Erro ao cancelar evento!')
+      } catch (error) {
+         toast.error(error instanceof Error ? error.message : 'Erro ao excluir evento!')
+      } finally {
+         setIsSubmitting(false)
       }
    }
+
+   // Toda mudança de estado passa por um modal de confirmação
+   const handleRequestStatusChange = (id: string, next: 'publicado' | 'cancelado') => {
+      const alvo = events.find((e) => e.id === id)
+      if (!alvo) return
+      setMotivoCancelamento('')
+      setStatusTarget({ id: alvo.id, titulo: alvo.titulo || 'Evento sem título', next })
+   }
+
+   const confirmStatusChange = async () => {
+      if (!statusTarget) return
+      if (!token) {
+         toast.error('Você não está autenticado!')
+         return
+      }
+      setIsSubmitting(true)
+      try {
+         if (statusTarget.next === 'cancelado') {
+            await cancelarEvento(statusTarget.id, token, motivoCancelamento)
+            toast.success('Evento cancelado com sucesso!')
+         } else {
+            await editEvento(statusTarget.id, { status: 'publicado' }, token)
+            toast.success('Evento publicado com sucesso!')
+         }
+         setStatusTarget(null)
+         setMotivoCancelamento('')
+         setReload(!reload)
+      } catch (error) {
+         toast.error(error instanceof ApiError ? error.message : 'Erro ao atualizar o status do evento!')
+      } finally {
+         setIsSubmitting(false)
+      }
+   }
+
+   const handlePublicarEvent = (id: string) => handleRequestStatusChange(id, 'publicado')
+   const handleCancelarEvento = (id: string) => handleRequestStatusChange(id, 'cancelado')
+   const handleReativarEvent = (id: string) => handleRequestStatusChange(id, 'publicado')
 
    const handleEditEvent = (event: Event) => {
       // não muta o objeto original; cria cópia já normalizada
       setEditingEvent({ ...event, horarioAbertura: event.horarioAbertura ?? '' })
       setShowForm(true)
-   }
-
-   const handlePublicarEvent = async (id: string) => {
-      try {
-         await editEvento(id, { status: 'publicado' }, token)
-         setReload(!reload)
-         toast.success('Evento aprovado com sucesso!')
-      } catch (error) {
-         toast.error(error instanceof ApiError ? error.message : 'Erro ao aprovar evento!')
-      }
    }
 
    const handleCloseForm = () => {
@@ -234,9 +269,10 @@ export default function App() {
                setShowForm(true)
             }}
             onEditEvent={handleEditEvent}
-            onDeleteEvent={handleDeleteEvent}
+            onDeleteEvent={handleRequestDelete}
             onPublicarEvent={handlePublicarEvent}
             onCancelarEvent={handleCancelarEvento}
+            onReativarEvent={handleReativarEvent}
          />
          {showForm && (
             <EventForm
@@ -247,6 +283,94 @@ export default function App() {
                // locais={locais}
             />
          )}
+
+         {/* Confirmação de mudança de status */}
+         <AlertDialog
+            open={!!statusTarget}
+            onOpenChange={(open) => {
+               if (!open && !isSubmitting) {
+                  setStatusTarget(null)
+                  setMotivoCancelamento('')
+               }
+            }}
+         >
+            <AlertDialogContent>
+               <AlertDialogHeader>
+                  <AlertDialogTitle>
+                     {statusTarget?.next === 'cancelado' ? 'Cancelar evento' : 'Publicar evento'}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                     {statusTarget?.next === 'cancelado'
+                        ? `Tem certeza que deseja cancelar “${statusTarget?.titulo}”? O evento deixa de aparecer na programação.`
+                        : `Publicar “${statusTarget?.titulo}” novamente? O evento volta a aparecer na programação.`}
+                  </AlertDialogDescription>
+               </AlertDialogHeader>
+
+               {statusTarget?.next === 'cancelado' && (
+                  <div className="space-y-2">
+                     <Label htmlFor="motivo-cancelamento">Motivo do cancelamento (opcional)</Label>
+                     <Textarea
+                        id="motivo-cancelamento"
+                        value={motivoCancelamento}
+                        onChange={(e) => setMotivoCancelamento(e.target.value)}
+                        placeholder="Explique brevemente o motivo, se quiser. Aparece para quem consultar o evento."
+                        maxLength={1000}
+                        disabled={isSubmitting}
+                        className="min-h-24"
+                     />
+                     <p className="text-xs text-muted-foreground text-right">{motivoCancelamento.length}/1000</p>
+                  </div>
+               )}
+
+               <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isSubmitting}>Voltar</AlertDialogCancel>
+                  <AlertDialogAction
+                     disabled={isSubmitting}
+                     className={
+                        statusTarget?.next === 'cancelado'
+                           ? 'bg-destructive text-white hover:bg-destructive/90'
+                           : undefined
+                     }
+                     onClick={(e) => {
+                        e.preventDefault()
+                        confirmStatusChange()
+                     }}
+                  >
+                     {isSubmitting ? 'Salvando...' : statusTarget?.next === 'cancelado' ? 'Cancelar evento' : 'Publicar evento'}
+                  </AlertDialogAction>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
+
+         {/* Confirmação de exclusão */}
+         <AlertDialog
+            open={!!deleteTarget}
+            onOpenChange={(open) => {
+               if (!open && !isSubmitting) setDeleteTarget(null)
+            }}
+         >
+            <AlertDialogContent>
+               <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir evento</AlertDialogTitle>
+                  <AlertDialogDescription>
+                     Tem certeza que deseja excluir “{deleteTarget?.titulo}”? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+               </AlertDialogHeader>
+               <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                     disabled={isSubmitting}
+                     className="bg-destructive text-white hover:bg-destructive/90"
+                     onClick={(e) => {
+                        e.preventDefault()
+                        confirmDelete()
+                     }}
+                  >
+                     {isSubmitting ? 'Excluindo...' : 'Excluir'}
+                  </AlertDialogAction>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
       </>
    )
 
