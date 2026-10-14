@@ -105,7 +105,7 @@ export interface Event {
     motivoCancelamento?: string
     publicoAlvo?: string
     requisitos?: string
-    financiadorTipo?: 'publico' | 'privado' | null
+    financiadorTipo?: 'publico' | 'privado' | 'hibrido' | null
     financiadorNome?: string | null
     dataCriacao?: string
     dataAtualizacao?: string

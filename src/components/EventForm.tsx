@@ -86,8 +86,8 @@ const INITIAL_FORM_DATA = {
    status: 'rascunho' as 'rascunho' | 'publicado' | 'cancelado',
    publicoAlvo: '',
    requisitos: '',
-   financiadorTipo: '' as '' | 'publico' | 'privado',
-   financiadorNome: '',
+  financiadorTipo: '' as '' | 'publico' | 'privado' | 'hibrido',
+  financiadorNome: '',
 }
 
 const MAX_DESCRICAO_CHARS = 500
@@ -532,7 +532,14 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
 
    const resumoFinanciamento = useMemo(() => {
       if (!formData.financiadorTipo) return ''
-      const tipo = formData.financiadorTipo === 'publico' ? 'Público' : 'Privado'
+      const tipo =
+         formData.financiadorTipo === 'publico'
+            ? 'Público'
+            : formData.financiadorTipo === 'privado'
+            ? 'Privado'
+            : formData.financiadorTipo === 'hibrido'
+            ? 'Híbrido'
+            : ''
       return formData.financiadorNome ? `${tipo} — ${formData.financiadorNome}` : tipo
    }, [formData.financiadorTipo, formData.financiadorNome])
 
@@ -889,6 +896,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     </ToggleGroupItem>
                                     <ToggleGroupItem value="privado" className="flex-1">
                                        Privado
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="hibrido" className="flex-1">
+                                       Híbrido
                                     </ToggleGroupItem>
                                  </ToggleGroup>
                               </div>

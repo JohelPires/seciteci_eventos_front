@@ -294,7 +294,16 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                                <div>
                                   <p className="text-sm text-muted-foreground">Financiamento</p>
                                   <p className="text-foreground">
-                                     {[event.financiadorTipo === 'publico' ? 'Público' : 'Privado', event.financiadorNome]
+                                     {[
+                                        event.financiadorTipo === 'publico'
+                                           ? 'Público'
+                                           : event.financiadorTipo === 'privado'
+                                           ? 'Privado'
+                                           : event.financiadorTipo === 'hibrido'
+                                           ? 'Híbrido'
+                                           : event.financiadorTipo,
+                                        event.financiadorNome,
+                                     ]
                                         .filter(Boolean)
                                         .join(' — ')}
                                   </p>
