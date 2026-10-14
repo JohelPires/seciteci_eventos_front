@@ -31,6 +31,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Alert } from '@/components/ui/alert'
 import {
    AlertDialog,
+   AlertDialogAction,
    AlertDialogCancel,
    AlertDialogContent,
    AlertDialogDescription,
@@ -139,6 +140,8 @@ function AppContent() {
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
 
+   const [deleteTarget, setDeleteTarget] = useState<Event | null>(null)
+
    const { token, isAuthenticated, user, logout } = useAuth()
 
    // Helper functions
@@ -234,6 +237,11 @@ function AppContent() {
             toast.error(error.message)
          }
       }
+   }
+
+   const handleRequestDelete = (id: string) => {
+      const alvo = events.find((e) => e.id === id)
+      if (alvo) setDeleteTarget(alvo)
    }
 
    const handleEditEvent = (event: Event) => {
@@ -545,7 +553,7 @@ function AppContent() {
                                  event={event}
                                  categoria={event.categoria}
                                  // local={event.local}
-                                 onDelete={handleDeleteEvent}
+                                 onDelete={handleRequestDelete}
                                  onEdit={handleEditEvent}
                                  onClick={handleEventClick}
                                  index={index}
@@ -672,7 +680,7 @@ function AppContent() {
                // local={selectedEvent.local}
                onClose={handleCloseEventDetails}
                onEdit={handleEditEvent}
-               onDelete={handleDeleteEvent}
+               onDelete={handleRequestDelete}
             />
          )}
          <AuthDialog
@@ -704,8 +712,39 @@ function AppContent() {
                </AlertDialogFooter>
              </AlertDialogContent>
           </AlertDialog>
+
+         <AlertDialog
+            open={!!deleteTarget}
+            onOpenChange={(open) => {
+               if (!open) setDeleteTarget(null)
+            }}
+         >
+            <AlertDialogOverlay />
+            <AlertDialogContent>
+               <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir evento</AlertDialogTitle>
+                  <AlertDialogDescription>
+                     Tem certeza que deseja excluir “{deleteTarget?.titulo}”? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+               </AlertDialogHeader>
+               <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                     onClick={() => {
+                        if (deleteTarget) {
+                           handleDeleteEvent(deleteTarget.id)
+                           setDeleteTarget(null)
+                           setSelectedEvent(null)
+                        }
+                     }}
+                  >
+                     Excluir
+                  </AlertDialogAction>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
        </div>
-   )
+    )
 }
 
 export default function App() {
