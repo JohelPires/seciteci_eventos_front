@@ -119,13 +119,18 @@ export const createEvento = async (evento: Event, token: string | null) => {
 }
 
 export const editEvento = async (id: string, eventData: Partial<Event>, token: string | null) => {
+   // `categoria` é read-only (o vínculo vem de categoriaId no backend); enviá-la
+   // (mesmo null) faz o serializer de update retornar 500. Nunca repassar o campo.
+   const payload: Partial<Event> = { ...eventData }
+   delete payload.categoria
+
    const res = await authFetch(`${API_URL}/api/eventos/${id}`, {
       method: 'PUT',
       headers: {
          'Content-Type': 'application/json',
          Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(eventData),
+      body: JSON.stringify(payload),
    })
    const data = await res.json()
    return data

@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Event, Categoria } from '@/app/page'
+import { useAuth } from '@/context/AuthContext'
 
 interface EventFormProps {
    onSubmit: (event: Omit<Event, 'id'>) => void
@@ -125,10 +126,16 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOnOutsideClick = true }: EventFormProps) {
+   const { isAdmin } = useAuth()
    const [currentStep, setCurrentStep] = useState(1)
    const totalSteps = 4
 
    const [formData, setFormData] = useState(INITIAL_FORM_DATA)
+
+   // Só o admin preserva o status original ao editar; demais voltam para rascunho
+   // (a API restringe publicado/cancelado a administradores).
+   const statusEnvio: 'rascunho' | 'publicado' | 'cancelado' =
+      isAdmin && editingEvent ? editingEvent.status : 'rascunho'
 
    // Erros por step
    const [errors1, setErrors1] = useState<Step1Errors>({})
@@ -473,18 +480,17 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
             LocalObservacoes: formData.LocalObservacoes || undefined,
             linkPaginaEvento: formData.linkPaginaEvento || undefined,
             imagemCapa: formData.imagemCapa || undefined,
-            status: 'rascunho',
+            status: statusEnvio,
             publicoAlvo: formData.publicoAlvo || undefined,
             requisitos: formData.requisitos || undefined,
             financiadorTipo: formData.financiadorTipo || undefined,
             financiadorNome: formData.financiadorNome || undefined,
-            categoria: null,
          })
 
          setFormData(INITIAL_FORM_DATA)
          setGeocodeStatus('idle')
       },
-      [formData, onSubmit, validateStep4],
+      [formData, onSubmit, validateStep4, statusEnvio],
    )
 
    // ─── Steps config ─────────────────────────────────────────────────────
@@ -1280,7 +1286,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                                 : 'Não informada',
                                           ],
                                           ['Financiamento', resumoFinanciamento],
-                                          ['Situação', 'Rascunho'],
+                                          [
+                                             'Situação',
+                                             statusEnvio.charAt(0).toUpperCase() + statusEnvio.slice(1),
+                                          ],
                                        ] as [string, string][]
                                     ).map(([label, value]) => (
                                        <div key={label} className="flex justify-between gap-4">

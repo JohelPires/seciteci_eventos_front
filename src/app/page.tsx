@@ -74,7 +74,7 @@ export interface Event {
    titulo: string
    descricao: string
    categoriaId: number
-   categoria: Categoria | null
+   categoria?: Categoria | null
    organizadorId?: number
    dataInicio: string
    dataFim: string
