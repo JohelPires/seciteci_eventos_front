@@ -150,25 +150,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             throw new Error(extrairMensagemErro(errorData, 'Falha no registro.'))
          }
 
-         const { token: receivedToken, user: userData } = await response.json()
-
-         const role = resolverUserRole(receivedToken)
-         if (role === null) {
-            // Backend autenticou mas não devolveu um JWT com role legível — não há sessão confiável
-            throw new Error('Resposta de registro inválida. Contate o suporte.')
-         }
-
-         localStorage.setItem('authToken', receivedToken)
-         if (userData) localStorage.setItem('authUser', JSON.stringify(userData))
-
-         setToken(receivedToken)
-         setUserRole(role)
-         setTokenId(obterClaims(receivedToken)?.id ?? null)
-         if (userData) setUser(userData as User)
-
-         toast.success('Conta criada com sucesso!')
-         login(email, senha)
-         router.push('/')
+         // O endpoint de registro NÃO devolve token (só { message, user }): não há como
+         // autenticar aqui. A sessão é criada depois, quando o usuário faz login.
+         toast.success('Conta criada com sucesso! Faça login para continuar.')
          // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
          console.error('Erro de Registro:', error.message)

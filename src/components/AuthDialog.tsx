@@ -77,7 +77,9 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
       try {
          // Chamada à função register do AuthContext
          await register(registerName, registerEmail, registerPassword, userType)
-         onClose() // Fecha o modal apenas em caso de sucesso
+         // O cadastro não autentica: volta para a aba de login com o e-mail preenchido
+         setLoginEmail(registerEmail)
+         setAba('login')
       } catch (error) {
          // O erro já foi tostado no AuthContext.
          console.error('Falha ao tentar registrar:', error)
