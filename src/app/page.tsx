@@ -43,7 +43,7 @@ import {
 import { set } from 'react-hook-form'
 import { CardSkeleton } from '@/components/CardSkeleton'
 import { Footer } from '@/components/Footer'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { get } from 'http'
 import { Separator } from '@radix-ui/react-select'
 import Image from 'next/image'
@@ -144,6 +144,8 @@ function AppContent() {
 
    const { token, isAuthenticated, user, logout } = useAuth()
 
+   const queryClient = useQueryClient()
+
    // Helper functions
    // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
    // const getLocal = (id: number) => locais.find((l) => l.id === id)
@@ -232,6 +234,10 @@ function AppContent() {
       try {
          await deleteEvento(id, token)
          toast.success('Evento excluído com sucesso!')
+         queryClient.setQueryData(['eventos'], (old: { eventos: Event[] } | undefined) =>
+            old ? { ...old, eventos: old.eventos.filter((e) => e.id !== id) } : old,
+         )
+         queryClient.invalidateQueries({ queryKey: ['eventos'] })
       } catch (error) {
          if (error instanceof Error) {
             toast.error(error.message)
