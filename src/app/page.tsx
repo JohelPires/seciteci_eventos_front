@@ -306,7 +306,7 @@ function AppContent() {
                <div className="flex justify-center mb-8">
                   <Image
                      className="rounded-xl shadow-2xl w-full h-auto max-w-4xl"
-                     src={comBase('/conecte-se.webp')}
+                     src={comBase('/conecte-se2.webp')}
                      alt="Conecte-se"
                      width={2000}
                      height={1000}
