@@ -47,6 +47,10 @@ type Step2Errors = {
    requisitos?: string
 }
 
+type Step3Errors = {
+   LocalCapacidade?: string
+}
+
 type Step4Errors = {
    LocalLatitude?: string
    LocalLongitude?: string
@@ -63,8 +67,6 @@ const INITIAL_FORM_DATA = {
    dataFim: '',
    horarioAbertura: '',
    horarioEncerramento: '',
-   capacidadeMaxima: '',
-   vagasDisponiveis: '',
    tipoEvento: 'presencial' as 'presencial' | 'online' | 'hibrido',
    linkOnline: '',
    LocalLinkGoogleMaps: '',
@@ -140,6 +142,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
    // Erros por step
    const [errors1, setErrors1] = useState<Step1Errors>({})
    const [errors2, setErrors2] = useState<Step2Errors>({})
+   const [errors3, setErrors3] = useState<Step3Errors>({})
    const [errors4, setErrors4] = useState<Step4Errors>({})
 
    // Preview de imagem
@@ -177,9 +180,6 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                horarioEncerramento: editingEvent.horarioEncerramento
                   ? new Date(editingEvent.horarioEncerramento).toISOString().slice(11, 16)
                   : '',
-               capacidadeMaxima: editingEvent.capacidadeMaxima?.toString() || '',
-               vagasDisponiveis:
-                  editingEvent.vagasDisponiveis?.toString() || editingEvent.capacidadeMaxima?.toString() || '',
                tipoEvento: editingEvent.tipoEvento || 'presencial',
                linkOnline: editingEvent.linkOnline || '',
                LocalLinkGoogleMaps: editingEvent.LocalLinkGoogleMaps || '',
@@ -411,6 +411,14 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
       formData.requisitos,
    ])
 
+   const validateStep3 = useCallback((): boolean => {
+      const errs: Step3Errors = {}
+      if (formData.tipoEvento !== 'online' && !formData.LocalCapacidade)
+         errs.LocalCapacidade = 'Informe a capacidade do local'
+      setErrors3(errs)
+      return Object.keys(errs).length === 0
+   }, [formData.tipoEvento, formData.LocalCapacidade])
+
    const validateStep4 = useCallback((): boolean => {
       const errs: Step4Errors = {}
       if (formData.imagemCapa && !isValidImageUrl(formData.imagemCapa)) {
@@ -426,11 +434,18 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
       return Object.keys(errs).length === 0
    }, [formData.imagemCapa, formData.LocalLatitude, formData.LocalLongitude])
 
-   // ─── Navegação ────────────────────────────────────────────────────────
+    // ─── Navegação ────────────────────────────────────────────────────────
    const nextStep = useCallback(() => {
-      const valid = currentStep === 1 ? validateStep1() : currentStep === 2 ? validateStep2() : true
+      const valid =
+         currentStep === 1
+            ? validateStep1()
+            : currentStep === 2
+              ? validateStep2()
+              : currentStep === 3
+                ? validateStep3()
+                : true
       if (valid && currentStep < totalSteps) setCurrentStep((s) => s + 1)
-   }, [currentStep, totalSteps, validateStep1, validateStep2])
+   }, [currentStep, totalSteps, validateStep1, validateStep2, validateStep3])
 
    const prevStep = useCallback(() => {
       if (currentStep > 1) setCurrentStep((s) => s - 1)
@@ -440,12 +455,20 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
    const handleSubmit = useCallback(
       (e: React.FormEvent) => {
          e.preventDefault()
+         if (!validateStep3()) {
+            setCurrentStep(3)
+            return
+         }
          if (!validateStep4()) return
 
          const toDate = (dateStr: string) => {
             const [y, m, d] = dateStr.split('-').map(Number)
             return new Date(y, m - 1, d).toISOString()
          }
+
+         // O formulário só informa a capacidade do local; o front espelha
+         // esse valor em capacidadeMaxima/vagasDisponiveis (sem default 100).
+         const capacidade = formData.LocalCapacidade ? parseInt(formData.LocalCapacidade) : undefined
 
          onSubmit({
             titulo: formData.titulo,
@@ -456,12 +479,8 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
             dataFim: toDate(formData.dataFim),
             horarioAbertura: formData.horarioAbertura,
             horarioEncerramento: formData.horarioEncerramento,
-            capacidadeMaxima: formData.capacidadeMaxima ? parseInt(formData.capacidadeMaxima) : 100,
-            vagasDisponiveis: formData.vagasDisponiveis
-               ? parseInt(formData.vagasDisponiveis)
-               : formData.capacidadeMaxima
-                 ? parseInt(formData.capacidadeMaxima)
-                 : 100,
+            capacidadeMaxima: capacidade,
+            vagasDisponiveis: capacidade,
             tipoEvento: formData.tipoEvento,
             linkOnline: formData.linkOnline || undefined,
             LocalLinkGoogleMaps: formData.LocalLinkGoogleMaps || undefined,
@@ -490,7 +509,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
          setFormData(INITIAL_FORM_DATA)
          setGeocodeStatus('idle')
       },
-      [formData, onSubmit, validateStep4, statusEnvio],
+      [formData, onSubmit, validateStep3, validateStep4, statusEnvio],
    )
 
    // ─── Steps config ─────────────────────────────────────────────────────
@@ -1089,8 +1108,19 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                     min="1"
                                     placeholder="Ex: 100"
                                     value={formData.LocalCapacidade}
-                                    onChange={(e) => set('LocalCapacidade', e.target.value)}
+                                    onChange={(e) => {
+                                       set('LocalCapacidade', e.target.value)
+                                       if (errors3.LocalCapacidade)
+                                          setErrors3((p) => ({
+                                             ...p,
+                                             LocalCapacidade: undefined,
+                                          }))
+                                    }}
+                                    className={
+                                       errors3.LocalCapacidade ? 'border-red-500 focus-visible:ring-red-500' : ''
+                                    }
                                  />
+                                 <FieldError message={errors3.LocalCapacidade} />
                               </div>
 
                               <div className="space-y-2 md:col-span-2">
@@ -1282,12 +1312,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                           ['Tipo', formData.tipoEvento],
                                           ['Período', resumoPeriodo],
                                           ['Horário', resumoHorario],
-                                          [
-                                             'Capacidade (pessoas)',
-                                             formData.capacidadeMaxima
-                                                ? `${formData.capacidadeMaxima} pessoas`
-                                                : '100 pessoas (padrão)',
-                                          ],
+                                           [
+                                              'Capacidade do Local (pessoas)',
+                                              formData.LocalCapacidade,
+                                           ],
                                           ['Local', resumoLocal],
                                           [
                                              'Localização',

@@ -240,7 +240,7 @@ export default function App() {
       setCurrentPage(1)
    }, [searchTerm, categoryFilter])
 
-   const totalCapacity = events.reduce((sum, event) => sum + event.capacidadeMaxima, 0)
+   const totalCapacity = events.reduce((sum, event) => sum + (event.LocalCapacidade ?? 0), 0)
    const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
 
    if (loading) return null

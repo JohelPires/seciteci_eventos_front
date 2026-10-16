@@ -153,8 +153,8 @@ export function EventCard({
                         <Users className="w-4 h-4 text-foreground/70" />
                      </div>
                      <div>
-                        <p className="text-xs text-muted-foreground">Vagas</p>
-                        <p className="text-foreground">{event.capacidadeMaxima} pessoas</p>
+                        <p className="text-xs text-muted-foreground">Capacidade do Local</p>
+                        <p className="text-foreground">{event.LocalCapacidade ?? '-'} pessoas</p>
                      </div>
                   </div>
 

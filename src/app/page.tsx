@@ -81,7 +81,7 @@ export interface Event {
    dataFim: string
    horarioAbertura?: string | undefined
    horarioEncerramento?: string | undefined
-   capacidadeMaxima: number
+   capacidadeMaxima?: number
    vagasDisponiveis?: number
    tipoEvento: 'presencial' | 'online' | 'hibrido'
    linkOnline?: string
@@ -291,7 +291,7 @@ function AppContent() {
       setCurrentPage(1)
    }, [searchTerm, categoryFilter, selectedDate])
 
-   const totalCapacity = events.reduce((sum, event) => sum + event.capacidadeMaxima, 0)
+   const totalCapacity = events.reduce((sum, event) => sum + (event.LocalCapacidade ?? 0), 0)
    const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
 
    return (
@@ -378,7 +378,7 @@ function AppContent() {
                   <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
                      <div className="flex items-center justify-between">
                         <div>
-                           <p className="text-sm text-muted-foreground mb-1">Vagas totais</p>
+                           <p className="text-sm text-muted-foreground mb-1">Capacidade total</p>
                            <p className="text-foreground text-3xl font-semibold">{totalCapacity.toLocaleString()}</p>
                         </div>
                         <div className="p-3 bg-primary dark:bg-green-950 rounded-lg">

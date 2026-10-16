@@ -85,7 +85,7 @@ export function AdminDashboard({
    const publishedEvents = events.filter((e) => e.status === 'publicado').length
    const draftEvents = events.filter((e) => e.status === 'rascunho').length
    const cancelledEvents = events.filter((e) => e.status === 'cancelado').length
-   const totalCapacity = events.reduce((sum, e) => sum + e.capacidadeMaxima, 0)
+   const totalCapacity = events.reduce((sum, e) => sum + (e.LocalCapacidade ?? 0), 0)
    const averageCapacity = totalEvents > 0 ? Math.round(totalCapacity / totalEvents) : 0
    const categoriasComEventos = categorias.filter((cat) =>
       events.some((e) => e.categoriaId === cat.id),
@@ -230,7 +230,7 @@ export function AdminDashboard({
                             <CardHeader className="pb-3">
                                <div className="flex items-start justify-between gap-3">
                                   <div>
-                                     <CardDescription>Vagas Totais</CardDescription>
+                                      <CardDescription>Capacidade Total</CardDescription>
                                      <CardTitle className="text-3xl">{totalCapacity.toLocaleString()}</CardTitle>
                                   </div>
                                   <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
