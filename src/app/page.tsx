@@ -343,7 +343,6 @@ function AppContent() {
                      </div>
                      <div>
                         <h1 className="text-2xl font-semibold">Eventos</h1>
-                        <p className="text-muted-foreground">Eventos realizados ou apoiados pela SECITECI</p>
                      </div>
                   </motion.div>
 
