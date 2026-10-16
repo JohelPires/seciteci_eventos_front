@@ -101,20 +101,19 @@ export interface Event {
    LocalObservacoes?: string
    linkPaginaEvento?: string
    imagemCapa?: string
-    status: 'rascunho' | 'publicado' | 'cancelado'
-    motivoCancelamento?: string
-    publicoAlvo?: string
-    requisitos?: string
-    financiadorTipo?: 'publico' | 'privado' | 'hibrido' | null
-    financiadorNome?: string | null
-    dataCriacao?: string
-    dataAtualizacao?: string
+   status: 'rascunho' | 'publicado' | 'cancelado'
+   motivoCancelamento?: string
+   publicoAlvo?: string
+   requisitos?: string
+   financiadorTipo?: 'publico' | 'privado' | 'hibrido' | null
+   financiadorNome?: string | null
+   dataCriacao?: string
+   dataAtualizacao?: string
 }
 
-   const ITEMS_PER_PAGE = 6
+const ITEMS_PER_PAGE = 6
 
-const fimDoDia = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
+const fimDoDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
 
 const inicioDoDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 
@@ -319,9 +318,9 @@ function AppContent() {
                      Agenda estadual de Ciência, Tecnologia e Inovação
                   </p>
                   <p className="text-lg leading-relaxed text-muted-foreground">
-                     O Conecte-se é a agenda unificada dos eventos de Ciência, Tecnologia e Inovação do Estado de Mato
-                     Grosso. Seminários, simpósios, congressos, encontros e outras ações de uma comunidade muito ativa,
-                     reunidos em uma ferramenta de consulta e divulgação mantida pela SECITECI.
+                     O Conecte-se é a agenda unificada de eventos de Ciência, Tecnologia e Inovação de Mato Grosso, que
+                     reúne e divulga, as iniciativas do ecossistema estadual, em uma única plataforma, sob a gestão da
+                     Secretaria de Estado de Ciência, Tecnologia e Inovação de Mato Grosso - SECITECI.
                   </p>
                </div>
             </div>
@@ -717,8 +716,8 @@ function AppContent() {
                      Ok
                   </AlertDialogCancel>
                </AlertDialogFooter>
-             </AlertDialogContent>
-          </AlertDialog>
+            </AlertDialogContent>
+         </AlertDialog>
 
          <AlertDialog
             open={!!deleteTarget}
@@ -750,8 +749,8 @@ function AppContent() {
                </AlertDialogFooter>
             </AlertDialogContent>
          </AlertDialog>
-       </div>
-    )
+      </div>
+   )
 }
 
 export default function App() {
