@@ -692,7 +692,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               <div className="space-y-2">
                                  <Label htmlFor="categoriaId">Categoria do Evento*</Label>
                                  <Select
-                                    key={categorias.length}
+                                    key={categorias.map((c) => `${c.id}:${c.nome}:${c.cor}`).join('|')}
                                     value={formData.categoriaId}
                                     onValueChange={(value) => {
                                        set('categoriaId', value)

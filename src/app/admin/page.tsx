@@ -13,8 +13,9 @@ import { useAuth } from '@/context/AuthContext'
 
 import { AdminDashboard } from '@/components/AdminDashboard'
 
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+
 import { Event } from '@/app/page'
-import { Categoria } from '@/app/page'
 import { useRouter } from 'next/navigation'
 
 // import { Local } from '@/app/page'
@@ -52,9 +53,6 @@ export default function App() {
    const [currentPage, setCurrentPage] = useState(1)
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
-   const [categorias, setCategorias] = useState<Categoria[]>([])
-   // const [locais, setLocais] = useState<Local[]>([])
-
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
    const [reload, setReload] = useState(false)
@@ -67,6 +65,15 @@ export default function App() {
 
    const { token } = useAuth()
    const { isAllowed, loading } = useAdminGuard()
+
+   const queryClient = useQueryClient()
+
+   const { data: categoriasData } = useQuery({
+      queryKey: ['categorias'],
+      queryFn: getCategorias,
+      enabled: isAllowed,
+   })
+   const categorias = categoriasData ?? []
 
    // Helper functions
    // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
@@ -88,23 +95,6 @@ export default function App() {
 
       fetchData()
    }, [reload, isAllowed, token])
-
-   useEffect(() => {
-      // Evita fetch redundante durante o redirect (endpoint público, mas a página não renderiza sem permissão)
-      if (!isAllowed) return
-
-      async function fetchData() {
-         try {
-            const response = await getCategorias()
-
-            setCategorias(response)
-         } catch (error) {
-            console.log(error)
-         }
-      }
-
-      fetchData()
-   }, [reload, isAllowed])
 
    // useEffect(() => {
    //    async function fetchData() {
@@ -262,7 +252,7 @@ export default function App() {
              events={events}
              categorias={categorias}
              onUpdateEvents={setEvents}
-            onUpdateCategorias={setCategorias}
+            onUpdateCategorias={() => queryClient.invalidateQueries({ queryKey: ['categorias'] })}
             // onUpdateLocais={setLocais}
             onNewEvent={() => {
                setEditingEvent(null)
