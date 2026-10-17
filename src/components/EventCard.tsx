@@ -1,7 +1,14 @@
-import { Calendar, MapPin, Video, Globe, Clock, Users, Trash2, Edit } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Calendar, MapPin, Video, Globe, Clock, Users, Trash2, Edit, Eye, CircleX, RotateCcw, ChevronDown } from 'lucide-react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
+import {
+   DropdownMenu,
+   DropdownMenuContent,
+   DropdownMenuItem,
+   DropdownMenuTrigger,
+} from './ui/dropdown-menu'
 import { motion } from 'framer-motion'
 import type { Event, Categoria, Local } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
@@ -14,7 +21,7 @@ interface EventCardProps {
    onDelete: (id: string) => void
    onEdit: (event: Event) => void
    onClick: (event: Event) => void
-   onPublicar?: (id: string) => void
+   onStatusChange?: (id: string, next: 'publicado' | 'cancelado') => void
    index: number
    isOwner?: boolean
 }
@@ -26,7 +33,7 @@ export function EventCard({
    onDelete,
    onEdit,
    onClick,
-   onPublicar,
+   onStatusChange,
    index,
    isOwner,
 }: EventCardProps) {
@@ -50,13 +57,22 @@ export function EventCard({
       return timeString.substring(11, 16) // HH:MM
    }
 
-   const getStatusBadge = (status: string) => {
-      const styles = {
-         publicado: 'bg-green-600',
-         rascunho: 'bg-yellow-600',
-         cancelado: 'bg-red-600',
-      }
-      return styles[status as keyof typeof styles] || 'bg-gray-600'
+   const STATUS_META: Record<string, { label: string; badge: string; acao?: { label: string; next: 'publicado' | 'cancelado'; destructive?: boolean; icon: ReactNode } }> = {
+      publicado: {
+         label: 'Publicado',
+         badge: 'bg-green-600',
+         acao: { label: 'Cancelar evento', next: 'cancelado', destructive: true, icon: <CircleX className="w-4 h-4" /> },
+      },
+      rascunho: {
+         label: 'Pendente',
+         badge: 'bg-yellow-600',
+         acao: { label: 'Publicar evento', next: 'publicado', icon: <Globe className="w-4 h-4" /> },
+      },
+      cancelado: {
+         label: 'Cancelado',
+         badge: 'bg-red-600',
+         acao: { label: 'Reativar evento', next: 'publicado', icon: <RotateCcw className="w-4 h-4" /> },
+      },
    }
 
    const getTipoEventoIcon = (tipo: string) => {
@@ -106,14 +122,39 @@ export function EventCard({
                )}
 
                {/* Category and Status Badges */}
-               <div className="absolute top-3 right-3 flex flex-col gap-2">
+               <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                   {event.categoria && (
                      <Badge className={`${categoryStyle} text-white border-0 shadow-md`}>{event.categoria.nome}</Badge>
                   )}
-                  {(isAdmin || isOwner) && (
-                     <Badge className={`${getStatusBadge(event.status)} text-white border-0 shadow-md`}>
-                        {event.status}
-                     </Badge>
+                  {isAdmin ? (
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                           <Badge
+                              className={`${STATUS_META[event.status]?.badge ?? 'bg-gray-600'} text-white border-0 shadow-md cursor-pointer hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none`}
+                              aria-label={`Alterar status do evento. Status atual: ${STATUS_META[event.status]?.label ?? event.status}`}
+                           >
+                              {STATUS_META[event.status]?.label ?? event.status}
+                              <ChevronDown className="w-3 h-3 opacity-80" />
+                           </Badge>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-44">
+                           {STATUS_META[event.status]?.acao && (
+                              <DropdownMenuItem
+                                 variant={STATUS_META[event.status].acao!.destructive ? 'destructive' : 'default'}
+                                 onClick={() => onStatusChange?.(event.id, STATUS_META[event.status].acao!.next)}
+                              >
+                                 {STATUS_META[event.status].acao!.icon}
+                                 {STATUS_META[event.status].acao!.label}
+                              </DropdownMenuItem>
+                           )}
+                        </DropdownMenuContent>
+                     </DropdownMenu>
+                  ) : (
+                     isOwner && (
+                        <Badge className={`${STATUS_META[event.status]?.badge ?? 'bg-gray-600'} text-white border-0 shadow-md`}>
+                           {STATUS_META[event.status]?.label ?? event.status}
+                        </Badge>
+                     )
                   )}
                </div>
 
@@ -171,70 +212,29 @@ export function EventCard({
                   </div>
                </div>
 
-               {/* Action Buttons */}
+               {/* Action Buttons — todos na mesma linha */}
                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => onClick(event)}>
-                     <Edit className="w-4 h-4 mr-2" />
-                     Ver detalhes
+                  <Button variant="outline" size="sm" className="flex-1 min-w-0" onClick={() => onClick(event)}>
+                     <Eye className="w-4 h-4 mr-2 shrink-0" />
+                     <span className="truncate">Ver detalhes</span>
                   </Button>
+                  {(isAdmin || isOwner) && (
+                     <>
+                        <Button variant="outline" size="sm" onClick={() => onEdit(event)}>
+                           <Edit className="w-4 h-4 mr-2" />
+                           Editar
+                        </Button>
+                        <Button
+                           variant="destructive"
+                           size="sm"
+                           className="hover:bg-destructive/10 hover:text-destructive"
+                           onClick={() => onDelete(event.id)}
+                        >
+                           <Trash2 className="w-4 h-4" />
+                        </Button>
+                     </>
+                  )}
                </div>
-               {isAdmin && (
-                  <div className="flex gap-2 mt-3">
-                     <Button
-                        variant="default"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                           if (onPublicar) onPublicar(event.id)
-                        }}
-                     >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Aprovar
-                     </Button>
-                     <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                           onEdit(event)
-                        }}
-                     >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar
-                     </Button>
-                     <Button
-                        variant="destructive"
-                        size="sm"
-                        className="hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => onDelete(event.id)}
-                     >
-                        <Trash2 className="w-4 h-4" />
-                     </Button>
-                  </div>
-               )}
-               {isOwner && !isAdmin && (
-                  <div className="flex gap-2 mt-3">
-                     <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                           onEdit(event)
-                        }}
-                     >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar
-                     </Button>
-                     <Button
-                        variant="destructive"
-                        size="sm"
-                        className="hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => onDelete(event.id)}
-                     >
-                        <Trash2 className="w-4 h-4" />
-                     </Button>
-                  </div>
-               )}
             </CardContent>
          </Card>
       </motion.div>

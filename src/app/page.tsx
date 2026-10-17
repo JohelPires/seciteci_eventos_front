@@ -10,6 +10,8 @@ import { EventDetails } from '@/components/EventDetails'
 import { Button } from '@/components/ui/button'
 
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
    Pagination,
@@ -23,7 +25,7 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { ApiError, createEvento, deleteEvento, editEvento, getCategorias, getEventos, getLocais } from '@/data/data'
+import { ApiError, cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventos, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
@@ -149,6 +151,11 @@ function AppContent() {
 
    const [deleteTarget, setDeleteTarget] = useState<Event | null>(null)
 
+   // Mudança de status pelo card: cancelamento passa por modal com motivo
+   const [statusTarget, setStatusTarget] = useState<{ id: string; titulo: string } | null>(null)
+   const [motivoCancelamento, setMotivoCancelamento] = useState('')
+   const [isSubmitting, setIsSubmitting] = useState(false)
+
    const { token, isAuthenticated, user, logout } = useAuth()
 
    const queryClient = useQueryClient()
@@ -255,6 +262,57 @@ function AppContent() {
    const handleRequestDelete = (id: string) => {
       const alvo = events.find((e) => e.id === id)
       if (alvo) setDeleteTarget(alvo)
+   }
+
+   // Cancelamento abre o modal de confirmação com motivo; publicar/reativar aplica direto.
+   const handleStatusChange = (id: string, next: 'publicado' | 'cancelado') => {
+      const alvo = events.find((e) => e.id === id)
+      if (!alvo) return
+
+      if (next === 'cancelado') {
+         setMotivoCancelamento('')
+         setStatusTarget({ id: alvo.id, titulo: alvo.titulo || 'Evento sem título' })
+         return
+      }
+
+      publicarEvento(alvo.id)
+   }
+
+   const publicarEvento = async (id: string) => {
+      if (!token) {
+         toast.error('Você não está autenticado!')
+         return
+      }
+      setIsSubmitting(true)
+      try {
+         await editEvento(id, { status: 'publicado' }, token)
+         toast.success('Evento publicado com sucesso!')
+         queryClient.invalidateQueries({ queryKey: ['eventos'] })
+      } catch (error) {
+         toast.error(error instanceof ApiError ? error.message : 'Erro ao atualizar o status do evento!')
+      } finally {
+         setIsSubmitting(false)
+      }
+   }
+
+   const confirmCancelarEvento = async () => {
+      if (!statusTarget) return
+      if (!token) {
+         toast.error('Você não está autenticado!')
+         return
+      }
+      setIsSubmitting(true)
+      try {
+         await cancelarEvento(statusTarget.id, token, motivoCancelamento)
+         toast.success('Evento cancelado com sucesso!')
+         setStatusTarget(null)
+         setMotivoCancelamento('')
+         queryClient.invalidateQueries({ queryKey: ['eventos'] })
+      } catch (error) {
+         toast.error(error instanceof ApiError ? error.message : 'Erro ao atualizar o status do evento!')
+      } finally {
+         setIsSubmitting(false)
+      }
    }
 
    const handleEditEvent = (event: Event) => {
@@ -589,6 +647,7 @@ function AppContent() {
                                  categoria={event.categoria}
                                  // local={event.local}
                                  onDelete={handleRequestDelete}
+                               onStatusChange={handleStatusChange}
                                  onEdit={handleEditEvent}
                                  onClick={handleEventClick}
                                  index={index}
@@ -772,15 +831,65 @@ function AppContent() {
                            setSelectedEvent(null)
                         }
                      }}
-                  >
-                     Excluir
-                  </AlertDialogAction>
-               </AlertDialogFooter>
-            </AlertDialogContent>
-         </AlertDialog>
-      </div>
-   )
-}
+                   >
+                      Excluir
+                   </AlertDialogAction>
+                </AlertDialogFooter>
+             </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Confirmação de cancelamento de evento (status pill do card) */}
+          <AlertDialog
+             open={!!statusTarget}
+             onOpenChange={(open) => {
+                if (!open && !isSubmitting) {
+                   setStatusTarget(null)
+                   setMotivoCancelamento('')
+                }
+             }}
+          >
+             <AlertDialogOverlay />
+             <AlertDialogContent>
+                <AlertDialogHeader>
+                   <AlertDialogTitle>Cancelar evento</AlertDialogTitle>
+                   <AlertDialogDescription>
+                      Tem certeza que deseja cancelar “{statusTarget?.titulo}”? O evento deixa de aparecer na
+                      programação.
+                   </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-2">
+                   <Label htmlFor="motivo-cancelamento">Motivo do cancelamento (opcional)</Label>
+                   <Textarea
+                      id="motivo-cancelamento"
+                      value={motivoCancelamento}
+                      onChange={(e) => setMotivoCancelamento(e.target.value)}
+                      placeholder="Explique brevemente o motivo, se quiser. Aparece para quem consultar o evento."
+                      maxLength={1000}
+                      disabled={isSubmitting}
+                      className="min-h-24"
+                   />
+                   <p className="text-xs text-muted-foreground text-right">{motivoCancelamento.length}/1000</p>
+                </div>
+
+                <AlertDialogFooter>
+                   <AlertDialogCancel disabled={isSubmitting}>Voltar</AlertDialogCancel>
+                   <AlertDialogAction
+                      disabled={isSubmitting}
+                      className="bg-destructive text-white hover:bg-destructive/90"
+                      onClick={(e) => {
+                         e.preventDefault()
+                         confirmCancelarEvento()
+                      }}
+                   >
+                      {isSubmitting ? 'Salvando...' : 'Cancelar evento'}
+                   </AlertDialogAction>
+                </AlertDialogFooter>
+             </AlertDialogContent>
+          </AlertDialog>
+       </div>
+    )
+ }
 
 export default function App() {
    return (
