@@ -66,6 +66,7 @@ const normalizarEvento = (evento: Event): Event => ({
    titulo: evento.titulo ?? '',
    descricao: evento.descricao ?? '',
    motivoCancelamento: evento.motivoCancelamento ?? '',
+   financiadores: (evento.financiadores ?? []).filter((f) => typeof f?.nome === 'string' && f.nome.trim() !== ''),
 })
 
 const normalizarEventos = (eventos: Event[] | undefined | null): Event[] =>

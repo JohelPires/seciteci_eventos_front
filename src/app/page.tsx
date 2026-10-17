@@ -70,6 +70,13 @@ export interface Categoria {
    cor: string
 }
 
+export interface Financiador {
+   id?: number
+   eventoId?: number
+   nome: string
+   tipo?: 'publico' | 'privado' | 'hibrido' | null
+}
+
 export interface Event {
    id: string
    titulo: string
@@ -105,8 +112,7 @@ export interface Event {
    motivoCancelamento?: string
    publicoAlvo?: string
    requisitos?: string
-   financiadorTipo?: 'publico' | 'privado' | 'hibrido' | null
-   financiadorNome?: string | null
+   financiadores?: Financiador[] | null
    dataCriacao?: string
    dataAtualizacao?: string
 }

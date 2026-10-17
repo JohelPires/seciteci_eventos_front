@@ -17,10 +17,14 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Event, Categoria } from '@/app/page'
+import type { Event, Categoria, Financiador } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
+import {
+   FinanciadoresField,
+   MAX_FINANCIADORES,
+   MAX_NOME_FINANCIADOR_CHARS,
+} from './FinanciadoresField'
 
 interface EventFormProps {
    onSubmit: (event: Omit<Event, 'id'>) => void
@@ -45,6 +49,7 @@ type Step2Errors = {
    horarioEncerramento?: string
    publicoAlvo?: string
    requisitos?: string
+   financiadores?: string
 }
 
 type Step3Errors = {
@@ -88,8 +93,7 @@ const INITIAL_FORM_DATA = {
    status: 'rascunho' as 'rascunho' | 'publicado' | 'cancelado',
    publicoAlvo: '',
    requisitos: '',
-  financiadorTipo: '' as '' | 'publico' | 'privado' | 'hibrido',
-  financiadorNome: '',
+   financiadores: [] as Financiador[],
 }
 
 const MAX_DESCRICAO_CHARS = 500
@@ -201,8 +205,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                status: editingEvent.status,
                publicoAlvo: editingEvent.publicoAlvo || '',
                requisitos: editingEvent.requisitos || '',
-               financiadorTipo: editingEvent.financiadorTipo || '',
-               financiadorNome: editingEvent.financiadorNome || '',
+               financiadores: editingEvent.financiadores ?? [],
             })
             // Se já tem coords ao editar, marca como sucesso
             if (editingEvent.LocalLatitude && editingEvent.LocalLongitude) {
@@ -214,7 +217,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
    }, [editingEvent])
 
    const set = useCallback(
-      (field: keyof typeof INITIAL_FORM_DATA, value: string) => {
+      (field: Exclude<keyof typeof INITIAL_FORM_DATA, 'financiadores'>, value: string) => {
          setFormData((prev) => {
             if (editingEvent && field === 'categoriaId' && value === '') {
                return prev
@@ -400,6 +403,12 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
          errs.publicoAlvo = `O público-alvo deve ter no máximo ${MAX_PUBLICO_ALVO_CHARS} caracteres`
       if (formData.requisitos.length > MAX_REQUISITOS_CHARS)
          errs.requisitos = `Os requisitos devem ter no máximo ${MAX_REQUISITOS_CHARS} caracteres`
+      if (formData.financiadores.length > MAX_FINANCIADORES)
+         errs.financiadores = `O evento aceita no máximo ${MAX_FINANCIADORES} financiadores`
+      else if (formData.financiadores.some((f) => !f.nome.trim() && !!f.tipo))
+         errs.financiadores = 'Informe o nome do financiador ou remova a linha vazia'
+      else if (formData.financiadores.some((f) => f.nome.trim().length > MAX_NOME_FINANCIADOR_CHARS))
+         errs.financiadores = `O nome do financiador deve ter no máximo ${MAX_NOME_FINANCIADOR_CHARS} caracteres`
       setErrors2(errs)
       return Object.keys(errs).length === 0
    }, [
@@ -409,6 +418,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
       formData.horarioEncerramento,
       formData.publicoAlvo,
       formData.requisitos,
+      formData.financiadores,
    ])
 
    const validateStep3 = useCallback((): boolean => {
@@ -502,8 +512,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
             status: statusEnvio,
             publicoAlvo: formData.publicoAlvo || undefined,
             requisitos: formData.requisitos || undefined,
-            financiadorTipo: formData.financiadorTipo || undefined,
-            financiadorNome: formData.financiadorNome || undefined,
+            financiadores: formData.financiadores
+               .map((f) => ({ nome: f.nome.trim(), tipo: f.tipo || undefined }))
+               .filter((f) => f.nome !== ''),
          })
 
          setFormData(INITIAL_FORM_DATA)
@@ -549,18 +560,10 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
       [formData.LocalNome, formData.LocalCidade, formData.LocalEstado],
    )
 
-   const resumoFinanciamento = useMemo(() => {
-      if (!formData.financiadorTipo) return ''
-      const tipo =
-         formData.financiadorTipo === 'publico'
-            ? 'Público'
-            : formData.financiadorTipo === 'privado'
-            ? 'Privado'
-            : formData.financiadorTipo === 'hibrido'
-            ? 'Híbrido'
-            : ''
-      return formData.financiadorNome ? `${tipo} — ${formData.financiadorNome}` : tipo
-   }, [formData.financiadorTipo, formData.financiadorNome])
+   const resumoFinanciadores = useMemo(
+      () => formData.financiadores.map((f) => f.nome.trim()).filter(Boolean).join(', '),
+      [formData.financiadores],
+   )
 
    return (
       <AnimatePresence>
@@ -897,57 +900,21 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  <FieldError message={errors2.requisitos} />
                               </div>
 
-                              {/* Financiamento */}
-                              <div className="space-y-2">
-                                 <Label>Natureza do Financiador (opcional)</Label>
-                                 <ToggleGroup
-                                    type="single"
-                                    variant="outline"
-                                    className="w-full"
-                                    value={formData.financiadorTipo || ''}
-                                    onValueChange={(value) => {
-                                       set('financiadorTipo', value)
-                                       if (!value) set('financiadorNome', '')
+                              {/* Financiadores */}
+                              <div className="space-y-2 md:col-span-2">
+                                 <FinanciadoresField
+                                    value={formData.financiadores}
+                                    onChange={(financiadores) => {
+                                       setFormData((prev) => ({ ...prev, financiadores }))
+                                       if (errors2.financiadores)
+                                          setErrors2((p) => ({ ...p, financiadores: undefined }))
                                     }}
-                                 >
-                                    <ToggleGroupItem value="publico" className="flex-1">
-                                       Público
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="privado" className="flex-1">
-                                       Privado
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="hibrido" className="flex-1">
-                                       Híbrido
-                                    </ToggleGroupItem>
-                                 </ToggleGroup>
+                                    error={errors2.financiadores}
+                                 />
                               </div>
-
-                              <AnimatePresence>
-                                 {formData.financiadorTipo && (
-                                    <motion.div
-                                       initial={{ opacity: 0, y: -4 }}
-                                       animate={{ opacity: 1, y: 0 }}
-                                       exit={{ opacity: 0, y: -4 }}
-                                       transition={{ duration: 0.2 }}
-                                       className="space-y-2"
-                                    >
-                                       <Label htmlFor="financiadorNome">Nome do Financiador</Label>
-                                       <Input
-                                          id="financiadorNome"
-                                          placeholder={
-                                             formData.financiadorTipo === 'publico'
-                                                ? 'Ex: Secretaria Municipal de Cultura'
-                                                : 'Ex: Patrocinador da empresa XYZ'
-                                          }
-                                          value={formData.financiadorNome}
-                                          onChange={(e) => set('financiadorNome', e.target.value)}
-                                       />
-                                    </motion.div>
-                                 )}
-                              </AnimatePresence>
                            </div>
                         </motion.div>
-                     )}
+                      )}
 
                      {/* ── Step 3: Informações do Local ────────────── */}
                      {currentStep === 3 && (
@@ -1323,7 +1290,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                                 ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
                                                 : 'Não informada',
                                           ],
-                                          ['Financiamento', resumoFinanciamento],
+                                           ['Financiadores', resumoFinanciadores],
                                           [
                                              'Situação',
                                              statusEnvio.charAt(0).toUpperCase() + statusEnvio.slice(1),

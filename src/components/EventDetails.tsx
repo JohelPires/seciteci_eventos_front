@@ -260,7 +260,7 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                   </div>
 
                   {/* Additional Information */}
-                  {(event.publicoAlvo || event.requisitos || event.financiadorTipo || event.financiadorNome) && (
+                  {(event.publicoAlvo || event.requisitos || (event.financiadores && event.financiadores.length > 0)) && (
                      <div className="space-y-4 mb-6 pt-4 border-t border-border">
                         {event.publicoAlvo && (
                            <div className="flex items-start gap-3">
@@ -286,26 +286,15 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                             </div>
                          )}
 
-                         {(event.financiadorTipo || event.financiadorNome) && (
+                         {event.financiadores && event.financiadores.length > 0 && (
                             <div className="flex items-start gap-3">
                                <div className="p-2.5 rounded-lg bg-muted">
                                   <HandCoins className="w-5 h-5 text-foreground/70" />
                                </div>
-                               <div>
-                                  <p className="text-sm text-muted-foreground">Financiamento</p>
-                                  <p className="text-foreground">
-                                     {[
-                                        event.financiadorTipo === 'publico'
-                                           ? 'Público'
-                                           : event.financiadorTipo === 'privado'
-                                           ? 'Privado'
-                                           : event.financiadorTipo === 'hibrido'
-                                           ? 'Híbrido'
-                                           : event.financiadorTipo,
-                                        event.financiadorNome,
-                                     ]
-                                        .filter(Boolean)
-                                        .join(' — ')}
+                               <div className="min-w-0">
+                                  <p className="text-sm text-muted-foreground">Financiadores</p>
+                                  <p className="text-foreground break-words">
+                                     {event.financiadores.map((f) => f.nome).filter(Boolean).join(', ')}
                                   </p>
                                </div>
                             </div>
