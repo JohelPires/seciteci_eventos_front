@@ -132,6 +132,7 @@ function AppContent() {
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [currentPage, setCurrentPage] = useState(1)
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
+   const [pendingCreate, setPendingCreate] = useState(false)
 
    const [loading, setLoading] = useState<boolean>(true)
 
@@ -260,6 +261,24 @@ function AppContent() {
       setEditingEvent(null)
    }
 
+   // CTA "Solicitar Cadastro de Evento": deslogado guarda a intenção e abre o
+   // dialog de autenticação; o efeito abaixo abre o form assim que logar.
+   const handleSolicitarCadastro = () => {
+      if (isAuthenticated) {
+         setShowForm(true)
+      } else {
+         setPendingCreate(true)
+         setAuthDialogOpen(true)
+      }
+   }
+
+   useEffect(() => {
+      if (isAuthenticated && pendingCreate) {
+         setShowForm(true)
+         setPendingCreate(false)
+      }
+   }, [isAuthenticated, pendingCreate])
+
    const handleEventClick = (event: Event) => {
       setSelectedEvent(event)
    }
@@ -322,6 +341,20 @@ function AppContent() {
                      reúne e divulga, as iniciativas do ecossistema estadual, em uma única plataforma, sob a gestão da
                      Secretaria de Estado de Ciência, Tecnologia e Inovação de Mato Grosso - SECITECI.
                   </p>
+                  <motion.div
+                     initial={{ opacity: 0, x: 20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     className="mt-6 flex justify-end"
+                  >
+                     <Button
+                        onClick={handleSolicitarCadastro}
+                        size="lg"
+                        className="gap-2 h-12 px-6 text-base font-semibold shadow-xl shadow-primary/30 hover:-translate-y-0.5 hover:shadow-2xl transition-all"
+                     >
+                        <Plus className="w-5 h-5" />
+                        Solicitar Cadastro de Evento
+                     </Button>
+                  </motion.div>
                </div>
             </div>
          </header>
@@ -332,7 +365,7 @@ function AppContent() {
          <header className="border-b border-border bg-card">
             <div className="container mx-auto px-4 py-6">
                {/* Top Section */}
-               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
+               <div className="flex items-center gap-4 mb-8">
                   <motion.div
                      initial={{ opacity: 0, x: -20 }}
                      animate={{ opacity: 1, x: 0 }}
@@ -345,15 +378,6 @@ function AppContent() {
                         <h1 className="text-2xl font-semibold">Eventos</h1>
                      </div>
                   </motion.div>
-
-                  {isAuthenticated && (
-                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                        <Button onClick={() => setShowForm(true)} size="lg" className="gap-2 shadow-sm">
-                           <Plus className="w-5 h-5" />
-                           Solicitar Cadastro de Evento
-                        </Button>
-                     </motion.div>
-                  )}
                </div>
 
                {/* Stats Cards */}
@@ -527,7 +551,7 @@ function AppContent() {
                                    : 'Solicite o cadastro de um evento para começar'}
                            </p>
                            {!searchTerm && categoryFilter === 'all' && (
-                              <Button onClick={() => setShowForm(true)} className="gap-2" size="lg">
+                              <Button onClick={handleSolicitarCadastro} className="gap-2" size="lg">
                                  <Plus className="w-4 h-4" />
                                  Solicite um cadastro de evento
                               </Button>
