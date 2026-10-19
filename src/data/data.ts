@@ -72,53 +72,87 @@ const normalizarEvento = (evento: Event): Event => ({
 const normalizarEventos = (eventos: Event[] | undefined | null): Event[] =>
    (eventos ?? []).map(normalizarEvento)
 
-export const getEventos = async () => {
-   const res = await authFetch(`${API_URL}/api/eventos?status=publicado&limit=1000`)
-
-   const data = await res.json()
-
-   // await new Promise((resolve) => setTimeout(resolve, 3000))
-
-   return { ...data, eventos: normalizarEventos(data?.eventos) }
+/** Metadados de paginação devolvidos pela API. */
+export interface Pagination {
+   page: number
+   limit: number
+   total: number
+   totalPages: number
 }
 
-export const getEventosFullQuery = async (
-   categoria: string | null = '',
-   cidade: string | null = '',
-   status: 'publicado' | 'rascunho' | 'cancelado' | null = 'publicado',
-   tipo: 'presencial' | 'online' | 'hibrido' | null = 'presencial',
-   busca: string | null = '',
-   page: number | null = 1,
-   limit: number | null = 10,
-) => {
+export interface EventosParams {
+   page?: number
+   limit?: number
+   categoria?: string
+   busca?: string
+   status?: string
+   tipo?: string
+}
+
+export interface ResultadoEventos {
+   eventos: Event[]
+   pagination: Pagination
+}
+
+const PAGINACAO_VAZIA = (page: number, limit: number): Pagination => ({
+   page,
+   limit,
+   total: 0,
+   totalPages: 0,
+})
+
+/**
+ * Monta a querystring. `status` é o único parâmetro cuja string vazia tem
+ * semântica na API (`status=` = TODOS os status; omitir = só `publicado`),
+ * então ele é sempre enviado quando definido.
+ */
+const querystring = (params: Record<string, string | number | undefined>): string => {
+   const qs = new URLSearchParams()
+   for (const [k, v] of Object.entries(params)) {
+      if (v === undefined || v === null) continue
+      if (k !== 'status' && v === '') continue
+      qs.set(k, String(v))
+   }
+   const s = qs.toString()
+   return s ? `?${s}` : ''
+}
+
+/** Lista pública paginada com filtros server-side. Default: só publicados. */
+export const getEventos = async (params: EventosParams = {}): Promise<ResultadoEventos> => {
+   const { page = 1, limit = 6, categoria, busca, status = 'publicado', tipo } = params
+   const res = await authFetch(`${API_URL}/api/eventos${querystring({ page, limit, categoria, busca, status, tipo })}`)
+   const data = await res.json()
+   return { eventos: normalizarEventos(data?.eventos), pagination: data?.pagination ?? PAGINACAO_VAZIA(page, limit) }
+}
+
+/**
+ * Lista paginada para o admin. `status=''` (default) = todos os status — sem
+ * isso a API defaulta para `publicado` e o painel perdia rascunhos/cancelados.
+ */
+export const getEventosAdmin = async (token: string | null, params: EventosParams = {}): Promise<ResultadoEventos> => {
+   const { page = 1, limit = 10, busca, status = '', tipo } = params
    const res = await authFetch(
-      `${API_URL}/api/eventos?categoria=${encodeURIComponent(categoria ?? '')}&cidade=${encodeURIComponent(cidade ?? '')}&status=${status}&tipo=${tipo}&busca=${encodeURIComponent(busca ?? '')}&page=${page}&limit=${limit}`,
+      `${API_URL}/api/eventos${querystring({ page, limit, busca, status, tipo })}`,
+      {
+         headers: {
+            Authorization: `Bearer ${token}`,
+         },
+      },
    )
    const data = await res.json()
-
-   return { ...data, eventos: normalizarEventos(data?.eventos) }
+   return { eventos: normalizarEventos(data?.eventos), pagination: data?.pagination ?? PAGINACAO_VAZIA(page, limit) }
 }
 
-export const getEventosAdmin = async (token: string | null) => {
-   const res = await authFetch(`${API_URL}/api/eventos?limit=1000`, {
+/** Lista os eventos criados pelo usuário autenticado, paginados no servidor. */
+export const getMeusEventos = async (token: string | null, params: EventosParams = {}): Promise<ResultadoEventos> => {
+   const { page = 1, limit = 6 } = params
+   const res = await authFetch(`${API_URL}/api/meus-eventos${querystring({ page, limit })}`, {
       headers: {
          Authorization: `Bearer ${token}`,
       },
    })
    const data = await res.json()
-
-   return { ...data, eventos: normalizarEventos(data?.eventos) }
-}
-
-/**
- * Lista os eventos criados pelo usuário informado.
- * Não há endpoint dedicado no backend: busca a lista completa (todos os status)
- * e filtra client-side por organizadorId. Comparação NaN-safe.
- */
-export const getMeusEventos = async (token: string | null, userId: number): Promise<Event[]> => {
-   const data = await getEventosAdmin(token)
-   const eventos: Event[] = normalizarEventos(data?.eventos)
-   return eventos.filter((evento) => Number(evento.organizadorId) === userId)
+   return { eventos: normalizarEventos(data?.eventos), pagination: data?.pagination ?? PAGINACAO_VAZIA(page, limit) }
 }
 
 export const createEvento = async (evento: Event, token: string | null) => {
@@ -230,10 +264,19 @@ export const deleteCategoria = async (id: string, token: string | null) => {
    return data
 }
 
-export const getUsuarios = async ({ queryKey }: { queryKey: [string, { token: string | null; search: string }] }) => {
-   if (queryKey[1].token === null) return { erro: 'Nao autorizado' }
-   const [_key, { token, search }] = queryKey
-   const res = await authFetch(`${API_URL}/api/usuarios?limit=1000&search=${encodeURIComponent(search)}`, {
+export const getUsuarios = async ({
+   page = 1,
+   limit = 10,
+   token = null,
+   search = '',
+}: {
+   page?: number
+   limit?: number
+   token: string | null
+   search?: string
+}) => {
+   // O server clampa limit em 100 e NÃO aplica `search`: a busca permanece no cliente.
+   const res = await authFetch(`${API_URL}/api/usuarios${querystring({ page, limit, search })}`, {
       headers: {
          Authorization: `Bearer ${token}`,
       },
