@@ -1,6 +1,6 @@
 'use client'
 import { Suspense, use, useEffect, useMemo, useState } from 'react'
-import { Plus, Search, Calendar, BarChart3, Users, Tag, Map, X } from 'lucide-react'
+import { Plus, Search, Calendar, BarChart3, Users, Tag, Map, X, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/Navbar'
 import { EventCard } from '@/components/EventCard'
@@ -44,8 +44,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import { set } from 'react-hook-form'
 import { CardSkeleton } from '@/components/CardSkeleton'
+import { BlockSkeleton } from '@/components/BlockSkeleton'
 import { Footer } from '@/components/Footer'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useDebouncedValue } from '@/hooks/debounce'
 import { get } from 'http'
 import { Separator } from '@radix-ui/react-select'
 import Image from 'next/image'
@@ -130,7 +132,6 @@ function AppContent() {
    const searchParams = useSearchParams()
    const action = searchParams.get('action')
 
-   const [events, setEvents] = useState<Event[]>([])
    const [showForm, setShowForm] = useState(false)
    const [editingEvent, setEditingEvent] = useState<Event | null>(null)
    const [searchTerm, setSearchTerm] = useState('')
@@ -141,10 +142,6 @@ function AppContent() {
    const [currentPage, setCurrentPage] = useState(1)
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
    const [pendingCreate, setPendingCreate] = useState(false)
-
-   const [loading, setLoading] = useState<boolean>(true)
-
-   const [reload, setReload] = useState(false)
 
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
@@ -160,14 +157,30 @@ function AppContent() {
 
    const queryClient = useQueryClient()
 
-   // Helper functions
-   // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
-   // const getLocal = (id: number) => locais.find((l) => l.id === id)
+   const buscaDebounced = useDebouncedValue(searchTerm)
 
-   const { data, error, isLoading } = useQuery({
-      queryKey: ['eventos'],
-      queryFn: getEventos,
+   // Grid server-paginado: busca e categoria aplicadas no servidor.
+   // keepPreviousData mantém a página anterior visível durante as trocas.
+   const { data, isError, isLoading, isFetching, refetch: refetchEventos } = useQuery({
+      queryKey: ['eventos', { page: currentPage, categoria: categoryFilter, busca: buscaDebounced }],
+      queryFn: () =>
+         getEventos({
+            page: currentPage,
+            limit: ITEMS_PER_PAGE,
+            categoria: categoryFilter === 'all' ? undefined : categoryFilter,
+            busca: buscaDebounced,
+         }),
+      placeholderData: keepPreviousData,
    })
+
+   // Conjunto bounded (teto da API = 100): alimenta o calendário, o mapa,
+   // o filtro por dia e a soma de capacidade.
+   const { data: eventosCalendarioData } = useQuery({
+      queryKey: ['eventos-calendario'],
+      queryFn: () => getEventos({ page: 1, limit: 100, status: 'publicado' }),
+      placeholderData: keepPreviousData,
+   })
+
    const { data: categoriasData, isLoading: isLoadingCategorias } = useQuery({
       queryKey: ['categorias'],
       queryFn: getCategorias,
@@ -187,34 +200,7 @@ function AppContent() {
          setAuthDialogOpen(true)
       }
       router.replace('/', { scroll: false })
-   }, [action, isAuthenticated, router])
-
-   useEffect(() => {
-      if (data) {
-         setEvents(
-            data.eventos.sort(
-               (a: Event, b: Event) => new Date(b.dataInicio).getTime() - new Date(a.dataInicio).getTime(),
-            ),
-         )
-         // setLoading(false)
-      }
-   }, [data])
-
-   // useEffect(() => {
-   //    async function fetchData() {
-   //       try {
-   //          setLoading(true)
-   //          const response = await getEventos()
-
-   //          setEvents(response.eventos)
-   //          setLoading(false)
-   //       } catch (error) {
-   //          console.log(error)
-   //       }
-   //    }
-
-   //    fetchData()
-   // }, [reload])
+    }, [action, isAuthenticated, router])
 
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
@@ -243,15 +229,15 @@ function AppContent() {
       }
    }
 
+   // Recupera um evento pelas duas fontes de dados (página + calendário)
+   const encontrarEvento = (id: string) => [...eventosGrid, ...eventosCalendario].find((e) => e.id === id)
+
    const handleDeleteEvent = async (id: string) => {
-      // setEvents(events.filter((e) => e.id !== id))
       try {
          await deleteEvento(id, token)
          toast.success('Evento excluído com sucesso!')
-         queryClient.setQueryData(['eventos'], (old: { eventos: Event[] } | undefined) =>
-            old ? { ...old, eventos: old.eventos.filter((e) => e.id !== id) } : old,
-         )
          queryClient.invalidateQueries({ queryKey: ['eventos'] })
+         queryClient.invalidateQueries({ queryKey: ['eventos-calendario'] })
       } catch (error) {
          if (error instanceof Error) {
             toast.error(error.message)
@@ -260,13 +246,13 @@ function AppContent() {
    }
 
    const handleRequestDelete = (id: string) => {
-      const alvo = events.find((e) => e.id === id)
+      const alvo = encontrarEvento(id)
       if (alvo) setDeleteTarget(alvo)
    }
 
    // Cancelamento abre o modal de confirmação com motivo; publicar/reativar aplica direto.
    const handleStatusChange = (id: string, next: 'publicado' | 'cancelado') => {
-      const alvo = events.find((e) => e.id === id)
+      const alvo = encontrarEvento(id)
       if (!alvo) return
 
       if (next === 'cancelado') {
@@ -288,6 +274,7 @@ function AppContent() {
          await editEvento(id, { status: 'publicado' }, token)
          toast.success('Evento publicado com sucesso!')
          queryClient.invalidateQueries({ queryKey: ['eventos'] })
+         queryClient.invalidateQueries({ queryKey: ['eventos-calendario'] })
       } catch (error) {
          toast.error(error instanceof ApiError ? error.message : 'Erro ao atualizar o status do evento!')
       } finally {
@@ -308,6 +295,7 @@ function AppContent() {
          setStatusTarget(null)
          setMotivoCancelamento('')
          queryClient.invalidateQueries({ queryKey: ['eventos'] })
+         queryClient.invalidateQueries({ queryKey: ['eventos-calendario'] })
       } catch (error) {
          toast.error(error instanceof ApiError ? error.message : 'Erro ao atualizar o status do evento!')
       } finally {
@@ -351,31 +339,28 @@ function AppContent() {
       setSelectedEvent(null)
    }
 
-   const filteredEvents = events.filter((event) => {
-      const matchesSearch =
-         event.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         event.descricao.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = categoryFilter === 'all' || event.categoria?.nome === categoryFilter
-      const matchesDay =
-         !selectedDate ||
-         (new Date(event.dataInicio) <= fimDoDia(selectedDate) &&
-            new Date(event.dataFim ?? event.dataInicio) >= inicioDoDia(selectedDate))
-      return matchesSearch && matchesCategory && matchesDay
+   // Conjunto derivado da query bounded: calendário, mapa e filtro por dia
+   const eventosCalendario = eventosCalendarioData?.eventos ?? []
+
+   // Página atual do grid (server-side; ordem cronológica do servidor)
+   const eventosGrid = data?.eventos ?? []
+
+   // Filtrados server-side; o dia selecionado troca a fonte para o conjunto bounded
+   const eventosDia = eventosCalendario.filter((event) => {
+      if (!selectedDate) return true
+      return new Date(event.dataInicio) <= fimDoDia(selectedDate) && new Date(event.dataFim ?? event.dataInicio) >= inicioDoDia(selectedDate)
    })
 
-   // Pagination calculations
-   const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE)
-   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-   const endIndex = startIndex + ITEMS_PER_PAGE
-   const paginatedEvents = filteredEvents.slice(startIndex, endIndex)
+   const emModoDia = !!selectedDate
+   const cardsVisiveis = emModoDia ? eventosDia : eventosGrid
+   const totalPages = emModoDia ? 0 : (data?.pagination?.totalPages ?? 0)
+
+   const totalCapacity = eventosCalendario.reduce((sum, event) => sum + (event.LocalCapacidade ?? 0), 0)
 
    // Reset to page 1 when filters change
    useEffect(() => {
       setCurrentPage(1)
-   }, [searchTerm, categoryFilter, selectedDate])
-
-   const totalCapacity = events.reduce((sum, event) => sum + (event.LocalCapacidade ?? 0), 0)
-   const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
+   }, [buscaDebounced, categoryFilter, selectedDate])
 
    return (
       <div className="min-h-screen bg-gray-50">
@@ -455,7 +440,7 @@ function AppContent() {
                      <div className="flex items-center justify-between">
                         <div>
                            <p className="text-sm text-muted-foreground mb-1">Total de Eventos</p>
-                           <p className="text-foreground text-3xl font-semibold">{events.length}</p>
+                           <p className="text-foreground text-3xl font-semibold">{data?.pagination?.total ?? 0}</p>
                         </div>
                         <div className="p-3 bg-primary dark:bg-blue-950 rounded-lg">
                            <BarChart3 className="w-5 h-5 text-white dark:text-blue-400" />
@@ -552,14 +537,14 @@ function AppContent() {
                   )}
 
                   {/* Calendário: filtro por dia para os cards abaixo */}
-                  <div className="mt-6">
-                     <CalendarView
-                        events={events}
-                        selectedDate={selectedDate}
-                        onSelectDate={setSelectedDate}
-                        showPanel={false}
-                     />
-                  </div>
+                   <div className="mt-6">
+                      <CalendarView
+                         events={eventosCalendario}
+                         selectedDate={selectedDate}
+                         onSelectDate={setSelectedDate}
+                         showPanel={false}
+                      />
+                   </div>
                </motion.div>
             </div>
          </header>
@@ -589,14 +574,24 @@ function AppContent() {
                </div>
             )}
             {isLoading ? (
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                     <CardSkeleton key={i} />
-                  ))}
-               </div>
-            ) : (
-               <>
-                  {filteredEvents.length === 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                   {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+                      <CardSkeleton key={i} />
+                   ))}
+                </div>
+             ) : isError ? (
+                <div className="flex flex-col items-center gap-4 py-20 text-center">
+                   <p className="text-muted-foreground">
+                      Erro ao carregar os eventos. Tente novamente.
+                   </p>
+                   <Button variant="outline" onClick={() => refetchEventos()} className="gap-2">
+                      <RotateCcw className="w-4 h-4" />
+                      Tentar novamente
+                   </Button>
+                </div>
+             ) : (
+                <>
+                   {cardsVisiveis.length === 0 ? (
                      <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -639,8 +634,14 @@ function AppContent() {
                            </p>
                         </motion.div> */}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                           {paginatedEvents.map((event, index) => (
+                         <p aria-live="polite" className="sr-only">
+                            {isFetching && !isLoading ? 'Carregando eventos…' : ''}
+                         </p>
+                         <div
+                            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 transition-opacity ${isFetching && !isLoading ? 'pointer-events-none opacity-60' : ''}`}
+                            aria-busy={isFetching}
+                         >
+                            {cardsVisiveis.map((event, index) => (
                               <EventCard
                                  key={event.id}
                                  event={event}
@@ -747,8 +748,12 @@ function AppContent() {
                   <h1 className="text-2xl font-semibold">Mapa dos Eventos</h1>
                   <p className="text-muted-foreground">Veja todos os eventos distribuidos no mapa</p>
                </div>
-            </motion.div>
-            <MapView events={events} categorias={categoriasData || []} onEventClick={handleEventClick} />
+                </motion.div>
+            {isLoading ? (
+               <BlockSkeleton className="h-[420px]" />
+            ) : (
+               <MapView events={eventosCalendario} categorias={categoriasData || []} onEventClick={handleEventClick} />
+            )}
          </main>
 
          <Footer />
