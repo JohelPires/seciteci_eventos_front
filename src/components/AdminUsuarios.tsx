@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Edit, Trash2, Search, User, Mail, Calendar, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useDebouncedValue } from '@/hooks/debounce'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Badge } from './ui/badge'
@@ -41,6 +42,7 @@ import {
     PaginationPrevious,
 } from './ui/pagination'
 import { getUsuarios, promoverUsuario } from '@/data/data'
+import { TableSkeleton } from './TableSkeleton'
 import { useAuth } from '@/context/AuthContext'
 
 export interface Usuario {
@@ -72,12 +74,21 @@ export function AdminUsuarios({
     const { token } = useAuth()
     const queryClient = useQueryClient()
 
-    // search is included in the query key to satisfy getUsuarios's type, but filtering
-    // happens client-side for now. When evolving to server-side search, add debouncing
-    // to searchTerm and remove the client-side filteredUsuarios filter below.
-    const { data, error, isLoading } = useQuery({
-        queryKey: ['Usuarios', { token, search: searchTerm }],
-        queryFn: getUsuarios,
+    const buscaDebounced = useDebouncedValue(searchTerm)
+
+    // Em modo busca: conjunto bounded (limit=100) filtrado no client, pois
+    // GET /api/usuarios não aplica `search` no servidor. Sem busca: paginação server-side.
+    const { data, isLoading, isFetching, isError, refetch: refetchUsuarios } = useQuery({
+        queryKey: ['Usuarios', { pagina: currentPage, busca: null }],
+        queryFn: () => getUsuarios({ token, page: currentPage, limit: ITEMS_PER_PAGE }),
+        enabled: token !== null,
+        placeholderData: keepPreviousData,
+    })
+    const { data: usuariosBuscaData, isLoading: isLoadingBusca } = useQuery({
+        queryKey: ['Usuarios-todos', { busca: buscaDebounced }],
+        queryFn: () => getUsuarios({ token, page: 1, limit: 100 }),
+        enabled: token !== null && buscaDebounced.trim() !== '',
+        placeholderData: keepPreviousData,
     })
 
     const promoverMutation = useMutation({
@@ -91,20 +102,24 @@ export function AdminUsuarios({
         },
     })
 
-    const usuarios: Usuario[] = data?.usuarios ?? []
+    const emBusca = buscaDebounced.trim() !== ''
+    const todosUsuarios: Usuario[] = (emBusca ? usuariosBuscaData?.usuarios : data?.usuarios) ?? []
 
-    const filteredUsuarios = usuarios.filter((usuario) => {
-        return (
-            usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            usuario.email.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    })
+    const filteredUsuarios = emBusca
+        ? todosUsuarios.filter((usuario) => {
+            return (
+                usuario.nome.toLowerCase().includes(buscaDebounced.toLowerCase()) ||
+                usuario.email.toLowerCase().includes(buscaDebounced.toLowerCase())
+            )
+        })
+        : todosUsuarios
 
-    const totalPages = Math.ceil(filteredUsuarios.length / ITEMS_PER_PAGE)
-    const paginatedUsuarios = filteredUsuarios.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-    )
+    const totalPages = emBusca
+        ? Math.ceil(filteredUsuarios.length / ITEMS_PER_PAGE)
+        : (data?.pagination?.totalPages ?? 0)
+    const paginatedUsuarios = emBusca
+        ? filteredUsuarios.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+        : todosUsuarios
 
     const handleSearchChange = (value: string) => {
         setSearchTerm(value)
@@ -177,16 +192,30 @@ export function AdminUsuarios({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={6}
-                                        className="text-center py-8 text-muted-foreground"
-                                    >
-                                        Carregando usuários...
-                                    </TableCell>
-                                </TableRow>
-                            ) : error ? (
+                        {isLoading || (emBusca && isLoadingBusca) ? (
+                            <TableSkeleton linhas={5} colunas={6} />
+                        ) : isError ? (
+                            <TableRow>
+                                <TableCell
+                                    colSpan={6}
+                                    className="text-center py-8 text-destructive"
+                                >
+                                    Erro ao carregar usuários.
+                                    <Button variant="outline" size="sm" className="mt-2" onClick={() => refetchUsuarios()}>
+                                        Tentar novamente
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ) : emBusca && filteredUsuarios.length === 0 ? (
+                            <TableRow>
+                                <TableCell
+                                    colSpan={6}
+                                    className="text-center py-8 text-muted-foreground"
+                                >
+                                    Nenhum usuário encontrado para “{buscaDebounced}”
+                                </TableCell>
+                            </TableRow>
+                        ) : !emBusca && !isFetching && paginatedUsuarios.length === 0 ? (
                                 <TableRow>
                                     <TableCell
                                         colSpan={6}
@@ -313,8 +342,9 @@ export function AdminUsuarios({
                 </div>
 
                 <div className="mt-4 text-sm text-muted-foreground">
-                    Mostrando {filteredUsuarios.length} de {usuarios.length}{' '}
-                    usuários
+                    {emBusca
+                        ? `Mostrando ${paginatedUsuarios.length} de ${filteredUsuarios.length} usuários`
+                        : `Mostrando ${paginatedUsuarios.length} de ${data?.pagination?.total ?? 0} usuários`}
                 </div>
 
                 {/* Pagination */}
