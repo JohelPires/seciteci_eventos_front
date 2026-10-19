@@ -191,10 +191,11 @@ export function AdminUsuarios({
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
-                        <TableBody>
                         {isLoading || (emBusca && isLoadingBusca) ? (
                             <TableSkeleton linhas={5} colunas={6} />
-                        ) : isError ? (
+                        ) : (
+                        <TableBody>
+                        {isError ? (
                             <TableRow>
                                 <TableCell
                                     colSpan={6}
@@ -334,10 +335,11 @@ export function AdminUsuarios({
                                                 </Button>
                                             </div>
                                         </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
+                                     </TableRow>
+                                 ))
+                             )}
                         </TableBody>
+                        )}
                     </Table>
                 </div>
 
