@@ -67,13 +67,14 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 - [ ] Descrição real do site em layout.tsx (hoje repete o title)
 
 ## 🔴 Críticos — Performance
-- [ ] 🖥️ Paginação server-side (hoje `limit=1000` em data.ts:6,33 e pagina no client); fechar item "get eventos pega apenas próximos" acima
+- [x] 🖥️ Paginação server-side (getEventos/getEventosAdmin/getMeusEventos/getUsuarios; spec `docs/superpowers/specs/2026-10-18-paginacao-server-side-design.md`)
+  - Caveat: calendário/mapa/stats usam conjunto bounded `limit=100` (teto da API); fase futura: filtro de data/aggregates no backend
 - [ ] Migrar `<img>` (EventCard.tsx:84,95; EventDetails.tsx:90; MapView.tsx:287; EventForm.tsx:1089) para `next/image` com loading lazy, width/height e remotePatterns no next.config
 - [ ] Converter public/evento_sem_imagem.png (908 KB) para webp otimizado
 
 ## 🟠 Médios — UX
 - [ ] Migrar modais manuais EventForm/EventDetails (`<div>` com backdrop) para `Dialog`/`AlertDialog` do shadcn (Esc, focus trap, scroll lock)
-- [ ] Admin: adicionar skeleton/loading na tabela e tratar erro de fetch (admin/page.tsx:65-91)
+- [ ] Admin: tratar erro de fetch do overview (o getEventosAdmin virou useQuery); skeleton de tabela já implementado
 - [ ] Home: distinguir erro de API de lista vazia (page.tsx:431 mostra "Nenhum evento encontrado" em falha)
 - [ ] AdminEventos.tsx:167: coluna "Local" exibe texto literal "local" — dado falso
 - [ ] Substituir alert()/confirm() nativos por sonner/AlertDialog: admin/page.tsx:152, AdminEventos.tsx:216, AdminCategorias.tsx:115, AdminUsuarios.tsx:264
@@ -104,7 +105,7 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 
 ## 🟡 Baixos
 - [ ] Deletar arquivos mortos: EventForm2.tsx.backup, ui/*.tsx.del (5), ui/utils.ts (duplicata de lib/utils.ts), styles/globals.css (duplicado), figma/ImageWithFallback.tsx (órfão)
-- [ ] 🖥️ Remover export morto getEventosFullQuery (data.ts:15) ou colocá-lo em uso (paginação server-side)
+- [x] 🖥️ getEventosFullQuery removido (getEventos server-paginado o substitui)
 - [ ] Remover deps sem uso: daisyui, recharts, embla-carousel-react, input-otp (avaliar framer-motion)
 - [ ] Remover viewMode toggle morto (page.tsx:113 / 371-390) e loading state morto (page.tsx:118)
 - [ ] AuthContext: JSON.parse sem guard (:40); register com save-then-login duplicado (:109-115)
