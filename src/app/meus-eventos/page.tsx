@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Calendar, FolderOpen, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
@@ -58,17 +58,12 @@ export default function MeusEventos() {
       if (!loading && !isAuthenticated) router.replace('/')
    }, [loading, isAuthenticated, router])
 
-   // Busca bruta (todos os status) para detectar eventos sem organizadorId (fallback)
-   const { data: todasData } = useQuery({
-      queryKey: ['meus-eventos-todas'],
-      queryFn: () => getEventosAdmin(token),
-      enabled: isAuthenticated,
-   })
-
-   const { data: eventos, error, isLoading, refetch } = useQuery({
-      queryKey: ['meus-eventos', tokenId],
-      queryFn: () => getMeusEventos(token!, tokenId !== null ? tokenId : user!.id),
+   // Endpoint dedicado: só os eventos do usuário autenticado, paginado no servidor
+   const { data, error, isLoading, isFetching, refetch } = useQuery({
+      queryKey: ['meus-eventos', tokenId, currentPage],
+      queryFn: () => getMeusEventos(token!, { page: currentPage, limit: ITEMS_PER_PAGE }),
       enabled: isAuthenticated && ((tokenId !== null) || !!user),
+      placeholderData: keepPreviousData,
    })
 
    // Categorias para o EventForm
@@ -77,18 +72,12 @@ export default function MeusEventos() {
       queryFn: getCategorias,
    })
 
-   const listaBruta: Event[] = todasData?.eventos ?? []
-   const semOrganizadorMarcado =
-      listaBruta.length > 0 && !listaBruta.some((evento) => Number(evento.organizadorId) > 0)
-
-   const lista: Event[] = eventos ?? []
-   const totalPages = Math.ceil(lista.length / ITEMS_PER_PAGE)
-   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-   const paginatedEvents = lista.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+   const lista: Event[] = data?.eventos ?? []
+   const totalPages = data?.pagination?.totalPages ?? 0
 
    useEffect(() => {
       setCurrentPage(1)
-   }, [eventos])
+   }, [data])
 
    if (loading || !isAuthenticated) {
       return null
@@ -99,7 +88,6 @@ export default function MeusEventos() {
          await deleteEvento(id, token)
          toast.success('Evento excluído com sucesso!')
          queryClient.invalidateQueries({ queryKey: ['meus-eventos'] })
-         queryClient.invalidateQueries({ queryKey: ['meus-eventos-todas'] })
       } catch (err) {
          if (err instanceof Error) toast.error(err.message)
       }
@@ -122,7 +110,6 @@ export default function MeusEventos() {
             toast.success('Evento solicitado. Aguarde a aprovação do administrador.')
             setShowForm(false)
             queryClient.invalidateQueries({ queryKey: ['meus-eventos'] })
-            queryClient.invalidateQueries({ queryKey: ['meus-eventos-todas'] })
          } catch (err) {
             toast.error(err instanceof ApiError ? err.message : 'Erro de conexão. Tente novamente.')
          }
@@ -175,19 +162,6 @@ export default function MeusEventos() {
          </header>
 
          <main className="container mx-auto px-4 py-10 mb-12 flex-1">
-            {semOrganizadorMarcado && lista.length === 0 && (
-               <div className="mb-8 flex flex-col items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 p-6 text-center">
-                  <p className="text-foreground">
-                     Não foi possível identificar automaticamente quais eventos foram criados por você.
-                     Isso acontece quando o backend ainda não marca o organizador dos eventos.
-                  </p>
-                  <Button variant="outline" onClick={() => refetch()} className="gap-2">
-                     <RotateCcw className="w-4 h-4" />
-                     Tentar novamente
-                  </Button>
-               </div>
-            )}
-
             {error ? (
                <div className="flex flex-col items-center gap-4 py-20 text-center">
                   <p className="text-muted-foreground">
@@ -205,7 +179,7 @@ export default function MeusEventos() {
                      <CardSkeleton key={i} />
                   ))}
                </div>
-            ) : paginatedEvents.length === 0 ? (
+            ) : lista.length === 0 ? (
                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -215,20 +189,22 @@ export default function MeusEventos() {
                      <div className="mb-6 w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
                         <Calendar className="w-10 h-10 text-muted-foreground" />
                      </div>
-                     <h3 className="mb-2">
-                        {semOrganizadorMarcado ? 'Seus eventos não puderam ser carregados' : 'Você ainda não criou eventos'}
-                     </h3>
-                     <p className="text-muted-foreground mb-6">
-                        {semOrganizadorMarcado
-                           ? 'O backend ainda não marca o organizador dos eventos criados.'
-                           : 'Crie seu primeiro evento para vê-lo aqui, em qualquer status.'}
-                     </p>
+                   <h3 className="mb-2">Você ainda não criou eventos</h3>
+                   <p className="text-muted-foreground mb-6">
+                      Crie seu primeiro evento para vê-lo aqui, em qualquer status.
+                   </p>
                   </div>
                </motion.div>
             ) : (
                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                     {paginatedEvents.map((event, index) => (
+                  <p aria-live="polite" className="sr-only">
+                     {isFetching && !isLoading ? 'Carregando eventos…' : ''}
+                  </p>
+                  <div
+                     className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 transition-opacity ${isFetching && !isLoading ? 'pointer-events-none opacity-60' : ''}`}
+                     aria-busy={isFetching}
+                  >
+                     {lista.map((event, index) => (
                         <EventCard
                            key={event.id}
                            event={event}
