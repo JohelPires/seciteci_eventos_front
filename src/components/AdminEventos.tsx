@@ -3,6 +3,7 @@ import { Edit, Trash2, Eye, Search, Globe, CircleX, Plus, RotateCcw } from 'luci
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
+import { TableSkeleton } from './TableSkeleton'
 import { Badge } from './ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
@@ -20,7 +21,20 @@ import type { Event, Categoria } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
 
 interface AdminEventosProps {
+   /** Página já fatiada pelo servidor. */
    events: Event[]
+   totalPages: number
+   total: number
+   /** 1º load: exibe skeleton de tabela. */
+   carregando: boolean
+   /** Refetch em curso: mantém a página anterior com escurecimento. */
+   atualizando: boolean
+   busca: string
+   onBuscaChange: (v: string) => void
+   filtroStatus: 'all' | 'rascunho' | 'publicado' | 'cancelado'
+   onFiltroStatusChange: (v: 'all' | 'rascunho' | 'publicado' | 'cancelado') => void
+   pagina: number
+   onPaginaChange: (p: number) => void
    categorias: Categoria[]
    // locais: Local[]
    onNewEvent: () => void
@@ -31,10 +45,18 @@ interface AdminEventosProps {
    onReativarEvent: (id: string) => void
 }
 
-const ITEMS_PER_PAGE = 10
-
 export function AdminEventos({
    events,
+   totalPages,
+   total,
+   carregando,
+   atualizando,
+   busca,
+   onBuscaChange,
+   filtroStatus,
+   onFiltroStatusChange,
+   pagina,
+   onPaginaChange,
    categorias,
    // locais,
    onNewEvent,
@@ -44,41 +66,9 @@ export function AdminEventos({
    onCancelarEvent,
    onReativarEvent,
 }: AdminEventosProps) {
-   const [searchTerm, setSearchTerm] = useState('')
-   const [statusFilter, setStatusFilter] = useState('all')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
-   const [currentPage, setCurrentPage] = useState(1)
-
-   //  const { user, token } = useAuth()
 
    const getCategoria = (id: number) => categorias.find((c) => c.id === id)
-   // const getLocal = (id: number) => locais.find((l) => l.id === id)
-
-   const filteredEvents = events.filter((event) => {
-      const matchesSearch =
-         event.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         event.descricao.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === 'all' || event.status === statusFilter
-      return matchesSearch && matchesStatus
-   })
-
-   // ordena do mais recentemente criado para o mais antigo (sem mutar o original)
-   const sortedEvents = [...filteredEvents].sort(
-      (a, b) => (new Date(b.dataCriacao ?? 0).getTime() || 0) - (new Date(a.dataCriacao ?? 0).getTime() || 0),
-   )
-
-   const totalPages = Math.ceil(sortedEvents.length / ITEMS_PER_PAGE)
-   const paginatedEvents = sortedEvents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-
-   const handleSearchChange = (value: string) => {
-      setSearchTerm(value)
-      setCurrentPage(1)
-   }
-
-   const handleStatusFilterChange = (value: string) => {
-      setStatusFilter(value)
-      setCurrentPage(1)
-   }
 
    const getStatusColor = (status: string) => {
       switch (status) {
@@ -123,13 +113,14 @@ export function AdminEventos({
                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                      <Input
                         placeholder="Buscar eventos..."
-                        value={searchTerm}
-                        onChange={(e) => handleSearchChange(e.target.value)}
+                        value={busca}
+                        onChange={(e) => onBuscaChange(e.target.value)}
                         className="pl-10"
+                        aria-label="Buscar eventos por título ou descrição"
                      />
                   </div>
-                  <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                     <SelectTrigger className="w-full sm:w-[180px]">
+                  <Select value={filtroStatus} onValueChange={(v) => onFiltroStatusChange(v as AdminEventosProps['filtroStatus'])}>
+                     <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filtrar por status">
                         <SelectValue placeholder="Filtrar por status" />
                      </SelectTrigger>
                      <SelectContent>
@@ -142,7 +133,10 @@ export function AdminEventos({
                </div>
 
                {/* Table */}
-               <div className="border rounded-lg">
+               <div
+                  className={`border rounded-lg transition-opacity ${atualizando && !carregando ? 'opacity-60' : ''}`}
+                  aria-busy={atualizando}
+               >
                   <Table>
                      <TableHeader>
                         <TableRow>
@@ -155,15 +149,18 @@ export function AdminEventos({
                            <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                      </TableHeader>
-                     <TableBody>
-                        {paginatedEvents.length === 0 ? (
-                           <TableRow>
-                              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                 Nenhum evento encontrado
-                              </TableCell>
-                           </TableRow>
-                        ) : (
-                           paginatedEvents.map((event) => {
+                     {carregando ? (
+                        <TableSkeleton linhas={5} colunas={7} />
+                     ) : (
+                        <TableBody>
+                           {events.length === 0 ? (
+                              <TableRow>
+                                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                    Nenhum evento encontrado
+                                 </TableCell>
+                              </TableRow>
+                           ) : (
+                              events.map((event) => {
                               const categoria = getCategoria(event.categoriaId)
                               // const local = getLocal(event.localId)
 
@@ -242,38 +239,39 @@ export function AdminEventos({
                                            </Button>
                                         </div>
                                     </TableCell>
-                                 </TableRow>
-                              )
-                           })
-                        )}
-                     </TableBody>
+                                </TableRow>
+                               )
+                            })
+                         )}
+                        </TableBody>
+                     )}
                   </Table>
                </div>
 
                <div className="mt-4 text-sm text-muted-foreground">
-                  Mostrando {filteredEvents.length} de {events.length} eventos
+                  Mostrando {events.length} de {total} eventos
                </div>
 
-               {/* Pagination */}
-               {totalPages > 1 && (
-                  <div className="flex justify-center mt-6">
-                     <Pagination>
-                        <PaginationContent>
-                           <PaginationItem>
-                              <PaginationPrevious
-                                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                                 className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                              />
-                           </PaginationItem>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                   <div className="flex justify-center mt-6">
+                      <Pagination>
+                         <PaginationContent>
+                            <PaginationItem>
+                               <PaginationPrevious
+                                  onClick={() => onPaginaChange(Math.max(1, pagina - 1))}
+                                  className={pagina === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                               />
+                            </PaginationItem>
 
-                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                              const showPage =
-                                 page === 1 ||
-                                 page === totalPages ||
-                                 (page >= currentPage - 1 && page <= currentPage + 1)
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                               const showPage =
+                                  page === 1 ||
+                                  page === totalPages ||
+                                  (page >= pagina - 1 && page <= pagina + 1)
 
-                              const showEllipsisBefore = page === currentPage - 2 && currentPage > 3
-                              const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2
+                               const showEllipsisBefore = page === pagina - 2 && pagina > 3
+                               const showEllipsisAfter = page === pagina + 2 && pagina < totalPages - 2
 
                               if (showEllipsisBefore || showEllipsisAfter) {
                                  return (
@@ -288,8 +286,8 @@ export function AdminEventos({
                               return (
                                  <PaginationItem key={page}>
                                     <PaginationLink
-                                       onClick={() => setCurrentPage(page)}
-                                       isActive={currentPage === page}
+                                       onClick={() => onPaginaChange(page)}
+                                       isActive={pagina === page}
                                        className="cursor-pointer"
                                     >
                                        {page}
@@ -300,9 +298,9 @@ export function AdminEventos({
 
                            <PaginationItem>
                               <PaginationNext
-                                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                 onClick={() => onPaginaChange(Math.min(totalPages, pagina + 1))}
                                  className={
-                                    currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                                    pagina === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
                                  }
                               />
                            </PaginationItem>

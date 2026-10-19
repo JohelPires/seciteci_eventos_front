@@ -32,10 +32,12 @@ const TIPO_DOTS: Record<Event['tipoEvento'], string> = {
 }
 
 interface AdminDashboardProps {
+   /** Conjunto bounded (até 100) para visão geral, calendário e mapa. */
    events: Event[]
+   /** Total real devolvido pela paginação server-side. */
+   totalEventos: number
    categorias: Categoria[]
    // locais: Local[]
-   onUpdateEvents: (events: Event[]) => void
    onUpdateCategorias: (categorias: Categoria[]) => void
    // onUpdateLocais: (locais: Local[]) => void
    onNewEvent: () => void
@@ -44,13 +46,24 @@ interface AdminDashboardProps {
    onPublicarEvent: (id: string) => void
    onCancelarEvent: (id: string) => void
    onReativarEvent: (id: string) => void
+   /** Página corrente da tabela de eventos (server-side). */
+   eventosTabela: Event[]
+   totalPaginas: number
+   carregandoEventos: boolean
+   atualizandoEventos: boolean
+   buscaEventos: string
+   onBuscaEventosChange: (v: string) => void
+   filtroStatus: 'all' | 'rascunho' | 'publicado' | 'cancelado'
+   onFiltroStatusChange: (v: 'all' | 'rascunho' | 'publicado' | 'cancelado') => void
+   paginaEventos: number
+   onPaginaEventosChange: (p: number) => void
 }
 
 export function AdminDashboard({
    events,
+   totalEventos,
    categorias,
    // locais,
-   onUpdateEvents,
    onUpdateCategorias,
    // onUpdateLocais,
    onNewEvent,
@@ -59,6 +72,16 @@ export function AdminDashboard({
    onPublicarEvent,
    onCancelarEvent,
    onReativarEvent,
+   eventosTabela,
+   totalPaginas,
+   carregandoEventos,
+   atualizandoEventos,
+   buscaEventos,
+   onBuscaEventosChange,
+   filtroStatus,
+   onFiltroStatusChange,
+   paginaEventos,
+   onPaginaEventosChange,
 }: AdminDashboardProps) {
    const [activeTab, setActiveTab] = useState('overview')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -81,7 +104,7 @@ export function AdminDashboard({
    }
 
    // Statistics
-   const totalEvents = events.length
+   const totalEvents = totalEventos
    const publishedEvents = events.filter((e) => e.status === 'publicado').length
    const draftEvents = events.filter((e) => e.status === 'rascunho').length
    const cancelledEvents = events.filter((e) => e.status === 'cancelado').length
@@ -403,19 +426,29 @@ export function AdminDashboard({
                </TabsContent>
 
                {/* Events Tab */}
-               <TabsContent value="events">
-                  <AdminEventos
-                     events={events}
-                     categorias={categorias}
-                     // locais={locais}
-                     onNewEvent={onNewEvent}
-                     onEditEvent={onEditEvent}
-                     onDeleteEvent={onDeleteEvent}
-                     onPublicarEvent={onPublicarEvent}
-                     onCancelarEvent={onCancelarEvent}
-                     onReativarEvent={onReativarEvent}
-                  />
-               </TabsContent>
+                <TabsContent value="events">
+                   <AdminEventos
+                      events={eventosTabela}
+                      total={totalEventos}
+                      totalPages={totalPaginas}
+                      carregando={carregandoEventos}
+                      atualizando={atualizandoEventos}
+                      busca={buscaEventos}
+                      onBuscaChange={onBuscaEventosChange}
+                      filtroStatus={filtroStatus}
+                      onFiltroStatusChange={onFiltroStatusChange}
+                      pagina={paginaEventos}
+                      onPaginaChange={onPaginaEventosChange}
+                      categorias={categorias}
+                      // locais={locais}
+                      onNewEvent={onNewEvent}
+                      onEditEvent={onEditEvent}
+                      onDeleteEvent={onDeleteEvent}
+                      onPublicarEvent={onPublicarEvent}
+                      onCancelarEvent={onCancelarEvent}
+                      onReativarEvent={onReativarEvent}
+                   />
+                </TabsContent>
 
                {/* Usuários Tab */}
                <TabsContent value="locations">

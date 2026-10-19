@@ -1,5 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { EventForm } from '@/components/EventForm'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
@@ -13,7 +15,8 @@ import { useAuth } from '@/context/AuthContext'
 
 import { AdminDashboard } from '@/components/AdminDashboard'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useDebouncedValue } from '@/hooks/debounce'
 
 import { Event } from '@/app/page'
 import { useRouter } from 'next/navigation'
@@ -43,19 +46,16 @@ function useAdminGuard() {
 }
 
 export default function App() {
-   const [events, setEvents] = useState<Event[]>([])
    const [showForm, setShowForm] = useState(false)
    const [editingEvent, setEditingEvent] = useState<Event | null>(null)
    const [searchTerm, setSearchTerm] = useState('')
-   const [categoryFilter, setCategoryFilter] = useState('all')
-   const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
+   const [statusFilter, setStatusFilter] = useState<'all' | 'rascunho' | 'publicado' | 'cancelado'>('all')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [currentPage, setCurrentPage] = useState(1)
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
-   const [reload, setReload] = useState(false)
 
    // Confirmações centralizadas (status e exclusão) — abertas a partir de qualquer ação do painel
    const [statusTarget, setStatusTarget] = useState<{ id: string; titulo: string; next: 'publicado' | 'cancelado' } | null>(null)
@@ -75,26 +75,41 @@ export default function App() {
    })
    const categorias = categoriasData ?? []
 
-   // Helper functions
-   // const getCategoria = (id: number) => categorias.find((c) => c.id === id)
-   // const getLocal = (id: number) => locais.find((l) => l.id === id)
+   const buscaAdmin = useDebouncedValue(searchTerm)
 
-   useEffect(() => {
-      // Só busca eventos admin quando a permissão está resolvida — não antes do redirect
-      if (!isAllowed || !token) return
+   // Tabela server-paginada: busca e status no servidor
+   const {
+      data,
+      isError,
+      isLoading,
+      isFetching,
+      refetch: refetchAdminEventos,
+   } = useQuery({
+      queryKey: ['admin-eventos', { page: currentPage, status: statusFilter, busca: buscaAdmin }],
+      queryFn: () =>
+         getEventosAdmin(token, {
+            page: currentPage,
+            limit: ITEMS_PER_PAGE,
+            status: statusFilter === 'all' ? '' : statusFilter,
+            busca: buscaAdmin,
+         }),
+      enabled: isAllowed && !!token,
+      placeholderData: keepPreviousData,
+   })
 
-      async function fetchData() {
-         try {
-            const response = await getEventosAdmin(token)
+   // Conjunto bounded: alimenta a visão geral (cards/mapa) do AdminDashboard
+   const { data: overviewData } = useQuery({
+      queryKey: ['admin-eventos-overview'],
+      queryFn: () => getEventosAdmin(token, { page: 1, limit: 100, status: '' }),
+      enabled: isAllowed && !!token,
+      staleTime: 60_000,
+      placeholderData: keepPreviousData,
+   })
 
-            setEvents(response.eventos)
-         } catch (error) {
-            console.log(error)
-         }
-      }
-
-      fetchData()
-   }, [reload, isAllowed, token])
+   const eventos = data?.eventos ?? []
+   const eventosOverview = overviewData?.eventos ?? []
+   const totalPages = data?.pagination?.totalPages ?? 0
+   const totalEventos = data?.pagination?.total ?? 0
 
    // useEffect(() => {
    //    async function fetchData() {
@@ -134,7 +149,8 @@ export default function App() {
             await createEvento(newEvent, token)
             toast.success('Evento cadastrado e publicado com sucesso!')
             setShowForm(false)
-            setReload(!reload)
+            queryClient.invalidateQueries({ queryKey: ['admin-eventos'] })
+   queryClient.invalidateQueries({ queryKey: ['admin-eventos-overview'] })
          } catch (error) {
             toast.error(error instanceof ApiError ? error.message : 'Erro de conexão. Tente novamente.')
          }
@@ -142,7 +158,7 @@ export default function App() {
    }
 
    const handleRequestDelete = (id: string) => {
-      const alvo = events.find((e) => e.id === id)
+      const alvo = encontrarEvento(id)
       if (alvo) setDeleteTarget(alvo)
    }
 
@@ -157,7 +173,8 @@ export default function App() {
          await deleteEvento(deleteTarget.id, token)
          toast.success('Evento excluído com sucesso!')
          setDeleteTarget(null)
-         setReload(!reload)
+         queryClient.invalidateQueries({ queryKey: ['admin-eventos'] })
+   queryClient.invalidateQueries({ queryKey: ['admin-eventos-overview'] })
       } catch (error) {
          toast.error(error instanceof Error ? error.message : 'Erro ao excluir evento!')
       } finally {
@@ -167,7 +184,7 @@ export default function App() {
 
    // Toda mudança de estado passa por um modal de confirmação
    const handleRequestStatusChange = (id: string, next: 'publicado' | 'cancelado') => {
-      const alvo = events.find((e) => e.id === id)
+      const alvo = encontrarEvento(id)
       if (!alvo) return
       setMotivoCancelamento('')
       setStatusTarget({ id: alvo.id, titulo: alvo.titulo || 'Evento sem título', next })
@@ -190,7 +207,8 @@ export default function App() {
          }
          setStatusTarget(null)
          setMotivoCancelamento('')
-         setReload(!reload)
+         queryClient.invalidateQueries({ queryKey: ['admin-eventos'] })
+   queryClient.invalidateQueries({ queryKey: ['admin-eventos-overview'] })
       } catch (error) {
          toast.error(error instanceof ApiError ? error.message : 'Erro ao atualizar o status do evento!')
       } finally {
@@ -221,49 +239,50 @@ export default function App() {
       setSelectedEvent(null)
    }
 
-   const filteredEvents = events.filter((event) => {
-      const matchesSearch =
-         event.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         event.descricao.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = categoryFilter === 'all' || event.categoria?.nome === categoryFilter
-      return matchesSearch && matchesCategory
-   })
-
-   // Pagination calculations
-   const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE)
-   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-   const endIndex = startIndex + ITEMS_PER_PAGE
-   const paginatedEvents = filteredEvents.slice(startIndex, endIndex)
-
-   // Reset to page 1 when filters change
-   useEffect(() => {
-      setCurrentPage(1)
-   }, [searchTerm, categoryFilter])
-
-   const totalCapacity = events.reduce((sum, event) => sum + (event.LocalCapacidade ?? 0), 0)
-   const activeCategories = [...new Set(events.map((e) => e.categoriaId))].length
+    const encontrarEvento = (id: string) => [...eventos, ...eventosOverview].find((e) => e.id === id)
 
    if (loading) return null
    if (!isAllowed) return null
    return (
       <>
          <Toaster />
+         {isError && (
+            <div className="container mx-auto mb-4 flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+               <p className="text-sm text-destructive">
+                  Erro ao carregar os eventos. Tente novamente.
+               </p>
+               <Button variant="outline" onClick={() => refetchAdminEventos()} className="gap-2 shrink-0">
+                  <RotateCcw className="w-4 h-4" />
+                  Tentar novamente
+               </Button>
+            </div>
+         )}
          <AdminDashboard
-             events={events}
+             events={eventosOverview}
+             totalEventos={overviewData?.pagination?.total ?? 0}
              categorias={categorias}
-             onUpdateEvents={setEvents}
             onUpdateCategorias={() => queryClient.invalidateQueries({ queryKey: ['categorias'] })}
             // onUpdateLocais={setLocais}
             onNewEvent={() => {
                setEditingEvent(null)
                setShowForm(true)
             }}
-            onEditEvent={handleEditEvent}
-            onDeleteEvent={handleRequestDelete}
-            onPublicarEvent={handlePublicarEvent}
-            onCancelarEvent={handleCancelarEvento}
-            onReativarEvent={handleReativarEvent}
-         />
+             onEditEvent={handleEditEvent}
+             onDeleteEvent={handleRequestDelete}
+             onPublicarEvent={handlePublicarEvent}
+             onCancelarEvent={handleCancelarEvento}
+             onReativarEvent={handleReativarEvent}
+             eventosTabela={eventos}
+             totalPaginas={totalPages}
+             carregandoEventos={isLoading}
+             atualizandoEventos={isFetching}
+             buscaEventos={searchTerm}
+             onBuscaEventosChange={setSearchTerm}
+             filtroStatus={statusFilter}
+             onFiltroStatusChange={setStatusFilter}
+             paginaEventos={currentPage}
+             onPaginaEventosChange={setCurrentPage}
+          />
          {showForm && (
             <EventForm
                onSubmit={handleCreateEvent}
