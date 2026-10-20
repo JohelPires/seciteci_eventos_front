@@ -25,7 +25,17 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { ApiError, cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventos, getEventosDoMes, getLocais } from '@/data/data'
+import {
+   ApiError,
+   cancelarEvento,
+   createEvento,
+   deleteEvento,
+   editEvento,
+   getCategorias,
+   getEventos,
+   getEventosDoMes,
+   getLocais,
+} from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
@@ -142,10 +152,7 @@ function AppContent() {
       const hoje = new Date()
       return { ano: hoje.getFullYear(), mes: hoje.getMonth() }
    })
-   const handleCalendarMesChange = useCallback(
-      (ano: number, mes: number) => setCalendarMonth({ ano, mes }),
-      [],
-   )
+   const handleCalendarMesChange = useCallback((ano: number, mes: number) => setCalendarMonth({ ano, mes }), [])
    const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [currentPage, setCurrentPage] = useState(1)
@@ -168,37 +175,46 @@ function AppContent() {
 
    const buscaDebounced = useDebouncedValue(searchTerm)
 
-    // Grid server-paginado: busca e categoria aplicadas no servidor.
-    // keepPreviousData mantém a página anterior visível durante as trocas.
-    // A home pública mostra apenas eventos futuros (proximos), do mais próximo para o mais distante.
-    const { data, isError, isLoading, isFetching, refetch: refetchEventos } = useQuery({
-       queryKey: ['eventos', { page: currentPage, categoria: categoryFilter, busca: buscaDebounced, proximos: true, ordem: 'asc' }],
-       queryFn: () =>
-          getEventos({
-             page: currentPage,
-             limit: ITEMS_PER_PAGE,
-             categoria: categoryFilter === 'all' ? undefined : categoryFilter,
-             busca: buscaDebounced,
-             proximos: true,
-             ordem: 'asc',
-          }),
-       placeholderData: keepPreviousData,
-    })
+   // Grid server-paginado: busca e categoria aplicadas no servidor.
+   // keepPreviousData mantém a página anterior visível durante as trocas.
+   // A home pública mostra apenas eventos futuros (proximos), do mais próximo para o mais distante.
+   const {
+      data,
+      isError,
+      isLoading,
+      isFetching,
+      refetch: refetchEventos,
+   } = useQuery({
+      queryKey: [
+         'eventos',
+         { page: currentPage, categoria: categoryFilter, busca: buscaDebounced, proximos: true, ordem: 'asc' },
+      ],
+      queryFn: () =>
+         getEventos({
+            page: currentPage,
+            limit: ITEMS_PER_PAGE,
+            categoria: categoryFilter === 'all' ? undefined : categoryFilter,
+            busca: buscaDebounced,
+            proximos: true,
+            ordem: 'asc',
+         }),
+      placeholderData: keepPreviousData,
+   })
 
-    // Conjunto bounded (teto da API = 100): alimenta o mapa e a soma de
-    // capacidade. Restrito aos próximos eventos.
-    const { data: eventosProximosData } = useQuery({
-       queryKey: ['eventos-calendario', { proximos: true, ordem: 'asc' }],
-       queryFn: () => getEventos({ page: 1, limit: 100, status: 'publicado', proximos: true, ordem: 'asc' }),
-       placeholderData: keepPreviousData,
-    })
+   // Conjunto bounded (teto da API = 100): alimenta o mapa e a soma de
+   // capacidade. Restrito aos próximos eventos.
+   const { data: eventosProximosData } = useQuery({
+      queryKey: ['eventos-calendario', { proximos: true, ordem: 'asc' }],
+      queryFn: () => getEventos({ page: 1, limit: 100, status: 'publicado', proximos: true, ordem: 'asc' }),
+      placeholderData: keepPreviousData,
+   })
 
-    // Calendário: TODOS os eventos publicados do mês exibido (inclusive os já
-    // ocorridos), via mes/ano do servidor — paginado até esgotar.
-    const { data: eventosMesData, isLoading: isLoadingMes } = useQuery({
-       queryKey: ['eventos-calendario', { ano: calendarMonth.ano, mes: calendarMonth.mes + 1 }],
-       queryFn: () => getEventosDoMes({ ano: calendarMonth.ano, mes: calendarMonth.mes + 1, status: 'publicado' }),
-    })
+   // Calendário: TODOS os eventos publicados do mês exibido (inclusive os já
+   // ocorridos), via mes/ano do servidor — paginado até esgotar.
+   const { data: eventosMesData, isLoading: isLoadingMes } = useQuery({
+      queryKey: ['eventos-calendario', { ano: calendarMonth.ano, mes: calendarMonth.mes + 1 }],
+      queryFn: () => getEventosDoMes({ ano: calendarMonth.ano, mes: calendarMonth.mes + 1, status: 'publicado' }),
+   })
 
    const { data: categoriasData, isLoading: isLoadingCategorias } = useQuery({
       queryKey: ['categorias'],
@@ -219,7 +235,7 @@ function AppContent() {
          setAuthDialogOpen(true)
       }
       router.replace('/', { scroll: false })
-    }, [action, isAuthenticated, router])
+   }, [action, isAuthenticated, router])
 
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
@@ -249,7 +265,8 @@ function AppContent() {
    }
 
    // Recupera um evento pelas fontes de dados (página + mês + próximos)
-   const encontrarEvento = (id: string) => [...eventosGrid, ...eventosCalendario, ...eventosProximos].find((e) => e.id === id)
+   const encontrarEvento = (id: string) =>
+      [...eventosGrid, ...eventosCalendario, ...eventosProximos].find((e) => e.id === id)
 
    const handleDeleteEvent = async (id: string) => {
       try {
@@ -368,7 +385,10 @@ function AppContent() {
    // Filtrados server-side; o dia selecionado troca a fonte para o conjunto do mês
    const eventosDia = eventosCalendario.filter((event) => {
       if (!selectedDate) return true
-      return new Date(event.dataInicio) <= fimDoDia(selectedDate) && new Date(event.dataFim ?? event.dataInicio) >= inicioDoDia(selectedDate)
+      return (
+         new Date(event.dataInicio) <= fimDoDia(selectedDate) &&
+         new Date(event.dataFim ?? event.dataInicio) >= inicioDoDia(selectedDate)
+      )
    })
 
    const emModoDia = !!selectedDate
@@ -407,8 +427,8 @@ function AppContent() {
                   </p>
                   <p className="text-lg leading-relaxed text-muted-foreground">
                      O Conecte-se é a agenda unificada de eventos de Ciência, Tecnologia e Inovação de Mato Grosso, que
-                     reúne e divulga, as iniciativas do ecossistema estadual, em uma única plataforma, sob a gestão da
-                     Secretaria de Estado de Ciência, Tecnologia e Inovação de Mato Grosso - SECITECI.
+                     reúne e divulga as iniciativas do ecossistema estadual em uma única plataforma, sob a gestão da
+                     Secretaria de Estado de Ciência, Tecnologia e Inovação de Mato Grosso (SECITECI).
                   </p>
                   <motion.div
                      initial={{ opacity: 0, x: 20 }}
@@ -557,18 +577,18 @@ function AppContent() {
                   )}
 
                   {/* Calendário: filtro por dia para os cards abaixo */}
-                   <div className="mt-6">
-                      <CalendarView
-                         events={eventosCalendario}
-                         selectedDate={selectedDate}
-                         onSelectDate={setSelectedDate}
-                         ano={calendarMonth.ano}
-                         mes={calendarMonth.mes}
-                         onMesChange={handleCalendarMesChange}
-                         isLoading={isLoadingMes}
-                         showPanel={false}
-                      />
-                   </div>
+                  <div className="mt-6">
+                     <CalendarView
+                        events={eventosCalendario}
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                        ano={calendarMonth.ano}
+                        mes={calendarMonth.mes}
+                        onMesChange={handleCalendarMesChange}
+                        isLoading={isLoadingMes}
+                        showPanel={false}
+                     />
+                  </div>
                </motion.div>
             </div>
          </header>
@@ -598,24 +618,22 @@ function AppContent() {
                </div>
             )}
             {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                   {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
-                      <CardSkeleton key={i} />
-                   ))}
-                </div>
-             ) : isError ? (
-                <div className="flex flex-col items-center gap-4 py-20 text-center">
-                   <p className="text-muted-foreground">
-                      Erro ao carregar os eventos. Tente novamente.
-                   </p>
-                   <Button variant="outline" onClick={() => refetchEventos()} className="gap-2">
-                      <RotateCcw className="w-4 h-4" />
-                      Tentar novamente
-                   </Button>
-                </div>
-             ) : (
-                <>
-                   {cardsVisiveis.length === 0 ? (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+                     <CardSkeleton key={i} />
+                  ))}
+               </div>
+            ) : isError ? (
+               <div className="flex flex-col items-center gap-4 py-20 text-center">
+                  <p className="text-muted-foreground">Erro ao carregar os eventos. Tente novamente.</p>
+                  <Button variant="outline" onClick={() => refetchEventos()} className="gap-2">
+                     <RotateCcw className="w-4 h-4" />
+                     Tentar novamente
+                  </Button>
+               </div>
+            ) : (
+               <>
+                  {cardsVisiveis.length === 0 ? (
                      <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -658,21 +676,21 @@ function AppContent() {
                            </p>
                         </motion.div> */}
 
-                         <p aria-live="polite" className="sr-only">
-                            {isFetching && !isLoading ? 'Carregando eventos…' : ''}
-                         </p>
-                         <div
-                            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 transition-opacity ${isFetching && !isLoading ? 'pointer-events-none opacity-60' : ''}`}
-                            aria-busy={isFetching}
-                         >
-                            {cardsVisiveis.map((event, index) => (
+                        <p aria-live="polite" className="sr-only">
+                           {isFetching && !isLoading ? 'Carregando eventos…' : ''}
+                        </p>
+                        <div
+                           className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 transition-opacity ${isFetching && !isLoading ? 'pointer-events-none opacity-60' : ''}`}
+                           aria-busy={isFetching}
+                        >
+                           {cardsVisiveis.map((event, index) => (
                               <EventCard
                                  key={event.id}
                                  event={event}
                                  categoria={event.categoria}
                                  // local={event.local}
                                  onDelete={handleRequestDelete}
-                               onStatusChange={handleStatusChange}
+                                 onStatusChange={handleStatusChange}
                                  onEdit={handleEditEvent}
                                  onClick={handleEventClick}
                                  index={index}
@@ -772,7 +790,7 @@ function AppContent() {
                   <h1 className="text-2xl font-semibold">Mapa dos Eventos</h1>
                   <p className="text-muted-foreground">Veja todos os eventos distribuidos no mapa</p>
                </div>
-                </motion.div>
+            </motion.div>
             {isLoading ? (
                <BlockSkeleton className="h-[420px]" />
             ) : (
@@ -860,65 +878,65 @@ function AppContent() {
                            setSelectedEvent(null)
                         }
                      }}
-                   >
-                      Excluir
-                   </AlertDialogAction>
-                </AlertDialogFooter>
-             </AlertDialogContent>
-          </AlertDialog>
+                  >
+                     Excluir
+                  </AlertDialogAction>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
 
-          {/* Confirmação de cancelamento de evento (status pill do card) */}
-          <AlertDialog
-             open={!!statusTarget}
-             onOpenChange={(open) => {
-                if (!open && !isSubmitting) {
-                   setStatusTarget(null)
-                   setMotivoCancelamento('')
-                }
-             }}
-          >
-             <AlertDialogOverlay />
-             <AlertDialogContent>
-                <AlertDialogHeader>
-                   <AlertDialogTitle>Cancelar evento</AlertDialogTitle>
-                   <AlertDialogDescription>
-                      Tem certeza que deseja cancelar “{statusTarget?.titulo}”? O evento deixa de aparecer na
-                      programação.
-                   </AlertDialogDescription>
-                </AlertDialogHeader>
+         {/* Confirmação de cancelamento de evento (status pill do card) */}
+         <AlertDialog
+            open={!!statusTarget}
+            onOpenChange={(open) => {
+               if (!open && !isSubmitting) {
+                  setStatusTarget(null)
+                  setMotivoCancelamento('')
+               }
+            }}
+         >
+            <AlertDialogOverlay />
+            <AlertDialogContent>
+               <AlertDialogHeader>
+                  <AlertDialogTitle>Cancelar evento</AlertDialogTitle>
+                  <AlertDialogDescription>
+                     Tem certeza que deseja cancelar “{statusTarget?.titulo}”? O evento deixa de aparecer na
+                     programação.
+                  </AlertDialogDescription>
+               </AlertDialogHeader>
 
-                <div className="space-y-2">
-                   <Label htmlFor="motivo-cancelamento">Motivo do cancelamento (opcional)</Label>
-                   <Textarea
-                      id="motivo-cancelamento"
-                      value={motivoCancelamento}
-                      onChange={(e) => setMotivoCancelamento(e.target.value)}
-                      placeholder="Explique brevemente o motivo, se quiser. Aparece para quem consultar o evento."
-                      maxLength={1000}
-                      disabled={isSubmitting}
-                      className="min-h-24"
-                   />
-                   <p className="text-xs text-muted-foreground text-right">{motivoCancelamento.length}/1000</p>
-                </div>
+               <div className="space-y-2">
+                  <Label htmlFor="motivo-cancelamento">Motivo do cancelamento (opcional)</Label>
+                  <Textarea
+                     id="motivo-cancelamento"
+                     value={motivoCancelamento}
+                     onChange={(e) => setMotivoCancelamento(e.target.value)}
+                     placeholder="Explique brevemente o motivo, se quiser. Aparece para quem consultar o evento."
+                     maxLength={1000}
+                     disabled={isSubmitting}
+                     className="min-h-24"
+                  />
+                  <p className="text-xs text-muted-foreground text-right">{motivoCancelamento.length}/1000</p>
+               </div>
 
-                <AlertDialogFooter>
-                   <AlertDialogCancel disabled={isSubmitting}>Voltar</AlertDialogCancel>
-                   <AlertDialogAction
-                      disabled={isSubmitting}
-                      className="bg-destructive text-white hover:bg-destructive/90"
-                      onClick={(e) => {
-                         e.preventDefault()
-                         confirmCancelarEvento()
-                      }}
-                   >
-                      {isSubmitting ? 'Salvando...' : 'Cancelar evento'}
-                   </AlertDialogAction>
-                </AlertDialogFooter>
-             </AlertDialogContent>
-          </AlertDialog>
-       </div>
-    )
- }
+               <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isSubmitting}>Voltar</AlertDialogCancel>
+                  <AlertDialogAction
+                     disabled={isSubmitting}
+                     className="bg-destructive text-white hover:bg-destructive/90"
+                     onClick={(e) => {
+                        e.preventDefault()
+                        confirmCancelarEvento()
+                     }}
+                  >
+                     {isSubmitting ? 'Salvando...' : 'Cancelar evento'}
+                  </AlertDialogAction>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
+      </div>
+   )
+}
 
 export default function App() {
    return (
