@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
@@ -15,6 +14,13 @@ interface CalendarViewProps {
     events: Event[]
     selectedDate: Date | null
     onSelectDate: (date: Date | null) => void
+    // Mês exibido, controlado pelo pai (que busca os eventos do mês na API).
+    ano: number
+    /** Mês 0-based (0=janeiro … 11=dezembro), como em Date#getMonth. */
+    mes: number
+    onMesChange: (ano: number, mes: number) => void
+    /** Busca do mês em andamento: esmaece a grade em vez de exibir dado do mês anterior. */
+    isLoading?: boolean
     // 'row' (padrão, home): grade à esquerda e painel ao lado em telas largas
     // 'stack' (admin): grade em cima, painel embaixo — card de meia largura
     layout?: 'row' | 'stack'
@@ -80,24 +86,25 @@ export function CalendarView({
     events,
     selectedDate,
     onSelectDate,
+    ano,
+    mes,
+    onMesChange,
+    isLoading = false,
     layout = 'row',
     onEventClick,
     showPanel = true,
 }: CalendarViewProps) {
-    const [currentDate, setCurrentDate] = useState(() => new Date())
+    const year = ano
+    const month = mes
 
-    const { daysInMonth, startingDayOfWeek, year, month } = (() => {
-        const ano = currentDate.getFullYear()
-        const mes = currentDate.getMonth()
+    const { daysInMonth, startingDayOfWeek } = (() => {
         return {
-            daysInMonth: new Date(ano, mes + 1, 0).getDate(),
-            startingDayOfWeek: new Date(ano, mes, 1).getDay(),
-            year: ano,
-            month: mes,
+            daysInMonth: new Date(year, month + 1, 0).getDate(),
+            startingDayOfWeek: new Date(year, month, 1).getDay(),
         }
     })()
 
-    const monthName = currentDate.toLocaleDateString('pt-BR', {
+    const monthName = new Date(year, month, 1).toLocaleDateString('pt-BR', {
         month: 'long',
         year: 'numeric',
     })
@@ -110,14 +117,13 @@ export function CalendarView({
         (_, i) => today.getFullYear() - 3 + i,
     )
 
-    // navegação de mês: se o dia selecionado não existir no mês alvo
-    // (ex.: 31 selecionado e indo para fevereiro), limpa a seleção
-    const irParaMes = (ano: number, mes: number) => {
-        if (selectedDate) {
-            const diasNoMes = new Date(ano, mes + 1, 0).getDate()
-            if (selectedDate.getDate() > diasNoMes) onSelectDate(null)
+    // navegação de mês: o pai passa a buscar os eventos do mês alvo; o dia
+    // selecionado pertence ao mês anterior, então a seleção é limpa
+    const irParaMes = (novoAno: number, novoMes: number) => {
+        if (selectedDate && (selectedDate.getFullYear() !== novoAno || selectedDate.getMonth() !== novoMes)) {
+            onSelectDate(null)
         }
-        setCurrentDate(new Date(ano, mes, 1))
+        onMesChange(novoAno, novoMes)
     }
 
     const navigateMonth = (direction: 'prev' | 'next') => {
@@ -169,6 +175,7 @@ export function CalendarView({
         >
             {/* Calendário (esquerda, topo ou centralizado sem painel) */}
             <Card
+                aria-busy={isLoading}
                 className={
                     !showPanel
                         ? 'w-full max-w-[1000px] p-4'
@@ -185,7 +192,7 @@ export function CalendarView({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentDate(new Date())}
+                                onClick={() => onMesChange(today.getFullYear(), today.getMonth())}
                             >
                                 Hoje
                             </Button>
@@ -246,7 +253,9 @@ export function CalendarView({
                 </div>
 
                 {/* Grade de dias */}
-                <div className="grid grid-cols-7 gap-1">
+                <div
+                    className={`grid grid-cols-7 gap-1 transition-opacity ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+                >
                     {Array.from({ length: startingDayOfWeek }).map(
                         (_, index) => <div key={`empty-${index}`} />,
                     )}

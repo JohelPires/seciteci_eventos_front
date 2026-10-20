@@ -37,6 +37,14 @@ interface AdminDashboardProps {
    /** Total real devolvido pela paginação server-side. */
    totalEventos: number
    categorias: Categoria[]
+   /** Eventos do mês exibido no calendário (busca server-side por mes/ano). */
+   calendarEvents: Event[]
+   /** Mês exibido no calendário (mes 0-based), controlado pela página pai. */
+   calendarAno: number
+   calendarMes: number
+   onCalendarMesChange: (ano: number, mes: number) => void
+   /** Busca do mês em andamento (esmaece a grade do calendário). */
+   isLoadingMes: boolean
    // locais: Local[]
    onUpdateCategorias: (categorias: Categoria[]) => void
    // onUpdateLocais: (locais: Local[]) => void
@@ -63,6 +71,11 @@ export function AdminDashboard({
    events,
    totalEventos,
    categorias,
+   calendarEvents,
+   calendarAno,
+   calendarMes,
+   onCalendarMesChange,
+   isLoadingMes,
    // locais,
    onUpdateCategorias,
    // onUpdateLocais,
@@ -414,9 +427,13 @@ export function AdminDashboard({
                            <CardContent>
                               <CalendarView
                                  layout="stack"
-                                 events={events}
+                                 events={calendarEvents}
                                  selectedDate={selectedDate}
                                  onSelectDate={setSelectedDate}
+                                 ano={calendarAno}
+                                 mes={calendarMes}
+                                 onMesChange={onCalendarMesChange}
+                                 isLoading={isLoadingMes}
                                  onEventClick={handleEventClick}
                               />
                            </CardContent>

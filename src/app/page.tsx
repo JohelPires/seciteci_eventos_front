@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, use, useEffect, useMemo, useState } from 'react'
+import { Suspense, use, useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Search, Calendar, BarChart3, Users, Tag, Map, X, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/Navbar'
@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { ApiError, cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventos, getLocais } from '@/data/data'
+import { ApiError, cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventos, getEventosDoMes, getLocais } from '@/data/data'
 import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
@@ -137,6 +137,15 @@ function AppContent() {
    const [searchTerm, setSearchTerm] = useState('')
    const [categoryFilter, setCategoryFilter] = useState('all')
    const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+   // Mês exibido no calendário (mes 0-based); o pai busca os eventos do mês.
+   const [calendarMonth, setCalendarMonth] = useState(() => {
+      const hoje = new Date()
+      return { ano: hoje.getFullYear(), mes: hoje.getMonth() }
+   })
+   const handleCalendarMesChange = useCallback(
+      (ano: number, mes: number) => setCalendarMonth({ ano, mes }),
+      [],
+   )
    const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [currentPage, setCurrentPage] = useState(1)
@@ -176,12 +185,19 @@ function AppContent() {
        placeholderData: keepPreviousData,
     })
 
-    // Conjunto bounded (teto da API = 100): alimenta o calendário, o mapa,
-    // o filtro por dia e a soma de capacidade. Restrito aos próximos eventos.
-    const { data: eventosCalendarioData } = useQuery({
+    // Conjunto bounded (teto da API = 100): alimenta o mapa e a soma de
+    // capacidade. Restrito aos próximos eventos.
+    const { data: eventosProximosData } = useQuery({
        queryKey: ['eventos-calendario', { proximos: true, ordem: 'asc' }],
        queryFn: () => getEventos({ page: 1, limit: 100, status: 'publicado', proximos: true, ordem: 'asc' }),
        placeholderData: keepPreviousData,
+    })
+
+    // Calendário: TODOS os eventos publicados do mês exibido (inclusive os já
+    // ocorridos), via mes/ano do servidor — paginado até esgotar.
+    const { data: eventosMesData, isLoading: isLoadingMes } = useQuery({
+       queryKey: ['eventos-calendario', { ano: calendarMonth.ano, mes: calendarMonth.mes + 1 }],
+       queryFn: () => getEventosDoMes({ ano: calendarMonth.ano, mes: calendarMonth.mes + 1, status: 'publicado' }),
     })
 
    const { data: categoriasData, isLoading: isLoadingCategorias } = useQuery({
@@ -232,8 +248,8 @@ function AppContent() {
       }
    }
 
-   // Recupera um evento pelas duas fontes de dados (página + calendário)
-   const encontrarEvento = (id: string) => [...eventosGrid, ...eventosCalendario].find((e) => e.id === id)
+   // Recupera um evento pelas fontes de dados (página + mês + próximos)
+   const encontrarEvento = (id: string) => [...eventosGrid, ...eventosCalendario, ...eventosProximos].find((e) => e.id === id)
 
    const handleDeleteEvent = async (id: string) => {
       try {
@@ -342,13 +358,14 @@ function AppContent() {
       setSelectedEvent(null)
    }
 
-   // Conjunto derivado da query bounded: calendário, mapa e filtro por dia
-   const eventosCalendario = eventosCalendarioData?.eventos ?? []
+   // Conjunto derivado das queries bounded: calendário (mês), mapa e filtro por dia
+   const eventosCalendario = eventosMesData ?? []
+   const eventosProximos = eventosProximosData?.eventos ?? []
 
    // Página atual do grid (server-side; ordem cronológica do servidor)
    const eventosGrid = data?.eventos ?? []
 
-   // Filtrados server-side; o dia selecionado troca a fonte para o conjunto bounded
+   // Filtrados server-side; o dia selecionado troca a fonte para o conjunto do mês
    const eventosDia = eventosCalendario.filter((event) => {
       if (!selectedDate) return true
       return new Date(event.dataInicio) <= fimDoDia(selectedDate) && new Date(event.dataFim ?? event.dataInicio) >= inicioDoDia(selectedDate)
@@ -358,7 +375,7 @@ function AppContent() {
    const cardsVisiveis = emModoDia ? eventosDia : eventosGrid
    const totalPages = emModoDia ? 0 : (data?.pagination?.totalPages ?? 0)
 
-   const totalCapacity = eventosCalendario.reduce((sum, event) => sum + (event.LocalCapacidade ?? 0), 0)
+   const totalCapacity = eventosProximos.reduce((sum, event) => sum + (event.LocalCapacidade ?? 0), 0)
 
    // Reset to page 1 when filters change
    useEffect(() => {
@@ -545,6 +562,10 @@ function AppContent() {
                          events={eventosCalendario}
                          selectedDate={selectedDate}
                          onSelectDate={setSelectedDate}
+                         ano={calendarMonth.ano}
+                         mes={calendarMonth.mes}
+                         onMesChange={handleCalendarMesChange}
+                         isLoading={isLoadingMes}
                          showPanel={false}
                       />
                    </div>
@@ -755,7 +776,7 @@ function AppContent() {
             {isLoading ? (
                <BlockSkeleton className="h-[420px]" />
             ) : (
-               <MapView events={eventosCalendario} categorias={categoriasData || []} onEventClick={handleEventClick} />
+               <MapView events={eventosProximos} categorias={categoriasData || []} onEventClick={handleEventClick} />
             )}
          </main>
 

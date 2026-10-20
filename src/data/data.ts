@@ -91,6 +91,10 @@ export interface EventosParams {
    proximos?: boolean
    /** Direção da ordenação por data de início (padrão da API: desc). */
    ordem?: 'asc' | 'desc'
+   /** Filtra eventos cuja data de início está no mês (1=janeiro … 12=dezembro). */
+   mes?: number
+   /** Ano do filtro de mês; só tem efeito junto com `mes`. Padrão da API: ano corrente. */
+   ano?: number
 }
 
 export interface ResultadoEventos {
@@ -123,9 +127,9 @@ const querystring = (params: Record<string, string | number | boolean | undefine
 
 /** Lista pública paginada com filtros server-side. Default: só publicados. */
 export const getEventos = async (params: EventosParams = {}): Promise<ResultadoEventos> => {
-   const { page = 1, limit = 6, categoria, busca, status = 'publicado', tipo, proximos, ordem } = params
+   const { page = 1, limit = 6, categoria, busca, status = 'publicado', tipo, proximos, ordem, mes, ano } = params
    const res = await authFetch(
-      `${API_URL}/api/eventos${querystring({ page, limit, categoria, busca, status, tipo, proximos, ordem })}`,
+      `${API_URL}/api/eventos${querystring({ page, limit, categoria, busca, status, tipo, proximos, ordem, mes, ano })}`,
    )
    const data = await res.json()
    return { eventos: normalizarEventos(data?.eventos), pagination: data?.pagination ?? PAGINACAO_VAZIA(page, limit) }
@@ -136,9 +140,9 @@ export const getEventos = async (params: EventosParams = {}): Promise<ResultadoE
  * isso a API defaulta para `publicado` e o painel perdia rascunhos/cancelados.
  */
 export const getEventosAdmin = async (token: string | null, params: EventosParams = {}): Promise<ResultadoEventos> => {
-   const { page = 1, limit = 10, busca, status = '', tipo } = params
+   const { page = 1, limit = 10, busca, status = '', tipo, mes, ano } = params
    const res = await authFetch(
-      `${API_URL}/api/eventos${querystring({ page, limit, busca, status, tipo })}`,
+      `${API_URL}/api/eventos${querystring({ page, limit, busca, status, tipo, mes, ano })}`,
       {
          headers: {
             Authorization: `Bearer ${token}`,
@@ -147,6 +151,45 @@ export const getEventosAdmin = async (token: string | null, params: EventosParam
    )
    const data = await res.json()
    return { eventos: normalizarEventos(data?.eventos), pagination: data?.pagination ?? PAGINACAO_VAZIA(page, limit) }
+}
+
+/** Teto de itens por página imposto pela API (GET /api/eventos). */
+const LIMIT_POR_PAGINA = 100
+
+/**
+ * Busca TODAS as páginas de uma listagem (a API limita a 100 itens/página).
+ * Mescla por `id` para tolerar sobreposição entre requisições.
+ */
+const buscarTodasAsPaginas = async (
+   buscarPagina: (page: number) => Promise<ResultadoEventos>,
+): Promise<Event[]> => {
+   const primeira = await buscarPagina(1)
+   if (primeira.pagination.totalPages <= 1) return primeira.eventos
+
+   const demais = await Promise.all(
+      Array.from({ length: primeira.pagination.totalPages - 1 }, (_, i) => buscarPagina(i + 2)),
+   )
+   const porId = new Map<string, Event>()
+   for (const resultado of [primeira, ...demais]) {
+      for (const evento of resultado.eventos) porId.set(evento.id, evento)
+   }
+   return [...porId.values()]
+}
+
+/**
+ * Todos os eventos cuja data de INÍCIO cai no mês/ano (semântica dos
+ * parâmetros `mes`/`ano` da API), paginando até esgotar as páginas.
+ * Público (`token` ausente): só publicados, do mais próximo ao mais distante.
+ * Admin (`token` + `status`): inclui rascunhos/cancelados conforme `status`.
+ */
+export const getEventosDoMes = (
+   { ano, mes, status, token }: { ano: number; mes: number; status?: string; token?: string | null },
+): Promise<Event[]> => {
+   const buscarPagina = (page: number) =>
+      token
+         ? getEventosAdmin(token, { page, limit: LIMIT_POR_PAGINA, status: status ?? '', mes, ano, ordem: 'asc' })
+         : getEventos({ page, limit: LIMIT_POR_PAGINA, status: status ?? 'publicado', mes, ano, ordem: 'asc' })
+   return buscarTodasAsPaginas(buscarPagina)
 }
 
 /** Lista os eventos criados pelo usuário autenticado, paginados no servidor. */

@@ -1,12 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EventForm } from '@/components/EventForm'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
-import { ApiError, cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventosAdmin } from '@/data/data'
+import { ApiError, cancelarEvento, createEvento, deleteEvento, editEvento, getCategorias, getEventosAdmin, getEventosDoMes } from '@/data/data'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -52,6 +52,15 @@ export default function App() {
    const [statusFilter, setStatusFilter] = useState<'all' | 'rascunho' | 'publicado' | 'cancelado'>('all')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [currentPage, setCurrentPage] = useState(1)
+   // Mês exibido no calendário (mes 0-based); o pai busca os eventos do mês.
+   const [calendarMonth, setCalendarMonth] = useState(() => {
+      const hoje = new Date()
+      return { ano: hoje.getFullYear(), mes: hoje.getMonth() }
+   })
+   const handleCalendarMesChange = useCallback(
+      (ano: number, mes: number) => setCalendarMonth({ ano, mes }),
+      [],
+   )
    const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
    const [alertMessage, setAlertMessage] = useState('')
@@ -106,10 +115,23 @@ export default function App() {
       placeholderData: keepPreviousData,
    })
 
+   // Calendário: TODOS os eventos (qualquer status) do mês exibido, via mes/ano
+   // do servidor — paginado até esgotar.
+   const { data: eventosMesData, isLoading: isLoadingMes } = useQuery({
+      queryKey: ['admin-eventos-overview', 'mes', { ano: calendarMonth.ano, mes: calendarMonth.mes + 1 }],
+      queryFn: () =>
+         getEventosDoMes({ ano: calendarMonth.ano, mes: calendarMonth.mes + 1, status: '', token }),
+      enabled: isAllowed && !!token,
+      placeholderData: keepPreviousData,
+   })
+
    const eventos = data?.eventos ?? []
    const eventosOverview = overviewData?.eventos ?? []
+   const eventosMes = eventosMesData ?? []
    const totalPages = data?.pagination?.totalPages ?? 0
    const totalEventos = data?.pagination?.total ?? 0
+
+   const encontrarEvento = (id: string) => [...eventos, ...eventosOverview, ...eventosMes].find((e) => e.id === id)
 
    // useEffect(() => {
    //    async function fetchData() {
@@ -239,8 +261,6 @@ export default function App() {
       setSelectedEvent(null)
    }
 
-    const encontrarEvento = (id: string) => [...eventos, ...eventosOverview].find((e) => e.id === id)
-
    if (loading) return null
    if (!isAllowed) return null
    return (
@@ -261,6 +281,11 @@ export default function App() {
              events={eventosOverview}
              totalEventos={overviewData?.pagination?.total ?? 0}
              categorias={categorias}
+            calendarEvents={eventosMes}
+            calendarAno={calendarMonth.ano}
+            calendarMes={calendarMonth.mes}
+            onCalendarMesChange={handleCalendarMesChange}
+            isLoadingMes={isLoadingMes}
             onUpdateCategorias={() => queryClient.invalidateQueries({ queryKey: ['categorias'] })}
             // onUpdateLocais={setLocais}
             onNewEvent={() => {
