@@ -87,6 +87,10 @@ export interface EventosParams {
    busca?: string
    status?: string
    tipo?: string
+   /** Quando true, a API retorna apenas eventos que terminam hoje ou depois. */
+   proximos?: boolean
+   /** Direção da ordenação por data de início (padrão da API: desc). */
+   ordem?: 'asc' | 'desc'
 }
 
 export interface ResultadoEventos {
@@ -106,7 +110,7 @@ const PAGINACAO_VAZIA = (page: number, limit: number): Pagination => ({
  * semântica na API (`status=` = TODOS os status; omitir = só `publicado`),
  * então ele é sempre enviado quando definido.
  */
-const querystring = (params: Record<string, string | number | undefined>): string => {
+const querystring = (params: Record<string, string | number | boolean | undefined>): string => {
    const qs = new URLSearchParams()
    for (const [k, v] of Object.entries(params)) {
       if (v === undefined || v === null) continue
@@ -119,8 +123,10 @@ const querystring = (params: Record<string, string | number | undefined>): strin
 
 /** Lista pública paginada com filtros server-side. Default: só publicados. */
 export const getEventos = async (params: EventosParams = {}): Promise<ResultadoEventos> => {
-   const { page = 1, limit = 6, categoria, busca, status = 'publicado', tipo } = params
-   const res = await authFetch(`${API_URL}/api/eventos${querystring({ page, limit, categoria, busca, status, tipo })}`)
+   const { page = 1, limit = 6, categoria, busca, status = 'publicado', tipo, proximos, ordem } = params
+   const res = await authFetch(
+      `${API_URL}/api/eventos${querystring({ page, limit, categoria, busca, status, tipo, proximos, ordem })}`,
+   )
    const data = await res.json()
    return { eventos: normalizarEventos(data?.eventos), pagination: data?.pagination ?? PAGINACAO_VAZIA(page, limit) }
 }

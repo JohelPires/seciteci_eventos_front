@@ -159,27 +159,30 @@ function AppContent() {
 
    const buscaDebounced = useDebouncedValue(searchTerm)
 
-   // Grid server-paginado: busca e categoria aplicadas no servidor.
-   // keepPreviousData mantém a página anterior visível durante as trocas.
-   const { data, isError, isLoading, isFetching, refetch: refetchEventos } = useQuery({
-      queryKey: ['eventos', { page: currentPage, categoria: categoryFilter, busca: buscaDebounced }],
-      queryFn: () =>
-         getEventos({
-            page: currentPage,
-            limit: ITEMS_PER_PAGE,
-            categoria: categoryFilter === 'all' ? undefined : categoryFilter,
-            busca: buscaDebounced,
-         }),
-      placeholderData: keepPreviousData,
-   })
+    // Grid server-paginado: busca e categoria aplicadas no servidor.
+    // keepPreviousData mantém a página anterior visível durante as trocas.
+    // A home pública mostra apenas eventos futuros (proximos), do mais próximo para o mais distante.
+    const { data, isError, isLoading, isFetching, refetch: refetchEventos } = useQuery({
+       queryKey: ['eventos', { page: currentPage, categoria: categoryFilter, busca: buscaDebounced, proximos: true, ordem: 'asc' }],
+       queryFn: () =>
+          getEventos({
+             page: currentPage,
+             limit: ITEMS_PER_PAGE,
+             categoria: categoryFilter === 'all' ? undefined : categoryFilter,
+             busca: buscaDebounced,
+             proximos: true,
+             ordem: 'asc',
+          }),
+       placeholderData: keepPreviousData,
+    })
 
-   // Conjunto bounded (teto da API = 100): alimenta o calendário, o mapa,
-   // o filtro por dia e a soma de capacidade.
-   const { data: eventosCalendarioData } = useQuery({
-      queryKey: ['eventos-calendario'],
-      queryFn: () => getEventos({ page: 1, limit: 100, status: 'publicado' }),
-      placeholderData: keepPreviousData,
-   })
+    // Conjunto bounded (teto da API = 100): alimenta o calendário, o mapa,
+    // o filtro por dia e a soma de capacidade. Restrito aos próximos eventos.
+    const { data: eventosCalendarioData } = useQuery({
+       queryKey: ['eventos-calendario', { proximos: true, ordem: 'asc' }],
+       queryFn: () => getEventos({ page: 1, limit: 100, status: 'publicado', proximos: true, ordem: 'asc' }),
+       placeholderData: keepPreviousData,
+    })
 
    const { data: categoriasData, isLoading: isLoadingCategorias } = useQuery({
       queryKey: ['categorias'],
@@ -439,7 +442,7 @@ function AppContent() {
                   <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
                      <div className="flex items-center justify-between">
                         <div>
-                           <p className="text-sm text-muted-foreground mb-1">Total de Eventos</p>
+                           <p className="text-sm text-muted-foreground mb-1">Próximos eventos</p>
                            <p className="text-foreground text-3xl font-semibold">{data?.pagination?.total ?? 0}</p>
                         </div>
                         <div className="p-3 bg-primary dark:bg-blue-950 rounded-lg">
