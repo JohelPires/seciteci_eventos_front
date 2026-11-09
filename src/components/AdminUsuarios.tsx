@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Edit, Trash2, Search, User, Mail, Calendar, ShieldCheck } from 'lucide-react'
+import { Trash2, Search, User, Mail, Calendar, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useDebouncedValue } from '@/hooks/debounce'
@@ -55,7 +55,6 @@ export interface Usuario {
 }
 
 interface AdminUsuariosProps {
-    onEditUsuario: (usuario: Usuario) => void
     onDeleteUsuario: (id: number) => void
     onToggleStatus: (id: number) => void
 }
@@ -63,7 +62,6 @@ interface AdminUsuariosProps {
 const ITEMS_PER_PAGE = 10
 
 export function AdminUsuarios({
-    onEditUsuario,
     onDeleteUsuario,
     onToggleStatus,
 }: AdminUsuariosProps) {
@@ -306,15 +304,6 @@ export function AdminUsuarios({
                                                         <ShieldCheck className="w-4 h-4" />
                                                     </Button>
                                                 )}
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        onEditUsuario(usuario)
-                                                    }
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"

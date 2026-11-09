@@ -482,7 +482,6 @@ export function AdminDashboard({
                      //       ultimoAcesso: 'strin',
                      //    },
                      // ]}
-                     onEditUsuario={() => {}}
                      onDeleteUsuario={() => {}}
                      onToggleStatus={() => {}}
                   />
