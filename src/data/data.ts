@@ -325,7 +325,8 @@ export const getUsuarios = async ({
    search?: string
 }) => {
    // O server clampa limit em 100 e NÃO aplica `search`: a busca permanece no cliente.
-   const res = await authFetch(`${API_URL}/api/usuarios${querystring({ page, limit, search })}`, {
+   // ativo=true: usuários desativados (soft delete) não aparecem na listagem.
+   const res = await authFetch(`${API_URL}/api/usuarios${querystring({ page, limit, search, ativo: true })}`, {
       headers: {
          Authorization: `Bearer ${token}`,
       },
@@ -343,6 +344,22 @@ export const promoverUsuario = async (id: number, token: string | null) => {
       },
    })
    return res.json()
+}
+
+/**
+ * Desativa um usuário (soft delete, DELETE /api/usuarios/{id}): ativo=false e
+ * tokenVersion++, invalidando os JWT já emitidos. Admins não podem ser
+ * desativados (403). Idempotente. O 200 não declara corpo no Swagger, por isso
+ * o `.catch(() => null)` evita quebrar em resposta vazia.
+ */
+export const deleteUsuario = async (id: number, token: string | null) => {
+   const res = await authFetch(`${API_URL}/api/usuarios/${id}`, {
+      method: 'DELETE',
+      headers: {
+         Authorization: `Bearer ${token}`,
+      },
+   })
+   return res.json().catch(() => null)
 }
 
 /**

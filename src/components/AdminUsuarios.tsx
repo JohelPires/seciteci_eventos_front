@@ -41,7 +41,7 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from './ui/pagination'
-import { getUsuarios, promoverUsuario } from '@/data/data'
+import { getUsuarios, promoverUsuario, deleteUsuario } from '@/data/data'
 import { TableSkeleton } from './TableSkeleton'
 import { useAuth } from '@/context/AuthContext'
 
@@ -55,14 +55,12 @@ export interface Usuario {
 }
 
 interface AdminUsuariosProps {
-    onDeleteUsuario: (id: number) => void
     onToggleStatus: (id: number) => void
 }
 
 const ITEMS_PER_PAGE = 10
 
 export function AdminUsuarios({
-    onDeleteUsuario,
     onToggleStatus,
 }: AdminUsuariosProps) {
     const [searchTerm, setSearchTerm] = useState('')
@@ -97,6 +95,18 @@ export function AdminUsuarios({
         },
         onError: (err) => {
             toast.error(err instanceof Error ? err.message : 'Erro ao promover usuário.')
+        },
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: number) => deleteUsuario(id, token),
+        onSuccess: (data) => {
+            toast.success(data?.message ?? 'Usuário desativado com sucesso.')
+            queryClient.invalidateQueries({ queryKey: ['Usuarios'] })
+            queryClient.invalidateQueries({ queryKey: ['Usuarios-todos'] })
+        },
+        onError: (err) => {
+            toast.error(err instanceof Error ? err.message : 'Erro ao desativar usuário.')
         },
     })
 
@@ -304,24 +314,30 @@ export function AdminUsuarios({
                                                         <ShieldCheck className="w-4 h-4" />
                                                     </Button>
                                                 )}
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        if (
-                                                            confirm(
-                                                                'Tem certeza que deseja excluir este usuário?',
-                                                            )
-                                                        ) {
-                                                            onDeleteUsuario(
-                                                                usuario.id,
-                                                            )
+                                                {usuario.tipoUsuario !== 'admin' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        title="Desativar usuário"
+                                                        onClick={() => {
+                                                            if (
+                                                                confirm(
+                                                                    'Tem certeza que deseja desativar este usuário? Ele não poderá mais acessar o sistema.',
+                                                                )
+                                                            ) {
+                                                                deleteMutation.mutate(
+                                                                    usuario.id,
+                                                                )
+                                                            }
+                                                        }}
+                                                        disabled={
+                                                            deleteMutation.isPending
                                                         }
-                                                    }}
-                                                    className="text-destructive hover:text-destructive"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
+                                                        className="text-destructive hover:text-destructive"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                      </TableRow>
