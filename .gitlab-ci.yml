@@ -1,18 +1,61 @@
-# Publicação na VM da SECITECI pela convenção de fic_dev/secitec-servidor
-# (front buildado com caminho base: Next `basePath` — deploy/secitec do
-# portal-inovacao-web é o exemplo de referência).
+# Publicação nas duas VMs do Conecte-se:
+#   - push na branch `dev` (protegida) → `publicar:risc` publica AUTOMATICAMENTE
+#     na VM do RISC: https://apps.risc.unemat.br/dev/secitec/conectese
+#     (runner `secitec-vps`, shell; Protected só roda em refs protegidas);
+#   - push na `main` → `publicar:producao:conectese` publica AUTOMATICAMENTE
+#     na VM do Conecte-se (SECITEC-29949): https://conectese.secitec.mt.gov.br
+#     (front na raiz, API same-origin em /api; runner `conectese-prod`).
+# O botão manual `publicar:producao` do template continua disponível na
+# pipeline da `main` (publicação de emergência do RISC por commit).
+
 include:
   - project: 'fic_dev/secitec-servidor'
     file: 'gitlab/deploy.gitlab-ci.yml'
 
 variables:
   APP: conectese
-  # COMPOSE_ARQUIVO (compose.yml na raiz), DOCKERFILE, DOCKER_CONTEXTO:
-  # já são os padrões do modelo.
 
-# O modelo publica produção com o botão; aqui o merge na main publica
-# automaticamente (sobrescrevo só o gatilho do job).
-publicar:producao:
+# Deploy automático na VM do RISC: a branch `dev` é a produção da VM (mesmo
+# endereço de sempre). O corpo vem do modelo (.publicar-na-vm +
+# .ambiente:producao): environment `producao`, APP_CAMINHO=/dev/secitec/
+# conectese em `/opt/apps/conectese/prod` e a APP_ENV escopo `*` (File) do
+# projeto. O compose usado é o `compose.yml` da raiz.
+# PRÉ-REQUISITO: branch `dev` protegida (runner é Protected).
+publicar:risc:
   extends: [.publicar-na-vm, .ambiente:producao]
   rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+
+# Publicação do FRONT na VM do Conecte-se pelo runner de projeto
+# `conectese-prod (.237)`. A pipeline constrói a imagem (basePath vazio, API
+# same-origin inlinada via segredo BuildKit app_env — a APP_ENV de escopo
+# `conectese-web`) e troca o container `conectese.frontend` (projeto
+# `seciteci_eventos_front`, serviço `frontend`, mesmos labels do Traefik de
+# lá); o compose de lá é `deploy/conectese/compose.yml`.
+publicar:producao:conectese:
+  stage: deploy
+  tags: [conectese-prod]
+  interruptible: false
+  resource_group: conectese-web-prod
+  environment:
+    name: conectese-web
+    deployment_tier: production
+    url: https://conectese.secitec.mt.gov.br
+  rules:
     - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - |
+      set -e
+      echo "== build do front =="
+      DOCKER_BUILDKIT=1 docker build -f Dockerfile \
+        --build-arg APP_CAMINHO= \
+        --build-arg NEXT_PUBLIC_API_URL=https://conectese.secitec.mt.gov.br \
+        --secret id=app_env,src="$APP_ENV" \
+        -t "conectese-web:${CI_COMMIT_SHORT_SHA}" -t "conectese-web:latest" .
+      echo "== troca o container conectese.frontend =="
+      docker compose -p seciteci_eventos_front \
+        -f deploy/conectese/compose.yml up -d --force-recreate --wait --wait-timeout 240
+      echo "== sanity =="
+      docker exec conectese.frontend wget -qO- http://127.0.0.1:3000/saude >/dev/null
+      curl -sk --max-time 15 -o /dev/null -w '/saude HTTP %{http_code}\n' https://conectese.secitec.mt.gov.br/saude
+      curl -sk --max-time 15 -o /dev/null -w '/ HTTP %{http_code}\n' https://conectese.secitec.mt.gov.br/

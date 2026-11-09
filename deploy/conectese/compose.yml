@@ -1,0 +1,45 @@
+# Compose de PRODUÇÃO do front, na VM do Conecte-se (SECITEC-29949).
+# O job `publicar:producao:conectese` o usa no runner de lá para trocar o
+# container `conectese.frontend` (projeto `seciteci_eventos_front`, serviço
+# `frontend` — o mesmo nome/projeto/serviço do compose antigo manual e
+# nunca mais tocado em /home/conectese, que segue lá como rollback manual).
+#
+# Coisas que já existem na VM (FORA DESTE COMPOSE, não mexemos):
+#   - rede Docker `traefik` — onde o Traefik (host) descobre os routers;
+#   - o router `conectese-backend` (projeto seciteci-eventos-backend) para
+#     `conectese.secitec.mt.gov.br/api` (priority 100, vence este aqui).
+#
+# DIFERENTE da VM do RISC: o front é publicado na RAIZ (sem basePath) e a
+# API é same-origin (https://conectese.secitec.mt.gov.br/api) — a URL já vai
+# INLINADA no bundle (segredo BuildKit app_env do build), por isso NÃO
+# passamos NEXT_PUBLIC_API_URL no runtime.
+services:
+  frontend:
+    image: conectese-web:${CI_COMMIT_SHORT_SHA}
+    container_name: conectese.frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_BASE_PATH: ''
+      NODE_ENV: production
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.conectese-frontend.rule=Host(`conectese.secitec.mt.gov.br`)
+      - traefik.http.routers.conectese-frontend.entrypoints=websecure
+      - traefik.http.routers.conectese-frontend.tls=true
+      - traefik.http.routers.conectese-frontend.tls.certresolver=leresolver
+      - traefik.http.routers.conectese-frontend.priority=1
+      - traefik.http.services.conectese-frontend.loadbalancer.server.port=3000
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/saude >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    mem_limit: 384m
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true

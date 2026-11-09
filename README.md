@@ -1,8 +1,9 @@
 # Conecte-se — front (gestao-eventos-web)
 
 Agenda estadual de Ciência, Tecnologia e Inovação de Mato Grosso (SECITECI):
-front Next.js que consome a API própria e roda na VM da SECITECI pela
-convenção de [`fic_dev/secitec-servidor`](https://gitlab.risc.unemat.br/fic_dev/secitec-servidor).
+front Next.js que consome a API própria e roda nas VMs da SECITECI pela
+convenção de [`fic_dev/secitec-servidor`](https://gitlab.risc.unemat.br/fic_dev/secitec-servidor)
+(`dev` → RISC; `main` → VM do Conecte-se).
 
 ## Stack
 
@@ -17,46 +18,77 @@ npm install
 npm run dev
 ```
 
-## Deploy na VM da SECITECI
+## Deploy nas VMs da SECITECI (duas produções)
 
-| Assunto | Valor |
-| --- | --- |
-| Produção | **https://apps.risc.unemat.br/dev/secitec/conectese** |
-| API | `https://apps.risc.unemat.br/dev/secitec/conectese-api` |
-| Branch | só `main` (protegida) |
-| Publicação | **automática a cada merge na `main`** (sem botão) |
-| Runner | `secitec-vps` (shell, na VM, concurrent=1 — builds ficam em fila) |
+| Ambiente | Branch | URL | API | Runner | Environment (GitLab) |
+| --- | --- | --- | --- | --- | --- |
+| RISC | `dev` | **https://apps.risc.unemat.br/dev/secitec/conectese** | `https://apps.risc.unemat.br/dev/secitec/conectese-api` | `secitec-vps` (grupo) | `producao` |
+| Conecte-se (SECITEC-29949) | `main` | **https://conectese.secitec.mt.gov.br** | same-origin `…/api` | `conectese-prod` (runner 119) | `conectese-web` |
 
 Como funciona (detalhes no README do `fic_dev/secitec-servidor`):
 
-- O endereço é por **CAMINHO**. O Traefik da VM NÃO retira o prefixo (sem
-  `stripprefix`) e o app é buildado com `basePath` =
-  `NEXT_PUBLIC_BASE_PATH` — o template de CI passa o caminho no build
-  (`--build-arg APP_CAMINHO`). Trocar de endereço = re-buildar.
-- O template (`.gitlab-ci.yml` inclui `gitlab/deploy.gitlab-ci.yml` de
-  `fic_dev/secitec-servidor`, com `APP: conectese`) builda a imagem com o
-  segredo BuildKit `id=app_env`, copia o `compose.yml` e escreve o `.env`
-  em `/opt/apps/conectese/prod/`; o `docker compose up --wait` espera a
-  rota de saúde `${APP_CAMINHO}/saude` ficar saudável.
-- O `APP_ENV` (GitLab > Settings > CI/CD > Variables, tipo **File**,
-  escopo `producao`, Protected) carrega:
+- **As duas publicações são automáticas**: `publicar:risc` dispara a cada
+  push/merge na `dev`; `publicar:producao:conectese` a cada merge na `main`.
+  O job manual `publicar:producao` do template continua disponível na
+  pipeline da `main` (publicação de emergência do RISC por commit).
+
+### VM do RISC (branch `dev`)
+
+- Job `publicar:risc` (`.gitlab-ci.yml`), corpo do template
+  (`.publicar-na-vm` + `.ambiente:producao`): builda com
+  `--build-arg APP_CAMINHO=/dev/secitec/conectese`, copia o `compose.yml`
+  da raiz e escreve o `.env` em `/opt/apps/conectese/prod/`; o
+  `docker compose up --wait` espera a rota de saúde `${APP_CAMINHO}/saude`.
+- A `APP_ENV` usada é a variável de escopo `*` (GitLab > Settings > CI/CD >
+  Variables, tipo **File**, Protected), que aponta para a API do RISC:
 
   ```
   NEXT_PUBLIC_API_URL=https://apps.risc.unemat.br/dev/secitec/conectese-api
   NODE_ENV=production
   ```
 
+- A URL da API vai INLINADA no bundle no build (segredo BuildKit
+  `id=app_env`).
+
+### VM do Conecte-se (SECITEC-29949; branch `main`)
+
+- Job `publicar:producao:conectese` (`.gitlab-ci.yml`), runner de projeto
+  `conectese-prod` (119, da API): builda a imagem com `basePath` vazio
+  (`--build-arg APP_CAMINHO=`) e **API same-origin**
+  (`https://conectese.secitec.mt.gov.br` — o código acrescenta `/api`),
+  e troca o container `conectese.frontend` via
+  `docker compose -p seciteci_eventos_front -f deploy/conectese/compose.yml`.
+- O compose de lá (mesmos labels do Traefik: router `conectese-frontend`,
+  `Host(conectese.secitec.mt.gov.br)`, `websecure` + `leresolver`,
+  serviço na porta 3000) está em `deploy/conectese/compose.yml`; o
+  container antigo (compose manual em `/home/conectese`) é substituído sem
+  escrever nessa pasta.
+- A `APP_ENV` usada é a variável de escopo **`conectese-web`** (File,
+  Protected), criada para isolar a VM:
+
+  ```
+  NEXT_PUBLIC_API_URL=https://conectese.secitec.mt.gov.br
+  NODE_ENV=production
+  ```
+
+- Também aqui a URL da API é INLINADA no build; o container não recebe
+  `NEXT_PUBLIC_API_URL` em runtime.
+
+### Regras comuns às duas VMs
+
+- As branches `main` e `dev` são **protegidas** (os dois runners são
+  `ref_protected` e só rodam em ref protegida); sem force-push.
 - O `basePath` cobre `<Link>`, `router.push/replace` e `redirect()`, mas
   NÃO prefixa `src` cru de imagem, `window.location` nem ícones de
   `metadata` — use `comBase()` (`src/lib/caminho-base.ts`).
 - O Next lê o `basePath` do `next.config.mjs` TAMBÉM no runtime
-  (`next start`), não só no build: o `compose.yml` exporta
-  `NEXT_PUBLIC_BASE_PATH=${APP_CAMINHO}` no container (o pipeline só
-  fornece `APP_CAMINHO`). Sem isso o app sobe na raiz e 404a sob o
-  prefixo — o healthcheck falha e o deploy não sobe.
+  (`next start`), não só no build: o `compose.yml` (RISC) exporta
+  `NEXT_PUBLIC_BASE_PATH=${APP_CAMINHO}` no container; na VM do Conecte-se
+  ele fica vazio (app na raiz).
 - Rota de saúde: `src/app/saude/route.ts` (200 sem depender da API).
 - Sem banco no compose: o front só fala com a API.
-- Rollback: re-run da pipeline de um commit anterior.
+- Rollback: re-run da pipeline de um commit anterior da própria branch
+  (a imagem é tagueada com o SHA).
 
 ### Validar o build com prefixo (como o pipeline faz)
 

@@ -22,15 +22,15 @@ Next.js 15 (App Router, Turbopack), React 19, TypeScript strict, Tailwind v4, sh
 ## Armadilhas
 - `src/components/EventForm2.tsx.backup` e `src/components/ui/*.tsx.del` são arquivos mortos — não edite; o form vivo é `EventForm.tsx`.
 - `origin` aponta para GitLab (com segundo push URL no GitHub).
-- `.gitignore` ignora `Dockerfile` e `docker-compose.yml`, mas o `Dockerfile` já é rastreado (edite normalmente) e o compose de publicação é o `compose.yml` (não `docker-compose.yml`).
+- `.gitignore` ignora `Dockerfile` e `docker-compose.yml`, mas o `Dockerfile` já é rastreado (edite normalmente). Os composes de publicação são dois: `compose.yml` (raiz — VM do RISC) e `deploy/conectese/compose.yml` (VM do Conecte-se).
 
-## Deploy (VM da SECITECI)
-- Convenção de `fic_dev/secitec-servidor`; exemplo de front com caminho base: `fic_dev/portal-da-inovacao/portal-inovacao-web/deploy/secitec/`.
-- Produção: **https://apps.risc.unemat.br/dev/secitec/conectese** — API em `.../conectese-api`.
-- Endereço é por CAMINHO: O Traefik NÃO retira o prefixo (sem `stripprefix`) e o app é buildado com `basePath`=`NEXT_PUBLIC_BASE_PATH` (o pipeline passa `--build-arg APP_CAMINHO`). Trocar de endereço = re-buildar.
-- `.gitlab-ci.yml` inclui o template de publicação com `APP: conectese`; **deploy AUTOMÁTICO a cada merge na `main`** (sem botão — sobrescrevemos o `when: manual` do template). Runner do grupo `secitec-vps` (shell, na VM, concurrent=1): builds ficam em fila.
-- `APP_ENV` (GitLab > Settings > CI/CD > Variables, tipo **File**, escopo `producao`, Protected) carrega `NEXT_PUBLIC_API_URL` + `NODE_ENV=production`; entra no build como segredo BuildKit (`id=app_env`) e vira o `.env` do container.
-- Só produção (branch `main`). Sem banco no compose: o front só fala com a API. Rollback = re-run da pipeline de um commit anterior.
+## Deploy (duas VMs da SECITECI)
+- Convenção de `fic_dev/secitec-servidor`; **as duas publicações são automáticas** (sem botão — os runners são `ref_protected`, então `main` e `dev` devem estar protegidas).
+- **`dev` → VM do RISC**: job `publicar:risc` (template + `.ambiente:producao`); **https://apps.risc.unemat.br/dev/secitec/conectese** — API em `.../conectese-api`. Runner `secitec-vps` (shell, na VM, concurrent=1: builds em fila). Endereço por CAMINHO: Traefik NÃO retira o prefixo, build com `basePath`=`APP_CAMINHO` (`--build-arg APP_CAMINHO`). Compose usado: `compose.yml` da raiz; `.env` em `/opt/apps/conectese/prod/`.
+- **`main` → VM do Conecte-se (SECITEC-29949)**: job `publicar:producao:conectese`; **https://conectese.secitec.mt.gov.br** (front na raiz, `APP_CAMINHO=` vazio; API same-origin em `/api`). Runner 119 `conectese-prod` (project runner da API, habilitado no 689). Troca o container `conectese.frontend` via `docker compose -p seciteci_eventos_front -f deploy/conectese/compose.yml` (mesmos labels do Traefik; compose antigo manual em `/home/conectese` fica como rollback e NÃO é escrito).
+- `APP_ENV` por escopo (GitLab > Settings > CI/CD > Variables, tipo **File**, Protected): escopo `*` = RISC (`NEXT_PUBLIC_API_URL=https://apps.risc.unemat.br/dev/secitec/conectese-api`); escopo `conectese-web` = Conecte-se (`NEXT_PUBLIC_API_URL=https://conectese.secitec.mt.gov.br`). Ambas carregam `NODE_ENV=production` e entram no build como segredo BuildKit (`id=app_env`) — a URL da API é inlinada NO BUILD, nunca em runtime.
+- O job manual `publicar:producao` do template continua na pipeline da `main` (emergência RISC).
+- Rota de saúde: `src/app/saude/route.ts` (`/saude` sob o basePath do ambiente; 200 sem depender da API). Rollback = re-run da pipeline de um commit anterior da própria branch.
 - Dev local: `NEXT_PUBLIC_BASE_PATH` vazio (app na raiz); siga `.env.example`.
 - Referência a asset de `public/` deve usar `comBase()` (`src/lib/caminho-base.ts`) — o `basePath` não prefixa `src`/`href` crus nem `window.location`.
 
