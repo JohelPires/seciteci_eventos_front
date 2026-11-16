@@ -24,6 +24,7 @@ Next.js 15 (App Router, Turbopack), React 19, TypeScript strict, Tailwind v4, sh
 - `src/components/EventForm2.tsx.backup` e `src/components/ui/*.tsx.del` são arquivos mortos — não edite; o form vivo é `EventForm.tsx`.
 - `origin` aponta para GitLab (com segundo push URL no GitHub).
 - `.gitignore` ignora `Dockerfile` e `docker-compose.yml`, mas o `Dockerfile` já é rastreado (edite normalmente). Os composes de publicação são dois: `compose.yml` (raiz — VM do RISC) e `deploy/conectese/compose.yml` (VM do Conecte-se).
+- **Cache do BuildKit não enxerga o CONTEÚDO do segredo `app_env`** (`RUN --mount=type=secret`): mudar a env no GitLab e re-runar o job re-publica o bundle ANTIGO (já morreu assim). Env nova só entra com mudança de código/Dockerfile no mesmo push (cadência normal), ou alterando uma linha do RUN do build no `Dockerfile`, ou `docker builder prune` na VM. Para o EasyPanel vale outra regra: build args são referenciados no comando do RUN, então mudar build arg invalida o cache.
 
 ## Deploy (duas VMs da SECITECI)
 - Convenção de `fic_dev/secitec-servidor`; **as duas publicações são automáticas** (sem botão — os runners são `ref_protected`, então `main` e `dev` devem estar protegidas).

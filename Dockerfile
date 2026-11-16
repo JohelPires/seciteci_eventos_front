@@ -18,8 +18,19 @@
 #   Google, inlinado no bundle (o valor é público; entra pelo mesmo
 #   mecanismo da API_URL).
 # - app_env (segredo do BuildKit): o build precisa das `NEXT_PUBLIC_*`
-#   (vão inlinadas no bundle). Lida só durante o RUN do build; não fica em
-#   camada da imagem.
+#   (vão inlinadas no bundle). Lida só durante os RUNs; não fica na imagem
+#   final (o runner não copia o arquivo materializado).
+#
+#   ARMADILHA DE CACHE (já mordeu o RISC): `RUN --mount=type=secret` NÃO
+#   invalida o cache quando o CONTEÚDO do segredo muda — a chave da camada
+#   é só o comando + camadas-pai, nunca o arquivo. Mudar a env e re-runar
+#   o job re-publica o bundle ANTIGO. A env nova só entra no bundle quando
+#   algo do contexto muda junto (código, Dockerfile) — a cadência normal
+#   (feature + env no mesmo push). Se precisar inlinar sem mudar código:
+#   mudar uma linha DESTE RUN, ou `docker builder prune` na VM.
+#
+#   Para o EasyPanel (que passa as envs como BUILD ARGS), os ARGs são
+#   referenciados no comando do build: valor novo de build arg = cache miss.
 
 FROM node:20-alpine AS build
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -34,11 +45,19 @@ COPY . .
 ARG APP_CAMINHO=
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+# 1) Materializa o segredo num arquivo (debugável com `cat`; mantém o
+#    conteúdo do app_env fora do comando/camada final).
 RUN --mount=type=secret,id=app_env,required=false \
-    set -a && \
-    if [ -f /run/secrets/app_env ]; then . /run/secrets/app_env; fi && \
+    if [ -f /run/secrets/app_env ]; then cp /run/secrets/app_env .ambiente.build; else : > .ambiente.build; fi
+# 2) Consome o arquivo materializado e builda. Os ARGs explícitos no comando
+#    fazem o cache reagir a build args (EasyPanel).
+RUN set -a && \
+    . ./.ambiente.build && \
     set +a && \
-    NEXT_PUBLIC_BASE_PATH="${APP_CAMINHO}" npm run build
+    NEXT_PUBLIC_BASE_PATH="${APP_CAMINHO}" \
+    NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}" \
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID="${NEXT_PUBLIC_GOOGLE_CLIENT_ID}" \
+    npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
