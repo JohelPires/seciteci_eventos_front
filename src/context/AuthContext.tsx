@@ -35,6 +35,7 @@ interface AuthContextType {
    isAuthenticated: boolean
    loading: boolean
    login: (email: string, senha: string) => Promise<void>
+   loginWithGoogle: (idToken: string) => Promise<void>
    register: (nome: string, email: string, senha: string, userType: 'client' | 'professional') => Promise<void>
    logout: () => void
 }
@@ -96,6 +97,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false) // auth resolvido, libera a aplicação
    }, [])
 
+   // Persiste a sessão devolvida por QUALQUER endpoint de login (senha ou
+   // Google) e libera a aplicação. Lança quando o JWT não tem role legível.
+   const aplicarSessao = (receivedToken: string, userData: User | null) => {
+      const role = resolverUserRole(receivedToken)
+      if (role === null) {
+         // Backend autenticou mas não devolveu um JWT com role legível — não há sessão confiável
+         throw new Error('Resposta de login inválida. Contate o suporte.')
+      }
+
+      localStorage.setItem('authToken', receivedToken)
+      if (userData) localStorage.setItem('authUser', JSON.stringify(userData))
+
+      setToken(receivedToken)
+      setUserRole(role)
+      setTokenId(obterClaims(receivedToken)?.id ?? null)
+      if (userData) setUser(userData)
+
+      toast.success(`Bem-vindo(a), ${(userData?.nome ?? '').split(' ')[0] || 'usuário(a)'}!`)
+      router.push('/')
+   }
+
    const login = async (email: string, senha: string) => {
       try {
          const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -111,26 +133,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          }
 
          const { token: receivedToken, user: userData } = await response.json()
-
-         const role = resolverUserRole(receivedToken)
-         if (role === null) {
-            // Backend autenticou mas não devolveu um JWT com role legível — não há sessão confiável
-            throw new Error('Resposta de login inválida. Contate o suporte.')
-         }
-
-         localStorage.setItem('authToken', receivedToken)
-         if (userData) localStorage.setItem('authUser', JSON.stringify(userData))
-
-         setToken(receivedToken)
-         setUserRole(role)
-         setTokenId(obterClaims(receivedToken)?.id ?? null)
-         if (userData) setUser(userData as User)
-
-         toast.success(`Bem-vindo(a), ${(userData?.nome ?? '').split(' ')[0] || 'usuário(a)'}!`)
-         router.push('/')
+         aplicarSessao(receivedToken, userData)
          // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
          console.error('Erro de Login:', error.message)
+         toast.error(error.message)
+         throw error
+      }
+   }
+
+   /**
+    * Login via Google: troca o ID token do Google Identity Services pelo JWT
+    * da API (`POST /api/auth/google`). O backend valida a audience, cria ou
+    * vincula a conta e devolve a MESMA forma do login local (`{ token, user }`).
+    */
+   const loginWithGoogle = async (idToken: string) => {
+      try {
+         const response = await fetch(`${API_URL}/api/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+         })
+
+         if (!response.ok) {
+            // 401 (token/audience), 409 (e-mail já vinculado a outro Google) etc.
+            const errorData = await response.json().catch(() => null)
+            throw new Error(extrairMensagemErro(errorData, 'Não foi possível entrar com o Google. Tente novamente.'))
+         }
+
+         const { token: receivedToken, user: userData } = await response.json()
+         aplicarSessao(receivedToken, userData)
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+         console.error('Erro de Login com Google:', error.message)
          toast.error(error.message)
          throw error
       }
@@ -173,7 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    }
 
    return (
-      <AuthContext.Provider value={{ user, token, userRole, isAdmin, tokenId, isAuthenticated, loading, login, register, logout }}>
+      <AuthContext.Provider value={{ user, token, userRole, isAdmin, tokenId, isAuthenticated, loading, login, loginWithGoogle, register, logout }}>
          {children}
       </AuthContext.Provider>
    )

@@ -18,6 +18,27 @@ npm install
 npm run dev
 ```
 
+## Login com Google
+
+Fluxo de ID token: o botão oficial do Google Identity Services
+(`src/components/GoogleSignInButton.tsx`) entrega o ID token e o
+`loginWithGoogle` troca pelo JWT da API em `POST /api/auth/google` — sem
+redirect e sem segredo no front (Client ID é público).
+
+- Env (build): `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — o MESMO valor do
+  `GOOGLE_CLIENT_ID` do backend (a audience tem que bater). Sem a env, o
+  botão simplesmente não aparece no diálogo de login.
+- No Google Cloud (OAuth client do tipo **Web application**), as
+  Authorized JavaScript origins precisam cobrir cada origem do front:
+  `http://localhost:3000`, `https://apps.risc.unemat.br` e
+  `https://conectese.secitec.mt.gov.br` (e o host do EasyPanel, se usado) —
+  origem apenas, sem caminho.
+- A CSP já libera `accounts.google.com` (`script-src`, `connect-src` e
+  `frame-src`).
+- Deploy: a env entra no build como as demais `NEXT_PUBLIC_*` — no
+  `APP_ENV` (File) dos escopos `*` e `conectese-web`, e no serviço do
+  EasyPanel (com **Force Rebuild**). Trocar de Client ID = re-buildar.
+
 ## Deploy nas VMs da SECITECI (duas produções)
 
 | Ambiente | Branch | URL | API | Runner | Environment (GitLab) |

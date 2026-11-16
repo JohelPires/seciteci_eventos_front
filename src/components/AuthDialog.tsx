@@ -10,6 +10,8 @@ import Image from 'next/image'
 import { toast } from 'sonner' // Importar toast para exibir mensagens de erro
 import { useAuth } from '@/context/AuthContext' // Importar o hook de autenticação
 import { RedefinirSenhaDialog } from './RedefinirSenhaDialog'
+import { GoogleSignInButton } from './GoogleSignInButton'
+import { googleLoginConfigured } from '@/lib/google-identity'
 
 /**
  * Interface simplificada: não precisa mais de onLogin/onRegister,
@@ -22,7 +24,7 @@ interface AuthDialogProps {
 
 export function AuthDialog({ open, onClose }: AuthDialogProps) {
    // Acesso às funções de login e registro do Contexto
-   const { login, register } = useAuth()
+   const { login, loginWithGoogle, register } = useAuth()
 
    // Modo: 'auth' mostra Entrar/Cadastrar; 'recuperar' mostra o fluxo de redefinição
    const [modo, setModo] = useState<'auth' | 'recuperar'>('auth')
@@ -33,6 +35,12 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
    const [loginEmail, setLoginEmail] = useState('')
    const [loginPassword, setLoginPassword] = useState('')
    const [isLoginLoading, setIsLoginLoading] = useState(false)
+
+   // Estado da troca do ID token do Google pelo JWT da API
+   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+
+   // O bloco Google só existe quando o Client ID foi definido no build
+   const mostrarGoogle = googleLoginConfigured()
 
    // A cada reabertura do diálogo, reinicia no modo/aba padrão
    useEffect(() => {
@@ -62,6 +70,19 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
          console.error('Falha ao tentar login:', error)
       } finally {
          setIsLoginLoading(false)
+      }
+   }
+
+   const handleGoogleCredential = async (idToken: string) => {
+      setIsGoogleLoading(true)
+      try {
+         // Troca o ID token pelo JWT da API; erro já é tostado no AuthContext
+         await loginWithGoogle(idToken)
+         onClose() // Fecha o modal apenas em caso de sucesso
+      } catch (error) {
+         console.error('Falha ao tentar login com Google:', error)
+      } finally {
+         setIsGoogleLoading(false)
       }
    }
 
@@ -106,6 +127,31 @@ export function AuthDialog({ open, onClose }: AuthDialogProps) {
                <DialogTitle className="text-center text-2xl">Bem-vindo ao CONECTE-SE</DialogTitle>
                <DialogDescription className="text-center">Entre ou crie sua conta para continuar</DialogDescription>
             </DialogHeader>
+
+            {/* Faixa de identidade: o caminho federado (Google) antes das credenciais locais.
+                Full-bleed (-mx-6) para marcar a fronteira dentro do dialog. */}
+            {mostrarGoogle && (
+               <div className="-mx-6 border-y bg-primary/[0.04] px-6 py-5">
+                  <p className="text-muted-foreground text-[11px] font-medium uppercase tracking-[0.14em]">
+                     Acesso com Google
+                  </p>
+                  <div className="mt-3">
+                     <GoogleSignInButton onCredential={handleGoogleCredential} disabled={isGoogleLoading} />
+                  </div>
+                  <p className="text-muted-foreground mt-2 text-xs">
+                     Usamos seu nome, e-mail e foto do Google. Não criamos outra senha.
+                  </p>
+               </div>
+            )}
+
+            {/* Fronteira entre federação e credenciais locais; só existe quando há Google */}
+            {mostrarGoogle && (
+               <div className="flex items-center gap-3" role="separator" aria-label="ou entre com e-mail">
+                  <span className="bg-border h-px flex-1" aria-hidden="true" />
+                  <span className="text-muted-foreground text-[11px] uppercase tracking-[0.14em]">ou entre com e-mail</span>
+                  <span className="bg-border h-px flex-1" aria-hidden="true" />
+               </div>
+            )}
 
             <Tabs value={aba} onValueChange={(valor) => setAba(valor as 'login' | 'register')} className="w-full">
                <TabsList className="grid w-full grid-cols-2">

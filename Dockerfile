@@ -14,6 +14,9 @@
 #   build. O pipeline da VM NÃO passa esse build arg (vem do segredo
 #   `app_env` abaixo, que sobrescreve); quem passa é o EasyPanel, que injeta
 #   as envs do serviço como build args.
+# - NEXT_PUBLIC_GOOGLE_CLIENT_ID (build arg): idem — o Client ID do login
+#   Google, inlinado no bundle (o valor é público; entra pelo mesmo
+#   mecanismo da API_URL).
 # - app_env (segredo do BuildKit): o build precisa das `NEXT_PUBLIC_*`
 #   (vão inlinadas no bundle). Lida só durante o RUN do build; não fica em
 #   camada da imagem.
@@ -30,6 +33,7 @@ RUN npm ci
 COPY . .
 ARG APP_CAMINHO=
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
 RUN --mount=type=secret,id=app_env,required=false \
     set -a && \
     if [ -f /run/secrets/app_env ]; then . /run/secrets/app_env; fi && \
