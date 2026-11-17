@@ -15,6 +15,7 @@ Next.js 15 (App Router, Turbopack), React 19, TypeScript strict, Tailwind v4, sh
 - Auth pelo Clerk (padrão `fic_dev/padroes-servicos/clerk.md`): identidade = Clerk; papel (`tipoUsuario`) e `ativo` = banco, lidos de `GET /api/auth/profile` no `AuthContext`. Tipos: `admin | organizador | participante`. Sign-up público em `/sign-up` cria `participante` no backend (webhook/fallback por e-mail).
 - Integração só client-side: `ClerkProvider` no layout, `/sign-in` e `/sign-up` catch-all em rota por CAMINHO, URLs sempre com `comBase` (`src/lib/auth/urls-clerk.ts`). Sem middleware e sem `CLERK_SECRET_KEY` no front (a secret é do backend).
 - Env (build): `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` — `pk_test_` (dev/RISC) e `pk_live_` (produção), MESMA instância do backend (instâncias diferentes = 403 na API). O build de produção FALHA sem a chave (guard no next.config.mjs); a CSP decodifica o host da instância da chave.
+- SDK **Core 3**: `@clerk/nextjs` v7 fixado (7.9.26) — instâncias criadas a partir de 12/11/2026 exigem ClerkJS ≥ 6.42.3 ("Require minimum ClerkJS version"); ClerkJS 5 (Core 2) bloqueia todo login. Exige Node ≥ 20.9 (local e `node:20-alpine` ok). Se o Clerk reclamar de "versão desatualizada", conferir `window.Clerk.version` no navegador e a linha do `@clerk/nextjs`.
 
 ## Estrutura
 - App de praticamente 2 páginas: `src/app/page.tsx` (público) e `src/app/admin/page.tsx` (painel), mais `/sign-in`, `/sign-up`, `/sem-acesso` e `/saude`.

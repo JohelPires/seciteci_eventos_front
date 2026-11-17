@@ -43,6 +43,9 @@ papel (`tipoUsuario`) e o status (`ativo`) vêm de `GET /api/auth/profile`.
 - A CSP (next.config.mjs) decodifica o host da instância da publishable key
   (`pk_…` + base64 de `<host>$`) e libera script/connect/frame/worker; o
   **build de produção falha** sem a chave (a app não sobe com config errada).
+- SDK **Core 3** (`@clerk/nextjs` 7.9.26, ClerkJS 6): instâncias criadas a
+  partir de 12/11/2026 exigem ClerkJS ≥ 6.42.3 — versões mais velhas
+  bloqueiam o login com "versão desatualizada do Clerk". Exige Node ≥ 20.9.
 - Sem `basePath` no dev local; com prefixo no RISC — as URLs do Clerk e os
   redirects de volta cobrem os dois (`comBase`).
 

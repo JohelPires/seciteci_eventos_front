@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@clerk/localizations": "^4.25.0",
-    "@clerk/nextjs": "^6.39.9",
+    "@clerk/nextjs": "7.9.26",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
