@@ -77,6 +77,13 @@ COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/next.config.mjs ./next.config.mjs
 
+# Endurecimento (incidente de 16/11): o invasor explorou o contêiner rodando
+# como root (instalou pacotes, cron, trocou /etc/shadow). O `node:alpine` já
+# traz o usuário `node` (uid 1000). Só o cache do `next start` (otimizador de
+# next/image etc.) precisa ser gravável por ele.
+RUN mkdir -p /app/.next/cache && chown -R node:node /app/.next
+USER node
+
 EXPOSE 3000
 
 # A rota de saúde fica SOB o basePath (o Next só atende dentro dele):
@@ -84,5 +91,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
    CMD wget -qO- "http://127.0.0.1:${PORT}${APP_CAMINHO}/saude" >/dev/null || exit 1
 
-# Servir a aplicação
-CMD ["npm", "run", "start"]
+# Servir a aplicação. Direto pelo binário do next (npm como PID 1 deixa um
+# processo pai que não repassa sinais e é mais um alvo/atração de fork).
+CMD ["node", "node_modules/next/dist/bin/next", "start"]

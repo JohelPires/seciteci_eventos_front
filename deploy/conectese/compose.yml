@@ -18,6 +18,19 @@ services:
     image: conectese-web:${CI_COMMIT_SHORT_SHA}
     container_name: conectese.frontend
     restart: unless-stopped
+    # Endurecimento (incidente de 16/11): contêiner rodava como root, sem
+    # init nem limite de processos — o RCE virou fork bomb (~9.360 zumbis).
+    # `init` repassa sinais e recolhe zumbis; `pids_limit` trava o fork bomb;
+    # `cap_drop` + `no-new-privileges` encurtam a escalada.
+    init: true
+    pids_limit: 512
+    cap_drop: ['ALL']
+    security_opt: ['no-new-privileges:true']
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
     environment:
       NEXT_PUBLIC_BASE_PATH: ''
       NODE_ENV: production
