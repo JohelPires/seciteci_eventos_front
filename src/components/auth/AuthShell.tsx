@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { MapPin } from 'lucide-react'
 import Link from 'next/link'
+import { RedirecionarAutenticado } from '@/components/auth/RedirecionarAutenticado'
 
 /**
  * Moldura das páginas de autenticação do Clerk (`/sign-in`, `/sign-up`):
@@ -13,6 +14,9 @@ import Link from 'next/link'
 export function AuthShell({ children }: { children: ReactNode }) {
    return (
       <main className="bg-muted/30 flex min-h-dvh flex-col items-center justify-center gap-6 px-4 py-10">
+         {/* Sessão ativa numa página de auth = redireciona (rescue do redirect
+             quebrado do Clerk/Next sob basePath; preserve o ?next=). */}
+         <RedirecionarAutenticado />
          <div className="flex flex-col items-center gap-3 text-center">
             <div className="bg-primary grid size-12 place-items-center rounded-xl">
                <MapPin className="text-primary-foreground size-7" aria-hidden="true" />
