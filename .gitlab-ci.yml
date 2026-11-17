@@ -46,15 +46,33 @@ publicar:producao:conectese:
   script:
     - |
       set -e
+      echo "== auditoria de dependências (gate) =="
+      # O npm audit lê só o package-lock.json (não precisa node_modules);
+      # roda em contêiner porque o runner shell não tem node. Bloqueia o
+      # deploy se voltar vuln high/critical em dependências de produção.
+      docker run --rm -v "$PWD":/src -w /src node:20-alpine \
+        npm audit --omit=dev --audit-level=high
       echo "== build do front =="
       DOCKER_BUILDKIT=1 docker build -f Dockerfile \
         --build-arg APP_CAMINHO= \
         --build-arg NEXT_PUBLIC_API_URL=https://conectese.secitec.mt.gov.br \
         --secret id=app_env,src="$APP_ENV" \
         -t "conectese-web:${CI_COMMIT_SHORT_SHA}" -t "conectese-web:latest" .
+      echo "== trava contra contêineres órfãos do projeto =="
+      # Incidente de 16/11: um contêiner de emergência recebeu as etiquetas
+      # Compose do serviço e o `up` deste job o apagou junto (evidência
+      # perdida). Antes da troca, o projeto só pode ter o próprio frontend.
+      orfaos=$(docker ps -a --filter 'label=com.docker.compose.project=seciteci_eventos_front' --format '{{.Names}}' | grep -v '^conectese.frontend$' || true)
+      if [ -n "$orfaos" ]; then
+        echo "ERRO: contêiner inesperado no projeto seciteci_eventos_front: $orfaos" >&2
+        echo "Investigue antes (pode ser evidência de incidente); NÃO remova às cegas." >&2
+        exit 1
+      fi
       echo "== troca o container conectese.frontend =="
+      # Sem --force-recreate: a tag da imagem muda por SHA e o compose já
+      # recria; --wait espera a rota de saúde passar.
       docker compose -p seciteci_eventos_front \
-        -f deploy/conectese/compose.yml up -d --force-recreate --wait --wait-timeout 240
+        -f deploy/conectese/compose.yml up -d --wait --wait-timeout 240
       echo "== sanity =="
       docker exec conectese.frontend wget -qO- http://127.0.0.1:3000/saude >/dev/null
       curl -sk --max-time 15 -o /dev/null -w '/saude HTTP %{http_code}\n' https://conectese.secitec.mt.gov.br/saude
