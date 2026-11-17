@@ -50,8 +50,8 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 - [x] Ajustar toasts falsos de sucesso: toast.error em todos os caminhos de falha (page.tsx, admin/page.tsx, AdminCategorias com onError)
 - [x] Headers de segurança no next.config.mjs: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy (endurecer CSP com nonce é passo futuro)
 - [x] `encodeURIComponent` em query params (busca/search)
-- [x] Validar `exp` do JWT ao restaurar sessão (src/lib/jwt.ts; token não-JWT passa direto — backend valida; pendência: confirmar formato real do token do login)
-- [x] 🖥️ Autorização do admin não depende mais de authUser do localStorage: role vem do claim `tipo` do JWT (AuthContext: userRole/isAdmin; jwt.ts: obterClaims, fail-closed). Pendência backend correlata: reemitir token ao mudar tipo de usuário (promote exige re-login)
+- [x] Validar `exp` do JWT ao restaurar sessão (src/lib/jwt.ts; token não-JWT passa direto — backend valida; pendência: confirmar formato real do token do login) → OBSOLETO com o Clerk (jwt.ts removido)
+- [x] 🖥️ Autorização do admin não depende mais de authUser do localStorage → OBSOLETO com o Clerk: role vem de `GET /api/auth/profile` (banco), sem localStorage nem JWT próprio (promote/desativa têm efeito imediato)
 
 ## 🔴 Críticos — Estabilidade
 - [ ] Remover imports mortos/quebrados: page.tsx:40 (`set` de react-hook-form), :44 (`get` de `http`), :45 (`Separator` de `@radix-ui/react-select`), layout.tsx:5 (`Query` de react-query)
@@ -90,9 +90,9 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 - [ ] Mover tipos Event/Categoria/Local de app/page.tsx para src/types/ e usar `import type` (acoplamento circular com data.ts e admin)
 - [ ] data.ts: extrair helper de fetch para as 13 funções repetidas; renomear/melhorar cancelarEvento (manda status:'rascunho', enganoso)
 - [ ] Remover console.log de produção: CalendarView.tsx:125, page.tsx:192, admin/page.tsx:72,86,132
-- [ ] Remover `any` explícitos: AuthContext.tsx:87,118; MapView.tsx
+- [ ] Remover `any` explícitos: MapView.tsx (os do AuthContext acabaram na migração Clerk)
 - [ ] EventForm (1285 linhas): extrair steps de JSX e geocode/ViaCEP em hooks/componentes; mover fetch externos para data.ts
-- [ ] Mover fetch de login/register para data.ts (AuthContext.tsx:65,96)
+- [ ] Mover fetch de login/register para data.ts (AuthContext.tsx:65,96) → OBSOLETO: endpoints de login/register não existem mais (Clerk)
 
 ## 🟠 Médios — A11y
 - [ ] aria-label em botões só-ícone: EventDetails.tsx:100-107, MapView.tsx:261-268, EventForm.tsx:546-548
@@ -108,7 +108,7 @@ O Conecte-se é uma agenda unificada dos eventos da área de Ciência, Tecnologi
 - [x] 🖥️ getEventosFullQuery removido (getEventos server-paginado o substitui)
 - [ ] Remover deps sem uso: daisyui, recharts, embla-carousel-react, input-otp (avaliar framer-motion)
 - [ ] Remover viewMode toggle morto (page.tsx:113 / 371-390) e loading state morto (page.tsx:118)
-- [ ] AuthContext: JSON.parse sem guard (:40); register com save-then-login duplicado (:109-115)
+- [ ] AuthContext: JSON.parse sem guard; register com save-then-login duplicado → OBSOLETO: AuthContext reescrito no Clerk (perfil da API, sem localStorage)
 - [ ] router.push no lugar de window.location.href (AdminDashboard.tsx:103, Navbar.tsx:70)
 - [ ] Usar `data` da query direto em vez de duplicar em useState (page.tsx:144-153)
 - [ ] Navbar: usar logo real public/logo-mapasmt-branco.png (Navbar.tsx:41, comentado)

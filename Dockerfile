@@ -14,9 +14,9 @@
 #   build. O pipeline da VM NÃO passa esse build arg (vem do segredo
 #   `app_env` abaixo, que sobrescreve); quem passa é o EasyPanel, que injeta
 #   as envs do serviço como build args.
-# - NEXT_PUBLIC_GOOGLE_CLIENT_ID (build arg): idem — o Client ID do login
-#   Google, inlinado no bundle (o valor é público; entra pelo mesmo
-#   mecanismo da API_URL).
+# - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (build arg): a publishable key do Clerk
+#   (login), inlinada no bundle — o valor é público; entra pelo mesmo
+#   mecanismo da API_URL. A CLERK_SECRET_KEY é do BACKEND, nunca do front.
 # - app_env (segredo do BuildKit): o build precisa das `NEXT_PUBLIC_*`
 #   (vão inlinadas no bundle). Lida só durante os RUNs; não fica na imagem
 #   final (o runner não copia o arquivo materializado).
@@ -44,7 +44,7 @@ RUN npm ci
 COPY . .
 ARG APP_CAMINHO=
 ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 # 1) Materializa o segredo num arquivo (debugável com `cat`; mantém o
 #    conteúdo do app_env fora do comando/camada final).
 RUN --mount=type=secret,id=app_env,required=false \
@@ -56,7 +56,7 @@ RUN set -a && \
     set +a && \
     NEXT_PUBLIC_BASE_PATH="${APP_CAMINHO}" \
     NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}" \
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID="${NEXT_PUBLIC_GOOGLE_CLIENT_ID}" \
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" \
     npm run build
 
 FROM node:20-alpine AS runner

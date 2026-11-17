@@ -36,10 +36,9 @@ function useAdminGuard() {
    const router = useRouter()
 
    useEffect(() => {
-      if (loading) return // espera resolver o token do localStorage
-      if (!isAuthenticated || !isAdmin) {
-         router.replace('/')
-      }
+      if (loading) return // espera Clerk carregar + o perfil chegar da API
+      if (!isAuthenticated) router.replace('/sign-in?next=%2Fadmin')
+      else if (!isAdmin) router.replace('/')
    }, [isAuthenticated, isAdmin, loading, router])
 
    return { isAllowed: isAuthenticated && isAdmin, loading }
@@ -61,7 +60,6 @@ export default function App() {
       (ano: number, mes: number) => setCalendarMonth({ ano, mes }),
       [],
    )
-   const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
@@ -72,7 +70,6 @@ export default function App() {
    const [deleteTarget, setDeleteTarget] = useState<Event | null>(null)
    const [isSubmitting, setIsSubmitting] = useState(false)
 
-   const { token } = useAuth()
    const { isAllowed, loading } = useAdminGuard()
 
    const queryClient = useQueryClient()
@@ -96,21 +93,21 @@ export default function App() {
    } = useQuery({
       queryKey: ['admin-eventos', { page: currentPage, status: statusFilter, busca: buscaAdmin }],
       queryFn: () =>
-         getEventosAdmin(token, {
+         getEventosAdmin({
             page: currentPage,
             limit: ITEMS_PER_PAGE,
             status: statusFilter === 'all' ? '' : statusFilter,
             busca: buscaAdmin,
          }),
-      enabled: isAllowed && !!token,
+      enabled: isAllowed,
       placeholderData: keepPreviousData,
    })
 
    // Conjunto bounded: alimenta a visão geral (cards/mapa) do AdminDashboard
    const { data: overviewData } = useQuery({
       queryKey: ['admin-eventos-overview'],
-      queryFn: () => getEventosAdmin(token, { page: 1, limit: 100, status: '' }),
-      enabled: isAllowed && !!token,
+      queryFn: () => getEventosAdmin({ page: 1, limit: 100, status: '' }),
+      enabled: isAllowed,
       staleTime: 60_000,
       placeholderData: keepPreviousData,
    })
@@ -120,8 +117,8 @@ export default function App() {
    const { data: eventosMesData, isLoading: isLoadingMes } = useQuery({
       queryKey: ['admin-eventos-overview', 'mes', { ano: calendarMonth.ano, mes: calendarMonth.mes + 1 }],
       queryFn: () =>
-         getEventosDoMes({ ano: calendarMonth.ano, mes: calendarMonth.mes + 1, status: '', token }),
-      enabled: isAllowed && !!token,
+         getEventosDoMes({ ano: calendarMonth.ano, mes: calendarMonth.mes + 1, status: '', autenticado: true }),
+      enabled: isAllowed,
       placeholderData: keepPreviousData,
    })
 
@@ -150,7 +147,7 @@ export default function App() {
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
          try {
-            await editEvento(editingEvent.id, eventData, token)
+            await editEvento(editingEvent.id, eventData)
             toast.success('Evento atualizado com sucesso!')
             setEditingEvent(null)
             setShowForm(false)
@@ -168,7 +165,7 @@ export default function App() {
             id: Date.now().toString(),
          }
          try {
-            await createEvento(newEvent, token)
+            await createEvento(newEvent)
             toast.success('Evento cadastrado e publicado com sucesso!')
             setShowForm(false)
             queryClient.invalidateQueries({ queryKey: ['admin-eventos'] })
@@ -186,13 +183,13 @@ export default function App() {
 
    const confirmDelete = async () => {
       if (!deleteTarget) return
-      if (!token) {
+      if (!isAllowed) {
          toast.error('Você não está autenticado!')
          return
       }
       setIsSubmitting(true)
       try {
-         await deleteEvento(deleteTarget.id, token)
+         await deleteEvento(deleteTarget.id)
          toast.success('Evento excluído com sucesso!')
          setDeleteTarget(null)
          queryClient.invalidateQueries({ queryKey: ['admin-eventos'] })
@@ -214,17 +211,17 @@ export default function App() {
 
    const confirmStatusChange = async () => {
       if (!statusTarget) return
-      if (!token) {
+      if (!isAllowed) {
          toast.error('Você não está autenticado!')
          return
       }
       setIsSubmitting(true)
       try {
          if (statusTarget.next === 'cancelado') {
-            await cancelarEvento(statusTarget.id, token, motivoCancelamento)
+            await cancelarEvento(statusTarget.id, motivoCancelamento)
             toast.success('Evento cancelado com sucesso!')
          } else {
-            await editEvento(statusTarget.id, { status: 'publicado' }, token)
+            await editEvento(statusTarget.id, { status: 'publicado' })
             toast.success('Evento publicado com sucesso!')
          }
          setStatusTarget(null)
@@ -413,7 +410,6 @@ export default function App() {
    //          <Toaster />
 
    //          {/* Navigation Bar */}
-   //          <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
 
    //          {/* Header */}
    //          <header className="border-b border-border bg-card">
@@ -721,14 +717,6 @@ export default function App() {
    //                onDelete={handleDeleteEvent}
    //             />
    //          )}
-   //          <AuthDialog
-   //             open={authDialogOpen}
-   //             onClose={() => setAuthDialogOpen(false)}
-   //             //   onLogin={handleLogin}
-   //             //   onRegister={handleRegister}
-   //             // onClose={() => {}}
-   //             // onLogin={() => {}}
-   //             // onRegister={() => {}}
    //          />
    //       </div>
    //    )

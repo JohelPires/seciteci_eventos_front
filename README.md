@@ -18,26 +18,33 @@ npm install
 npm run dev
 ```
 
-## Login com Google
+## Login pelo Clerk
 
-Fluxo de ID token: o botão oficial do Google Identity Services
-(`src/components/GoogleSignInButton.tsx`) entrega o ID token e o
-`loginWithGoogle` troca pelo JWT da API em `POST /api/auth/google` — sem
-redirect e sem segredo no front (Client ID é público).
+Padrão `fic_dev/padroes-servicos/clerk.md`: o **Clerk diz quem a pessoa é;
+o banco da API diz o que ela pode**. O front carrega o session token do Clerk
+(`Bearer` a cada request — expira em ~60s, nada vai para localStorage) e o
+papel (`tipoUsuario`) e o status (`ativo`) vêm de `GET /api/auth/profile`.
 
-- Env (build): `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — o MESMO valor do
-  `GOOGLE_CLIENT_ID` do backend (a audience tem que bater). Sem a env, o
-  botão simplesmente não aparece no diálogo de login.
-- No Google Cloud (OAuth client do tipo **Web application**), as
-  Authorized JavaScript origins precisam cobrir cada origem do front:
-  `http://localhost:3000`, `https://apps.risc.unemat.br` e
-  `https://conectese.secitec.mt.gov.br` (e o host do EasyPanel, se usado) —
-  origem apenas, sem caminho.
-- A CSP já libera `accounts.google.com` (`script-src`, `connect-src` e
-  `frame-src`).
-- Deploy: a env entra no build como as demais `NEXT_PUBLIC_*` — no
-  `APP_ENV` (File) dos escopos `*` e `conectese-web`, e no serviço do
-  EasyPanel (com **Force Rebuild**). Trocar de Client ID = re-buildar.
+- Páginas de auth: `/sign-in` e `/sign-up` (catch-all, rota **por caminho** —
+  `src/app/sign-in/[[...sign-in]]/page.tsx`). Todo endereço entregue ao Clerk
+  leva o `basePath` (`src/lib/auth/urls-clerk.ts`), senão a volta do Google
+  cai fora do painel.
+- **Sign-up público**: o participante se cadastra sozinho (divergência
+  consciente do "Invite-only" do clerk.md, espelhando o design do backend);
+  admin/organizador são provisionados por e-mail no banco e se ligam ao
+  Clerk pelo MESMO e-mail (webhook/fallback da API).
+- Env (build): `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` — instância Development
+  (`pk_test_…`) para dev local/RISC, Production (`pk_live_…`) para a `main`.
+  A publishable key é pública; a `CLERK_SECRET_KEY` é do **backend**, nunca
+  do front. Instância do front ≠ instância do backend → login passa e a API
+  responde 403 (diagnóstico no clerk.md).
+- Conta sem acesso (desativada/e-mail diferente) → `/sem-acesso`; gerenciar
+  perfil/senha/MFA é o modal prebuilt do próprio Clerk (`openUserProfile`).
+- A CSP (next.config.mjs) decodifica o host da instância da publishable key
+  (`pk_…` + base64 de `<host>$`) e libera script/connect/frame/worker; o
+  **build de produção falha** sem a chave (a app não sobe com config errada).
+- Sem `basePath` no dev local; com prefixo no RISC — as URLs do Clerk e os
+  redirects de volta cobrem os dois (`comBase`).
 
 ## Deploy nas VMs da SECITECI (duas produções)
 
@@ -144,8 +151,12 @@ Como funciona:
 
   ```
   NEXT_PUBLIC_API_URL=https://seciteci-seciteci-eventos.qmono1.easypanel.host
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_…
   ```
 
+- A publishable key do Clerk segue o mesmo padrão (com **Force Rebuild**
+  depois de mudá-la); e a `CLERK_AUTHORIZED_PARTIES` da API precisa incluir
+  a origem do front do EasyPanel.
 - `NEXT_PUBLIC_API_URL` fica vazia no build da VM (o pipeline não passa
   esse build arg; lá o valor vem do segredo `app_env`, que sobrescreve o
   ARG) — mudar aqui não afeta a produção da VM.

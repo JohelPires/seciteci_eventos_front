@@ -1,9 +1,12 @@
 'use client'
 
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
+import { useAuth as useAuthClerk } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { isTokenValid, obterClaims } from '@/lib/jwt'
+import { registrarObterToken } from '@/lib/sessao-clerk'
+import { urlClerk } from '@/lib/auth/urls-clerk'
+import { authFetch, ApiError } from '@/data/data'
 import { extrairMensagemErro } from '@/lib/api-error'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -12,7 +15,12 @@ type TipoUsuario = 'admin' | 'organizador' | 'participante'
 
 const ROLES_VALIDAS: readonly TipoUsuario[] = ['admin', 'organizador', 'participante']
 
-interface User {
+/**
+ * Perfil do USUÁRIO no banco da API (GET /api/auth/profile). Identidade é o
+ * Clerk; papel (`tipoUsuario`) e status (`ativo`) são SEMPRE do banco — nunca
+ * de metadados do Clerk nem de token (padrão fic_dev/padroes-servicos/clerk.md).
+ */
+export interface User {
    id: number
    nome: string
    email: string
@@ -20,7 +28,6 @@ interface User {
    cpf: string | null
    dataNascimento: string | null
    fotoPerfil: string | null
-   // Somente perfil/exibição: a permissão REAL vem do claim `tipo` do JWT (userRole no contexto)
    tipoUsuario: TipoUsuario
    dataCadastro: string
    ultimoAcesso: string
@@ -28,187 +35,108 @@ interface User {
 
 interface AuthContextType {
    user: User | null
-   token: string | null
    userRole: TipoUsuario | null
    isAdmin: boolean
-   tokenId: number | null
    isAuthenticated: boolean
    loading: boolean
-   login: (email: string, senha: string) => Promise<void>
-   loginWithGoogle: (idToken: string) => Promise<void>
-   register: (nome: string, email: string, senha: string, userType: 'client' | 'professional') => Promise<void>
    logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const getStoredAuthData = () => {
-   if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('authToken')
-      const storedUserJson = localStorage.getItem('authUser')
-      let user: User | null = null
-      try {
-         user = storedUserJson ? (JSON.parse(storedUserJson) as User) : null
-      } catch {
-         user = null
-      }
-      return { token: storedToken, user }
-   }
-   return { token: null, user: null }
-}
-
-// Fonte de verdade da role: claim `tipo` do JWT. Valor fora do domínio
-// conhecido (ou token sem claim) vira null — fail-closed.
-const resolverUserRole = (token: string | null): TipoUsuario | null => {
-   const claims = token ? obterClaims(token) : null
-   return claims && ROLES_VALIDAS.includes(claims.tipo as TipoUsuario)
-      ? (claims.tipo as TipoUsuario)
+// Fail-closed: papel fora do domínio conhecido (ou ausente) vira null.
+const resolverUserRole = (tipoUsuario: string | null | undefined): TipoUsuario | null =>
+   tipoUsuario && ROLES_VALIDAS.includes(tipoUsuario as TipoUsuario)
+      ? (tipoUsuario as TipoUsuario)
       : null
-}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
    const [user, setUser] = useState<User | null>(null)
-   const [token, setToken] = useState<string | null>(null)
-   const [userRole, setUserRole] = useState<TipoUsuario | null>(null)
-   const [tokenId, setTokenId] = useState<number | null>(null)
-   const [loading, setLoading] = useState(true) // começa true até ler o localStorage
+   const [loading, setLoading] = useState(true) // true até Clerk carregar + perfil resolver
    const router = useRouter()
 
-   // Autenticação depende do TOKEN (formato + exp + role legível), não do authUser
-   // do localStorage — que é manipulável no DevTools e leva só o perfil.
-   const isAuthenticated = !!token && !!userRole
+   // isLoaded: Clerk terminou de ler a sessão (cookie). isSignedIn: há sessão.
+   const { isLoaded, isSignedIn, getToken, signOut } = useAuthClerk()
+
+   const userRole = useMemo(() => resolverUserRole(user?.tipoUsuario), [user])
+   const isAuthenticated = isSignedIn === true && !!user && userRole !== null
    const isAdmin = userRole === 'admin'
 
+   // Registra o getToken do Clerk para o authFetch obter o Bearer a cada request.
    useEffect(() => {
-      const { token: storedToken, user: storedUser } = getStoredAuthData()
-      const role = storedToken ? resolverUserRole(storedToken) : null
-      // Token ausente, expirado, não-JWT ou sem role legível: limpa a sessão persistida
-      // e segue como deslogado (o 401 em chamadas da API continua a cargo do data.ts)
-      if (!storedToken || !isTokenValid(storedToken) || role === null) {
-         localStorage.removeItem('authToken')
-         localStorage.removeItem('authUser')
-      } else {
-         setToken(storedToken)
-         setUserRole(role)
-         setTokenId(obterClaims(storedToken)?.id ?? null)
-         // authUser é só perfil: pode estar ausente ou corrompido sem invalidar a sessão
-         if (storedUser) setUser(storedUser)
-      }
-      setLoading(false) // auth resolvido, libera a aplicação
-   }, [])
+      registrarObterToken(() => (getToken ? getToken() : Promise.resolve(null)))
+      return () => registrarObterToken(null)
+   }, [getToken])
 
-   // Persiste a sessão devolvida por QUALQUER endpoint de login (senha ou
-   // Google) e libera a aplicação. Lança quando o JWT não tem role legível.
-   const aplicarSessao = (receivedToken: string, userData: User | null) => {
-      const role = resolverUserRole(receivedToken)
-      if (role === null) {
-         // Backend autenticou mas não devolveu um JWT com role legível — não há sessão confiável
-         throw new Error('Resposta de login inválida. Contate o suporte.')
+   // Busca o perfil no banco SEMPRE que a sessão do Clerk mudar. O papel vem
+   // daqui (e o backend revalida a cada request): promover/desativar no banco
+   // tem efeito no próximo carregamento da página.
+   useEffect(() => {
+      if (!isLoaded) return // espera o Clerk resolver a sessão
+      if (!isSignedIn) {
+         setUser(null)
+         setLoading(false)
+         return
       }
 
-      localStorage.setItem('authToken', receivedToken)
-      if (userData) localStorage.setItem('authUser', JSON.stringify(userData))
-
-      setToken(receivedToken)
-      setUserRole(role)
-      setTokenId(obterClaims(receivedToken)?.id ?? null)
-      if (userData) setUser(userData)
-
-      toast.success(`Bem-vindo(a), ${(userData?.nome ?? '').split(' ')[0] || 'usuário(a)'}!`)
-      router.push('/')
-   }
-
-   const login = async (email: string, senha: string) => {
-      try {
-         const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, senha }),
-         })
-
-         if (!response.ok) {
-            // O backend devolve erros em "error"/"message" (auth) ou no array "errors" (validação)
-            const errorData = await response.json().catch(() => null)
-            throw new Error(extrairMensagemErro(errorData, 'Falha no login. Verifique as credenciais.'))
+      let cancelado = false
+      const carregarPerfil = async () => {
+         setLoading(true)
+         try {
+            const res = await authFetch(
+               `${API_URL}/api/auth/profile`,
+               {},
+               { autenticado: true, redirecionar401: false },
+            )
+            const { user: perfil } = (await res.json()) as { user: User | null }
+            if (cancelado) return
+            setUser(perfil)
+         } catch (error) {
+            if (cancelado) return
+            if (error instanceof ApiError && error.status === 403) {
+               // Conta desativada ou não vinculada (ex.: e-mail diferente do
+               // convite): encerra a sessão e explica. Identidade ≠ autorização.
+               setUser(null)
+               toast.error(extrairMensagemErro(null, 'Esta conta não tem acesso. Fale com a administração.'))
+               await signOut()
+               router.push(urlClerk('/sem-acesso'))
+            } else if (error instanceof ApiError && error.status === 401) {
+               // Sessão do Clerk válida mas token recusado pela API (ex.: chaves
+               // de instâncias diferentes, API antiga no ar): não insiste.
+               setUser(null)
+               await signOut()
+            } else {
+               // Erro de rede/500: segue deslogado; toast para o usuário tentar de novo.
+               setUser(null)
+               toast.error('Não foi possível carregar seu perfil. Tente recarregar a página.')
+            }
+         } finally {
+            if (!cancelado) setLoading(false)
          }
-
-         const { token: receivedToken, user: userData } = await response.json()
-         aplicarSessao(receivedToken, userData)
-         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-         console.error('Erro de Login:', error.message)
-         toast.error(error.message)
-         throw error
       }
-   }
 
-   /**
-    * Login via Google: troca o ID token do Google Identity Services pelo JWT
-    * da API (`POST /api/auth/google`). O backend valida a audience, cria ou
-    * vincula a conta e devolve a MESMA forma do login local (`{ token, user }`).
-    */
-   const loginWithGoogle = async (idToken: string) => {
+      void carregarPerfil()
+      return () => {
+         cancelado = true
+      }
+      // signOut/router são estáveis nos hooks do Clerk/Next; getToken muda,
+      // mas não invalida o perfil (a sessão não muda por causa do token).
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [isLoaded, isSignedIn])
+
+   const logout = async () => {
       try {
-         const response = await fetch(`${API_URL}/api/auth/google`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-         })
-
-         if (!response.ok) {
-            // 401 (token/audience), 409 (e-mail já vinculado a outro Google) etc.
-            const errorData = await response.json().catch(() => null)
-            throw new Error(extrairMensagemErro(errorData, 'Não foi possível entrar com o Google. Tente novamente.'))
-         }
-
-         const { token: receivedToken, user: userData } = await response.json()
-         aplicarSessao(receivedToken, userData)
-         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-         console.error('Erro de Login com Google:', error.message)
-         toast.error(error.message)
-         throw error
+         await signOut({ redirectUrl: urlClerk('/') })
+         // O signOut do Clerk já navega; o toast confirma.
+         toast.info('Você foi desconectado.')
+      } catch (error) {
+         console.error('Erro ao sair:', error)
+         toast.error('Não foi possível sair. Tente novamente.')
       }
-   }
-
-   const register = async (nome: string, email: string, senha: string) => {
-      try {
-         const response = await fetch(`${API_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, email, senha }),
-         })
-
-         if (!response.ok) {
-            // O backend devolve erros em "error"/"message" (auth) ou no array "errors" (validação)
-            const errorData = await response.json().catch(() => null)
-            throw new Error(extrairMensagemErro(errorData, 'Falha no registro.'))
-         }
-
-         // O endpoint de registro NÃO devolve token (só { message, user }): não há como
-         // autenticar aqui. A sessão é criada depois, quando o usuário faz login.
-         toast.success('Conta criada com sucesso! Faça login para continuar.')
-         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-         console.error('Erro de Registro:', error.message)
-         toast.error(error.message)
-         throw error
-      }
-   }
-
-   const logout = () => {
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('authUser')
-      setToken(null)
-      setUser(null)
-      setUserRole(null)
-      setTokenId(null)
-      toast.info('Você foi desconectado.')
-      router.push('/')
    }
 
    return (
-      <AuthContext.Provider value={{ user, token, userRole, isAdmin, tokenId, isAuthenticated, loading, login, loginWithGoogle, register, logout }}>
+      <AuthContext.Provider value={{ user, userRole, isAdmin, isAuthenticated, loading, logout: () => void logout() }}>
          {children}
       </AuthContext.Provider>
    )

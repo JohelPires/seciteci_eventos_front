@@ -1,6 +1,7 @@
-import { Categoria, Event } from '@/app/page'
+import type { Categoria, Event } from '@/app/page'
 import { extrairMensagemErro } from '@/lib/api-error'
 import { comBase } from '@/lib/caminho-base'
+import { tokenDaSessao } from '@/lib/sessao-clerk'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -18,29 +19,37 @@ export class ApiError extends Error {
 /**
  * Helper central de fetch para todas as chamadas à API.
  * - Lança ApiError quando a resposta não é OK (status incluído).
- * - Em 401: limpa as chaves de autenticação do localStorage e redireciona para '/'.
- * - Falha de rede propaga o erro normalmente.
+ * - Com `{ autenticado: true }`: injeta o Bearer do token de sessão do Clerk
+ *   OBTIDO A CADA REQUEST (o session token expira em ~60s; nada é guardado).
+ *   Chamadas públicas ficam sem `Authorization` (sem preflight de CORS à toa).
+ * - Em 401 de chamada autenticada (e `redirecionar401`): a sessão acabou —
+ *   vai para o /sign-in. Falha de rede propaga o erro normalmente.
  */
 export const authFetch = async (
    url: string,
    options: RequestInit = {},
-   { redirecionar401 = true }: { redirecionar401?: boolean } = {},
+   { autenticado = false, redirecionar401 = true }: { autenticado?: boolean; redirecionar401?: boolean } = {},
 ): Promise<Response> => {
+   const headers = new Headers(options.headers)
+   if (autenticado && !headers.has('Authorization')) {
+      const token = await tokenDaSessao()
+      if (token) headers.set('Authorization', `Bearer ${token}`)
+   }
+
    let res: Response
    try {
-      res = await fetch(url, options)
+      res = await fetch(url, { ...options, headers })
    } catch (error) {
       // Falha de rede: propaga (sem silenciar)
       throw error
    }
 
    if (!res.ok) {
-      // 401 que NÃO é fim de sessão (ex.: senha atual incorreta) não desloga o usuário
-      if (res.status === 401 && redirecionar401 && typeof window !== 'undefined') {
-         localStorage.removeItem('authToken')
-         localStorage.removeItem('authUser')
+      // 401 que NÃO é fim de sessão (ex.: erro de perfil tratado pelo AuthContext)
+      // não redireciona: os chamadores decidem com `redirecionar401: false`.
+      if (res.status === 401 && redirecionar401 && autenticado && typeof window !== 'undefined') {
          // window.location não recebe o basePath do Next: usa comBase.
-         window.location.href = comBase('/')
+         window.location.href = comBase('/sign-in')
       }
 
       let mensagem: string | undefined
@@ -139,15 +148,12 @@ export const getEventos = async (params: EventosParams = {}): Promise<ResultadoE
  * Lista paginada para o admin. `status=''` (default) = todos os status — sem
  * isso a API defaulta para `publicado` e o painel perdia rascunhos/cancelados.
  */
-export const getEventosAdmin = async (token: string | null, params: EventosParams = {}): Promise<ResultadoEventos> => {
+export const getEventosAdmin = async (params: EventosParams = {}): Promise<ResultadoEventos> => {
    const { page = 1, limit = 10, busca, status = '', tipo, mes, ano } = params
    const res = await authFetch(
       `${API_URL}/api/eventos${querystring({ page, limit, busca, status, tipo, mes, ano })}`,
-      {
-         headers: {
-            Authorization: `Bearer ${token}`,
-         },
-      },
+      {},
+      { autenticado: true },
    )
    const data = await res.json()
    return { eventos: normalizarEventos(data?.eventos), pagination: data?.pagination ?? PAGINACAO_VAZIA(page, limit) }
@@ -179,87 +185,89 @@ const buscarTodasAsPaginas = async (
 /**
  * Todos os eventos cuja data de INÍCIO cai no mês/ano (semântica dos
  * parâmetros `mes`/`ano` da API), paginando até esgotar as páginas.
- * Público (`token` ausente): só publicados, do mais próximo ao mais distante.
- * Admin (`token` + `status`): inclui rascunhos/cancelados conforme `status`.
+ * Público (`autenticado` ausente): só publicados, do mais próximo ao mais distante.
+ * Admin (`autenticado` + `status`): inclui rascunhos/cancelados conforme `status`.
  */
 export const getEventosDoMes = (
-   { ano, mes, status, token }: { ano: number; mes: number; status?: string; token?: string | null },
+   { ano, mes, status, autenticado = false }: { ano: number; mes: number; status?: string; autenticado?: boolean },
 ): Promise<Event[]> => {
    const buscarPagina = (page: number) =>
-      token
-         ? getEventosAdmin(token, { page, limit: LIMIT_POR_PAGINA, status: status ?? '', mes, ano, ordem: 'asc' })
+      autenticado
+         ? getEventosAdmin({ page, limit: LIMIT_POR_PAGINA, status: status ?? '', mes, ano, ordem: 'asc' })
          : getEventos({ page, limit: LIMIT_POR_PAGINA, status: status ?? 'publicado', mes, ano, ordem: 'asc' })
    return buscarTodasAsPaginas(buscarPagina)
 }
 
 /** Lista os eventos criados pelo usuário autenticado, paginados no servidor. */
-export const getMeusEventos = async (token: string | null, params: EventosParams = {}): Promise<ResultadoEventos> => {
+export const getMeusEventos = async (params: EventosParams = {}): Promise<ResultadoEventos> => {
    const { page = 1, limit = 6 } = params
-   const res = await authFetch(`${API_URL}/api/meus-eventos${querystring({ page, limit })}`, {
-      headers: {
-         Authorization: `Bearer ${token}`,
-      },
-   })
+   const res = await authFetch(
+      `${API_URL}/api/meus-eventos${querystring({ page, limit })}`,
+      {},
+      { autenticado: true },
+   )
    const data = await res.json()
    return { eventos: normalizarEventos(data?.eventos), pagination: data?.pagination ?? PAGINACAO_VAZIA(page, limit) }
 }
 
-export const createEvento = async (evento: Event, token: string | null) => {
-   const res = await authFetch(`${API_URL}/api/eventos`, {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/json',
-         Authorization: `Bearer ${token}`,
+export const createEvento = async (evento: Event) => {
+   const res = await authFetch(
+      `${API_URL}/api/eventos`,
+      {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(evento),
       },
-      body: JSON.stringify(evento),
-   })
+      { autenticado: true },
+   )
    const data = await res.json()
    return data
 }
 
-export const editEvento = async (id: string, eventData: Partial<Event>, token: string | null) => {
+export const editEvento = async (id: string, eventData: Partial<Event>) => {
    // `categoria` é read-only (o vínculo vem de categoriaId no backend); enviá-la
    // (mesmo null) faz o serializer de update retornar 500. Nunca repassar o campo.
    const payload: Partial<Event> = { ...eventData }
    delete payload.categoria
 
-   const res = await authFetch(`${API_URL}/api/eventos/${id}`, {
-      method: 'PUT',
-      headers: {
-         'Content-Type': 'application/json',
-         Authorization: `Bearer ${token}`,
+   const res = await authFetch(
+      `${API_URL}/api/eventos/${id}`,
+      {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-   })
+      { autenticado: true },
+   )
    const data = await res.json()
    return data
 }
 
-export const cancelarEvento = async (id: string, token: string | null, motivo?: string) => {
-   const res = await authFetch(`${API_URL}/api/eventos/${id}`, {
-      method: 'PUT',
-      headers: {
-         'Content-Type': 'application/json',
-         Authorization: `Bearer ${token}`,
+export const cancelarEvento = async (id: string, motivo?: string) => {
+   const res = await authFetch(
+      `${API_URL}/api/eventos/${id}`,
+      {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+            status: 'cancelado',
+            // Motivo opcional; a API limpa o campo automaticamente ao reativar.
+            motivoCancelamento: motivo?.trim() || undefined,
+         }),
       },
-      body: JSON.stringify({
-         status: 'cancelado',
-         // Motivo opcional; a API limpa o campo automaticamente ao reativar.
-         motivoCancelamento: motivo?.trim() || undefined,
-      }),
-   })
+      { autenticado: true },
+   )
 
    const data = await res.json()
    return data
 }
 
-export const deleteEvento = async (id: string, token: string | null) => {
-   const res = await authFetch(`${API_URL}/api/eventos/${id}`, {
-      method: 'DELETE',
-      headers: {
-         Authorization: `Bearer ${token}`,
-      },
-   })
+export const deleteEvento = async (id: string) => {
+   const res = await authFetch(
+      `${API_URL}/api/eventos/${id}`,
+      { method: 'DELETE' },
+      { autenticado: true },
+   )
    const data = await res.json()
    return data
 }
@@ -277,147 +285,76 @@ export const getCategorias = async () => {
    return data.categorias
 }
 
-export async function createCategoria(newCategoria: Omit<Categoria, 'id'>, token: string | null) {
-   const res = await authFetch(`${API_URL}/api/categorias`, {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/json',
-         Authorization: `Bearer ${token}`,
+export async function createCategoria(newCategoria: Omit<Categoria, 'id'>) {
+   const res = await authFetch(
+      `${API_URL}/api/categorias`,
+      {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(newCategoria),
       },
-      body: JSON.stringify(newCategoria),
-   })
+      { autenticado: true },
+   )
    return res.json()
 }
 
-export async function updateCategoria(categoria: Categoria, token: string | null) {
-   const res = await authFetch(`${API_URL}/api/categorias/${categoria.id}`, {
-      method: 'PUT',
-      headers: {
-         'Content-Type': 'application/json',
-         Authorization: `Bearer ${token}`,
+export async function updateCategoria(categoria: Categoria) {
+   const res = await authFetch(
+      `${API_URL}/api/categorias/${categoria.id}`,
+      {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(categoria),
       },
-
-      body: JSON.stringify(categoria),
-   })
+      { autenticado: true },
+   )
    return res.json()
 }
 
-export const deleteCategoria = async (id: string, token: string | null) => {
-   const res = await authFetch(`${API_URL}/api/categorias/${id}`, {
-      method: 'DELETE',
-      headers: {
-         Authorization: `Bearer ${token}`,
-      },
-   })
+export const deleteCategoria = async (id: string) => {
+   const res = await authFetch(
+      `${API_URL}/api/categorias/${id}`,
+      { method: 'DELETE' },
+      { autenticado: true },
+   )
    const data = await res.json()
    return data
 }
 
-export const getUsuarios = async ({
-   page = 1,
-   limit = 10,
-   token = null,
-   search = '',
-}: {
-   page?: number
-   limit?: number
-   token: string | null
-   search?: string
-}) => {
+export const getUsuarios = async ({ page = 1, limit = 10, search = '' }: { page?: number; limit?: number; search?: string }) => {
    // O server clampa limit em 100 e NÃO aplica `search`: a busca permanece no cliente.
    // ativo=true: usuários desativados (soft delete) não aparecem na listagem.
-   const res = await authFetch(`${API_URL}/api/usuarios${querystring({ page, limit, search, ativo: true })}`, {
-      headers: {
-         Authorization: `Bearer ${token}`,
-      },
-   })
+   const res = await authFetch(
+      `${API_URL}/api/usuarios${querystring({ page, limit, search, ativo: true })}`,
+      {},
+      { autenticado: true },
+   )
    const data = await res.json()
    return data
 }
 
 /** Promove um usuário a admin. Sem body; retorna { message, user }. */
-export const promoverUsuario = async (id: number, token: string | null) => {
-   const res = await authFetch(`${API_URL}/api/usuarios/${id}/promover`, {
-      method: 'PATCH',
-      headers: {
-         Authorization: `Bearer ${token}`,
-      },
-   })
+export const promoverUsuario = async (id: number) => {
+   const res = await authFetch(
+      `${API_URL}/api/usuarios/${id}/promover`,
+      { method: 'PATCH' },
+      { autenticado: true },
+   )
    return res.json()
 }
 
 /**
- * Desativa um usuário (soft delete, DELETE /api/usuarios/{id}): ativo=false e
- * tokenVersion++, invalidando os JWT já emitidos. Admins não podem ser
- * desativados (403). Idempotente. O 200 não declara corpo no Swagger, por isso
- * o `.catch(() => null)` evita quebrar em resposta vazia.
+ * Desativa um usuário (soft delete, DELETE /api/usuarios/{id}): ativo=false —
+ * o middleware da API barra a conta no request seguinte (403). Admins não
+ * podem ser desativados (403). Idempotente. O 200 não declara corpo no
+ * Swagger, por isso o `.catch(() => null)` evita quebrar em resposta vazia.
  */
-export const deleteUsuario = async (id: number, token: string | null) => {
-   const res = await authFetch(`${API_URL}/api/usuarios/${id}`, {
-      method: 'DELETE',
-      headers: {
-         Authorization: `Bearer ${token}`,
-      },
-   })
+export const deleteUsuario = async (id: number) => {
+   const res = await authFetch(
+      `${API_URL}/api/usuarios/${id}`,
+      { method: 'DELETE' },
+      { autenticado: true },
+   )
    return res.json().catch(() => null)
 }
 
-/**
- * Altera a senha do usuário autenticado (PATCH /api/auth/senha).
- * O 401 aqui significa "senha atual incorreta" (ou sessão expirada): o
- * redirecionar401: false evita deslogar o usuário ao errar a senha atual.
- */
-export const alterarSenha = async (
-   dados: { senhaAtual: string; novaSenha: string },
-   token: string | null,
-): Promise<void> => {
-   await authFetch(
-      `${API_URL}/api/auth/senha`,
-      {
-         method: 'PATCH',
-         headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-         },
-         body: JSON.stringify(dados),
-      },
-      { redirecionar401: false },
-   )
-}
-
-/**
- * Solicita o código de recuperação (POST /api/auth/esqueci-senha).
- * A resposta é sempre 200 genérico (o backend não revela quais e-mails existem);
- * rotas públicas: redirecionar401: false evita jogar o usuário para a home.
- */
-export const esqueciSenha = async (email: string): Promise<void> => {
-   await authFetch(
-      `${API_URL}/api/auth/esqueci-senha`,
-      {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({ email }),
-      },
-      { redirecionar401: false },
-   )
-}
-
-/**
- * Redefine a senha com o código recebido por e-mail (POST /api/auth/redefinir-senha).
- * 400 = dados inválidos ou código inválido/expirado (máx. 5 tentativas).
- */
-export const redefinirSenha = async (dados: { email: string; codigo: string; novaSenha: string }): Promise<void> => {
-   await authFetch(
-      `${API_URL}/api/auth/redefinir-senha`,
-      {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/json',
-         },
-         body: JSON.stringify(dados),
-      },
-      { redirecionar401: false },
-   )
-}
