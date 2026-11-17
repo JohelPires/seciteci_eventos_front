@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
-import { ptBR } from '@clerk/localizations'
 import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 import { AuthProvider } from '@/context/AuthContext'
 import { urlsClerk } from '@/lib/auth/urls-clerk'
+import { LOCALIZACAO_CLERK } from '@/lib/auth/localizacao-clerk'
 import QueryProvider from '@/components/QueryProvider'
 
 const geistSans = Geist({
@@ -29,7 +29,7 @@ export default function RootLayout({
       <html lang="pt-BR">
          <body className={`${geistSans.variable} font-sans antialiased`}>
             <ClerkProvider
-               localization={ptBR}
+               localization={LOCALIZACAO_CLERK}
                signInUrl={urlsClerk().entrar}
                signUpUrl={urlsClerk().cadastro}
                signInFallbackRedirectUrl={urlsClerk().home}
