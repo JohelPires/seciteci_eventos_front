@@ -1,3 +1,5 @@
+'use client'
+
 import { MapPin } from 'lucide-react'
 import { Button } from './ui/button'
 import { motion } from 'framer-motion'
@@ -5,7 +7,7 @@ import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { UserMenu } from './UserMenu'
 
-export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
+export function Navbar() {
     const { isAuthenticated, user, isAdmin } = useAuth()
 
     return (
@@ -49,12 +51,8 @@ export function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                                 )}
                             </div>
                         ) : (
-                            <Button
-                                onClick={onOpenAuth}
-                                variant="outline"
-                                className="cursor-pointer"
-                            >
-                                Entrar
+                            <Button asChild variant="outline" className="cursor-pointer">
+                                <Link href="/sign-in">Entrar</Link>
                             </Button>
                         )}
                     </motion.div>

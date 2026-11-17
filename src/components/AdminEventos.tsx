@@ -18,7 +18,6 @@ import {
 } from './ui/pagination'
 import { EventDetails } from './EventDetails'
 import type { Event, Categoria } from '@/app/page'
-import { useAuth } from '@/context/AuthContext'
 
 interface AdminEventosProps {
    /** Página já fatiada pelo servidor. */

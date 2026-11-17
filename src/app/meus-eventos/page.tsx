@@ -12,7 +12,6 @@ import { EventCard } from '@/components/EventCard'
 import { EventForm } from '@/components/EventForm'
 import { EventDetails } from '@/components/EventDetails'
 import { CardSkeleton } from '@/components/CardSkeleton'
-import { AuthDialog } from '@/components/AuthDialog'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,25 +43,25 @@ const ITEMS_PER_PAGE = 6
 export default function MeusEventos() {
    const router = useRouter()
    const queryClient = useQueryClient()
-   const { token, user, isAuthenticated, loading, tokenId } = useAuth()
+   const { isAuthenticated, loading, user } = useAuth()
 
    const [currentPage, setCurrentPage] = useState(1)
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [showForm, setShowForm] = useState(false)
    const [editingEvent, setEditingEvent] = useState<Event | null>(null)
-   const [authDialogOpen, setAuthDialogOpen] = useState(false)
    const [deleteTarget, setDeleteTarget] = useState<Event | null>(null)
 
-   // Guard client-side: qualquer usuário logado; deslogado volta para a home
+   // Guard client-side: qualquer usuário logado; deslogado vai ao login
+   // (e volta para cá depois de entrar)
    useEffect(() => {
-      if (!loading && !isAuthenticated) router.replace('/')
+      if (!loading && !isAuthenticated) router.replace('/sign-in?next=%2Fmeus-eventos')
    }, [loading, isAuthenticated, router])
 
    // Endpoint dedicado: só os eventos do usuário autenticado, paginado no servidor
    const { data, error, isLoading, isFetching, refetch } = useQuery({
-      queryKey: ['meus-eventos', tokenId, currentPage],
-      queryFn: () => getMeusEventos(token!, { page: currentPage, limit: ITEMS_PER_PAGE }),
-      enabled: isAuthenticated && ((tokenId !== null) || !!user),
+      queryKey: ['meus-eventos', user?.id, currentPage],
+      queryFn: () => getMeusEventos({ page: currentPage, limit: ITEMS_PER_PAGE }),
+      enabled: isAuthenticated,
       placeholderData: keepPreviousData,
    })
 
@@ -85,7 +84,7 @@ export default function MeusEventos() {
 
    const handleDeleteEvent = async (id: string) => {
       try {
-         await deleteEvento(id, token)
+         await deleteEvento(id)
          toast.success('Evento excluído com sucesso!')
          queryClient.invalidateQueries({ queryKey: ['meus-eventos'] })
       } catch (err) {
@@ -96,7 +95,7 @@ export default function MeusEventos() {
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
          try {
-            await editEvento(editingEvent.id, eventData, token)
+            await editEvento(editingEvent.id, eventData)
             toast.success('Evento atualizado com sucesso!')
             setShowForm(false)
             setEditingEvent(null)
@@ -106,7 +105,7 @@ export default function MeusEventos() {
          }
       } else {
          try {
-            await createEvento({ ...eventData, id: Date.now().toString() } as Event, token)
+            await createEvento({ ...eventData, id: Date.now().toString() } as Event)
             toast.success('Evento solicitado. Aguarde a aprovação do administrador.')
             setShowForm(false)
             queryClient.invalidateQueries({ queryKey: ['meus-eventos'] })
@@ -139,7 +138,7 @@ export default function MeusEventos() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
          <Toaster />
 
-         <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
+         <Navbar />
 
          <header className="border-b border-border bg-card">
             <div className="container mx-auto px-4 py-8">
@@ -347,8 +346,6 @@ export default function MeusEventos() {
                </AlertDialogFooter>
             </AlertDialogContent>
          </AlertDialog>
-
-         <AuthDialog open={authDialogOpen} onClose={() => setAuthDialogOpen(false)} />
       </div>
    )
 }

@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
+import { ptBR } from '@clerk/localizations'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 import { AuthProvider } from '@/context/AuthContext'
-import { Query } from '@tanstack/react-query'
+import { urlsClerk } from '@/lib/auth/urls-clerk'
 import QueryProvider from '@/components/QueryProvider'
 
 const geistSans = Geist({
@@ -20,12 +22,24 @@ export default function RootLayout({
 }: Readonly<{
    children: React.ReactNode
 }>) {
+   // Login pelo Clerk (padrão fic_dev/padroes-servicos/clerk.md). TODO
+   // endereço entregue ao Clerk leva o CAMINHO BASE (urlsClerk) — na volta do
+   // login social o SDK monta o endereço completo sem o roteador do Next.
    return (
-      <html lang="en">
+      <html lang="pt-BR">
          <body className={`${geistSans.variable} font-sans antialiased`}>
-            <AuthProvider>
-               <QueryProvider>{children}</QueryProvider>
-            </AuthProvider>
+            <ClerkProvider
+               localization={ptBR}
+               signInUrl={urlsClerk().entrar}
+               signUpUrl={urlsClerk().cadastro}
+               signInFallbackRedirectUrl={urlsClerk().home}
+               signUpFallbackRedirectUrl={urlsClerk().home}
+               afterSignOutUrl={urlsClerk().home}
+            >
+               <AuthProvider>
+                  <QueryProvider>{children}</QueryProvider>
+               </AuthProvider>
+            </ClerkProvider>
          </body>
       </html>
    )

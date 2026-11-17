@@ -36,7 +36,6 @@ import {
    getEventosDoMes,
    getLocais,
 } from '@/data/data'
-import { AuthDialog } from '@/components/AuthDialog'
 import { MapView } from '@/components/MapView'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -156,9 +155,6 @@ function AppContent() {
    const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
    const [currentPage, setCurrentPage] = useState(1)
-   const [authDialogOpen, setAuthDialogOpen] = useState(false)
-   const [pendingCreate, setPendingCreate] = useState(false)
-
    const [alertMessage, setAlertMessage] = useState('')
    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
 
@@ -169,7 +165,7 @@ function AppContent() {
    const [motivoCancelamento, setMotivoCancelamento] = useState('')
    const [isSubmitting, setIsSubmitting] = useState(false)
 
-   const { token, isAuthenticated, user, logout } = useAuth()
+   const { isAuthenticated } = useAuth()
 
    const queryClient = useQueryClient()
 
@@ -225,14 +221,14 @@ function AppContent() {
       queryFn: getLocais,
    })
 
-   // Menu "Criar evento" navega para /?action=create:
-   // logado abre o form; deslogado abre o dialog de autenticação.
+   // Menu "Criar evento" navega para /?action=create: logado abre o form;
+   // deslogado vai ao login e volta para a intenção (/?action=create).
    useEffect(() => {
       if (action !== 'create') return
       if (isAuthenticated) {
          setShowForm(true)
       } else {
-         setAuthDialogOpen(true)
+         router.replace('/sign-in?next=%2F%3Faction%3Dcreate')
       }
       router.replace('/', { scroll: false })
    }, [action, isAuthenticated, router])
@@ -240,7 +236,7 @@ function AppContent() {
    const handleCreateEvent = async (eventData: Omit<Event, 'id'>) => {
       if (editingEvent) {
          try {
-            await editEvento(editingEvent.id, eventData, token)
+            await editEvento(editingEvent.id, eventData)
             toast.success('Evento atualizado com sucesso!')
             setShowForm(false)
             setEditingEvent(null)
@@ -253,7 +249,7 @@ function AppContent() {
             id: Date.now().toString(),
          }
          try {
-            await createEvento(newEvent, token)
+            await createEvento(newEvent)
             toast.success('Solicitação enviada. Aguarde a análise da equipe responsável.')
             setAlertMessage('Solicitação enviada. Aguarde a análise da equipe responsável.')
             setAlertDialogOpen(true)
@@ -270,7 +266,7 @@ function AppContent() {
 
    const handleDeleteEvent = async (id: string) => {
       try {
-         await deleteEvento(id, token)
+         await deleteEvento(id)
          toast.success('Evento excluído com sucesso!')
          queryClient.invalidateQueries({ queryKey: ['eventos'] })
          queryClient.invalidateQueries({ queryKey: ['eventos-calendario'] })
@@ -301,13 +297,13 @@ function AppContent() {
    }
 
    const publicarEvento = async (id: string) => {
-      if (!token) {
+      if (!isAuthenticated) {
          toast.error('Você não está autenticado!')
          return
       }
       setIsSubmitting(true)
       try {
-         await editEvento(id, { status: 'publicado' }, token)
+         await editEvento(id, { status: 'publicado' })
          toast.success('Evento publicado com sucesso!')
          queryClient.invalidateQueries({ queryKey: ['eventos'] })
          queryClient.invalidateQueries({ queryKey: ['eventos-calendario'] })
@@ -320,13 +316,13 @@ function AppContent() {
 
    const confirmCancelarEvento = async () => {
       if (!statusTarget) return
-      if (!token) {
+      if (!isAuthenticated) {
          toast.error('Você não está autenticado!')
          return
       }
       setIsSubmitting(true)
       try {
-         await cancelarEvento(statusTarget.id, token, motivoCancelamento)
+         await cancelarEvento(statusTarget.id, motivoCancelamento)
          toast.success('Evento cancelado com sucesso!')
          setStatusTarget(null)
          setMotivoCancelamento('')
@@ -349,23 +345,15 @@ function AppContent() {
       setEditingEvent(null)
    }
 
-   // CTA "Solicitar Cadastro de Evento": deslogado guarda a intenção e abre o
-   // dialog de autenticação; o efeito abaixo abre o form assim que logar.
+   // CTA "Solicitar Cadastro de Evento": deslogado vai ao login e volta para
+   // a intenção (/?action=create); logado abre o form direto.
    const handleSolicitarCadastro = () => {
       if (isAuthenticated) {
          setShowForm(true)
       } else {
-         setPendingCreate(true)
-         setAuthDialogOpen(true)
+         router.push('/sign-in?next=%2F%3Faction%3Dcreate')
       }
    }
-
-   useEffect(() => {
-      if (isAuthenticated && pendingCreate) {
-         setShowForm(true)
-         setPendingCreate(false)
-      }
-   }, [isAuthenticated, pendingCreate])
 
    const handleEventClick = (event: Event) => {
       setSelectedEvent(event)
@@ -407,7 +395,7 @@ function AppContent() {
          <Toaster />
 
          {/* Navigation Bar */}
-         <Navbar onOpenAuth={() => setAuthDialogOpen(true)} />
+         <Navbar />
 
          <header className="border-b border-border bg-card">
             <div className="container mx-auto px-4 py-10">
@@ -824,16 +812,6 @@ function AppContent() {
                onDelete={handleRequestDelete}
             />
          )}
-         <AuthDialog
-            open={authDialogOpen}
-            onClose={() => setAuthDialogOpen(false)}
-            //   onLogin={handleLogin}
-            //   onRegister={handleRegister}
-            // onClose={() => {}}
-            // onLogin={() => {}}
-            // onRegister={() => {}}
-         />
-
          <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
             <AlertDialogOverlay />
             <AlertDialogContent>

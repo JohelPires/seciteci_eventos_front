@@ -67,7 +67,7 @@ export function AdminUsuarios({
     const [currentPage, setCurrentPage] = useState(1)
     const [usuarioPromover, setUsuarioPromover] = useState<Usuario | null>(null)
 
-    const { token } = useAuth()
+    const { isAuthenticated } = useAuth()
     const queryClient = useQueryClient()
 
     const buscaDebounced = useDebouncedValue(searchTerm)
@@ -76,19 +76,19 @@ export function AdminUsuarios({
     // GET /api/usuarios não aplica `search` no servidor. Sem busca: paginação server-side.
     const { data, isLoading, isFetching, isError, refetch: refetchUsuarios } = useQuery({
         queryKey: ['Usuarios', { pagina: currentPage, busca: null }],
-        queryFn: () => getUsuarios({ token, page: currentPage, limit: ITEMS_PER_PAGE }),
-        enabled: token !== null,
+        queryFn: () => getUsuarios({ page: currentPage, limit: ITEMS_PER_PAGE }),
+        enabled: isAuthenticated,
         placeholderData: keepPreviousData,
     })
     const { data: usuariosBuscaData, isLoading: isLoadingBusca } = useQuery({
         queryKey: ['Usuarios-todos', { busca: buscaDebounced }],
-        queryFn: () => getUsuarios({ token, page: 1, limit: 100 }),
-        enabled: token !== null && buscaDebounced.trim() !== '',
+        queryFn: () => getUsuarios({ page: 1, limit: 100 }),
+        enabled: isAuthenticated && buscaDebounced.trim() !== '',
         placeholderData: keepPreviousData,
     })
 
     const promoverMutation = useMutation({
-        mutationFn: (id: number) => promoverUsuario(id, token),
+        mutationFn: (id: number) => promoverUsuario(id),
         onSuccess: (data) => {
             toast.success(data?.message ?? 'Usuário promovido a administrador.')
             queryClient.invalidateQueries({ queryKey: ['Usuarios'] })
@@ -99,7 +99,7 @@ export function AdminUsuarios({
     })
 
     const deleteMutation = useMutation({
-        mutationFn: (id: number) => deleteUsuario(id, token),
+        mutationFn: (id: number) => deleteUsuario(id),
         onSuccess: (data) => {
             toast.success(data?.message ?? 'Usuário desativado com sucesso.')
             queryClient.invalidateQueries({ queryKey: ['Usuarios'] })

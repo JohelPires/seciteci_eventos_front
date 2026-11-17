@@ -11,7 +11,6 @@ import type { Categoria, Event } from '@/app/page'
 import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createCategoria, deleteCategoria, getCategorias, updateCategoria } from '@/data/data'
 import { CardSkeleton } from './CardSkeleton'
-import { useAuth } from '@/context/AuthContext'
 
 interface AdminCategoriasProps {
    // categorias: Categoria[]
@@ -25,8 +24,6 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
    const [nome, setNome] = useState('')
    const [cor, setCor] = useState('bg-blue-600')
 
-   const { token } = useAuth()
-
    const queryClient = useQueryClient()
 
    const { data: categorias, isLoading } = useQuery({
@@ -35,7 +32,7 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
    })
 
    const createMutation = useMutation({
-      mutationFn: (categoria: { nome: string; cor: string }) => createCategoria(categoria, token),
+      mutationFn: (categoria: { nome: string; cor: string }) => createCategoria(categoria),
 
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['categorias'] })
@@ -48,7 +45,7 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
    })
 
    const updateMutation = useMutation({
-      mutationFn: (categoria: Categoria) => updateCategoria(categoria, token),
+      mutationFn: (categoria: Categoria) => updateCategoria(categoria),
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['categorias'] })
          toast.success('Categoria atualizada com sucesso!')
@@ -60,7 +57,7 @@ export function AdminCategorias({ events }: AdminCategoriasProps) {
    })
 
    const deleteMutation = useMutation({
-      mutationFn: (id: string) => deleteCategoria(id, token),
+      mutationFn: (id: string) => deleteCategoria(id),
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['categorias'] })
          toast.success('Categoria excluída com sucesso!')
