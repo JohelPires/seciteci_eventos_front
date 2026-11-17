@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { SignUp } from '@clerk/nextjs'
+import { AuthShell } from '@/components/auth/AuthShell'
+import { APARENCIA_CLERK } from '@/lib/auth/aparencia-clerk'
 import { urlsClerk } from '@/lib/auth/urls-clerk'
 
 export const metadata: Metadata = {
@@ -17,5 +19,15 @@ export const metadata: Metadata = {
  * página é catch-all e sempre aberta.
  */
 export default function SignUpPage() {
-   return <SignUp routing="path" path={urlsClerk().cadastro} signInUrl={urlsClerk().entrar} forceRedirectUrl={urlsClerk().home} />
+   return (
+      <AuthShell>
+         <SignUp
+            routing="path"
+            path={urlsClerk().cadastro}
+            signInUrl={urlsClerk().entrar}
+            forceRedirectUrl={urlsClerk().home}
+            appearance={APARENCIA_CLERK}
+         />
+      </AuthShell>
+   )
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { SignIn } from '@clerk/nextjs'
+import { AuthShell } from '@/components/auth/AuthShell'
+import { APARENCIA_CLERK } from '@/lib/auth/aparencia-clerk'
 import { urlsClerk } from '@/lib/auth/urls-clerk'
 
 export const metadata: Metadata = {
@@ -14,5 +16,15 @@ export const metadata: Metadata = {
  * O cadastro público de participante fica em /sign-up.
  */
 export default function SignInPage() {
-   return <SignIn routing="path" path={urlsClerk().entrar} signUpUrl={urlsClerk().cadastro} forceRedirectUrl={urlsClerk().home} />
+   return (
+      <AuthShell>
+         <SignIn
+            routing="path"
+            path={urlsClerk().entrar}
+            signUpUrl={urlsClerk().cadastro}
+            forceRedirectUrl={urlsClerk().home}
+            appearance={APARENCIA_CLERK}
+         />
+      </AuthShell>
+   )
 }
