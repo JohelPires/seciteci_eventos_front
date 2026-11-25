@@ -4,6 +4,8 @@ import {
    Calendar as CalendarIcon,
    Image as ImageIcon,
    MapPin,
+   Video,
+   Globe,
    FileText,
    Link as LinkIcon,
    ChevronRight,
@@ -11,11 +13,13 @@ import {
    Check,
    AlertCircle,
    Loader2,
+   type LucideIcon,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
+import { RadioGroup, RadioGroupItem } from './ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Event, Categoria, Financiador } from '@/app/page'
@@ -54,6 +58,21 @@ type Step2Errors = {
 
 type Step3Errors = {
    LocalCapacidade?: string
+   linkOnline?: string
+}
+
+type TipoEvento = Event['tipoEvento']
+
+const MODALIDADES: { valor: TipoEvento; rotulo: string; descricao: string; Icone: LucideIcon }[] = [
+   { valor: 'presencial', rotulo: 'Presencial', descricao: 'Acontece em um local físico', Icone: MapPin },
+   { valor: 'online', rotulo: 'Online', descricao: 'Transmissão ao vivo pela internet', Icone: Video },
+   { valor: 'hibrido', rotulo: 'Híbrido', descricao: 'Presencial e online ao mesmo tempo', Icone: Globe },
+]
+
+const MODALIDADE_LABEL: Record<TipoEvento, string> = {
+   presencial: 'Presencial',
+   online: 'Online',
+   hibrido: 'Híbrido',
 }
 
 type Step4Errors = {
@@ -107,7 +126,7 @@ const formatCep = (value: string) => {
    return digits
 }
 
-const isValidImageUrl = (url: string) => {
+const isValidUrl = (url: string) => {
    try {
       const parsed = new URL(url)
       return ['http:', 'https:'].includes(parsed.protocol)
@@ -227,6 +246,13 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
       },
       [editingEvent],
    )
+
+   const handleModalidadeChange = useCallback((value: string) => {
+      if (value !== 'presencial' && value !== 'online' && value !== 'hibrido') return
+      setFormData((prev) => ({ ...prev, tipoEvento: value }))
+      setErrors3((prev) => ({ ...prev, linkOnline: undefined, LocalCapacidade: undefined }))
+      setErrors4((prev) => ({ ...prev, LocalLatitude: undefined, LocalLongitude: undefined }))
+   }, [])
 
    // ─── Geocodificação via Nominatim ─────────────────────────────────────
    const geocodeAddress = useCallback(async (data: typeof INITIAL_FORM_DATA) => {
@@ -423,26 +449,34 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
 
    const validateStep3 = useCallback((): boolean => {
       const errs: Step3Errors = {}
+      if (formData.tipoEvento !== 'presencial') {
+         const link = formData.linkOnline.trim()
+         if (!link) errs.linkOnline = 'Informe o link de transmissão'
+         else if (!isValidUrl(link))
+            errs.linkOnline = 'URL inválida. Use uma URL pública que comece com http:// ou https://'
+      }
       if (formData.tipoEvento !== 'online' && !formData.LocalCapacidade)
          errs.LocalCapacidade = 'Informe a capacidade do local'
       setErrors3(errs)
       return Object.keys(errs).length === 0
-   }, [formData.tipoEvento, formData.LocalCapacidade])
+   }, [formData.tipoEvento, formData.linkOnline, formData.LocalCapacidade])
 
    const validateStep4 = useCallback((): boolean => {
       const errs: Step4Errors = {}
-      if (formData.imagemCapa && !isValidImageUrl(formData.imagemCapa)) {
+      if (formData.imagemCapa && !isValidUrl(formData.imagemCapa)) {
          errs.imagemCapa = 'URL inválida. Use uma URL pública que comece com http:// ou https://'
       }
-      const lat = parseFloat(formData.LocalLatitude)
-      const lng = parseFloat(formData.LocalLongitude)
-      if (formData.LocalLatitude && (isNaN(lat) || lat < -90 || lat > 90))
-         errs.LocalLatitude = 'A latitude deve estar entre -90 e 90'
-      if (formData.LocalLongitude && (isNaN(lng) || lng < -180 || lng > 180))
-         errs.LocalLongitude = 'A longitude deve estar entre -180 e 180'
+      if (formData.tipoEvento !== 'online') {
+         const lat = parseFloat(formData.LocalLatitude)
+         const lng = parseFloat(formData.LocalLongitude)
+         if (formData.LocalLatitude && (isNaN(lat) || lat < -90 || lat > 90))
+            errs.LocalLatitude = 'A latitude deve estar entre -90 e 90'
+         if (formData.LocalLongitude && (isNaN(lng) || lng < -180 || lng > 180))
+            errs.LocalLongitude = 'A longitude deve estar entre -180 e 180'
+      }
       setErrors4(errs)
       return Object.keys(errs).length === 0
-   }, [formData.imagemCapa, formData.LocalLatitude, formData.LocalLongitude])
+   }, [formData.imagemCapa, formData.LocalLatitude, formData.LocalLongitude, formData.tipoEvento])
 
     // ─── Navegação ────────────────────────────────────────────────────────
    const nextStep = useCallback(() => {
@@ -492,7 +526,7 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
             capacidadeMaxima: capacidade,
             vagasDisponiveis: capacidade,
             tipoEvento: formData.tipoEvento,
-            linkOnline: formData.linkOnline || undefined,
+            linkOnline: formData.tipoEvento !== 'presencial' ? formData.linkOnline || undefined : undefined,
             LocalLinkGoogleMaps: formData.LocalLinkGoogleMaps || undefined,
             LocalNome: formData.LocalNome || undefined,
             LocalEndereco: formData.LocalEndereco || undefined,
@@ -929,146 +963,224 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               <h3 className="mb-1">Local do Evento</h3>
                               <p className="text-sm text-muted-foreground">
                                  {formData.tipoEvento === 'online'
-                                    ? 'Este é um evento online. Os campos abaixo são opcionais.'
-                                    : 'Informe o endereço onde o evento acontecerá. O link do Google Maps será gerado automaticamente.'}
+                                    ? 'Evento online: informe o link de transmissão. Capacidade e observações são opcionais.'
+                                    : formData.tipoEvento === 'hibrido'
+                                      ? 'Evento híbrido: informe o local e o link de transmissão.'
+                                      : 'Informe o endereço onde o evento acontecerá. O link do Google Maps será gerado automaticamente.'}
                               </p>
                            </div>
 
+                           <div className="space-y-2">
+                              <p id="modalidade-label" className="text-sm font-medium">
+                                 Modalidade do evento*
+                              </p>
+                              <RadioGroup
+                                 value={formData.tipoEvento}
+                                 onValueChange={handleModalidadeChange}
+                                 aria-labelledby="modalidade-label"
+                                 className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+                              >
+                                 {MODALIDADES.map(({ valor, rotulo, descricao, Icone }) => (
+                                    <label
+                                       key={valor}
+                                       className="group relative flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+                                    >
+                                       <RadioGroupItem value={valor} className="sr-only" aria-label={rotulo} />
+                                       <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-has-[[data-state=checked]]:bg-primary group-has-[[data-state=checked]]:text-primary-foreground">
+                                          <Icone className="size-5" aria-hidden="true" />
+                                       </span>
+                                       <span className="flex min-w-0 flex-col">
+                                          <span className="text-sm font-medium">{rotulo}</span>
+                                          <span className="text-xs text-muted-foreground">{descricao}</span>
+                                       </span>
+                                       <span
+                                          className="absolute right-3 top-3 flex size-4 items-center justify-center rounded-full border border-border bg-background transition-colors group-has-[[data-state=checked]]:border-primary group-has-[[data-state=checked]]:bg-primary"
+                                          aria-hidden="true"
+                                       >
+                                          <Check className="size-3 text-primary-foreground opacity-0 transition-opacity group-has-[[data-state=checked]]:opacity-100" />
+                                       </span>
+                                    </label>
+                                 ))}
+                              </RadioGroup>
+                           </div>
+
                            {/* Indicador de geocodificação */}
-                           <AnimatePresence>
-                              {isGeocoding && (
-                                 <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border border-border"
-                                 >
-                                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                                    Buscando o endereço informado...
-                                 </motion.div>
-                              )}
-                              {!isGeocoding && geocodeStatus === 'success' && (
-                                 <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="flex items-center gap-2 text-sm text-green-700 p-3 bg-green-50 rounded-lg border border-green-200"
-                                 >
-                                    <Check className="w-4 h-4 shrink-0" />
-                                    Endereço localizado! O link do Google Maps foi gerado automaticamente.
-                                 </motion.div>
-                              )}
-                              {!isGeocoding && geocodeStatus === 'error' && (
-                                 <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="flex items-center gap-2 text-sm text-amber-700 p-3 bg-amber-50 rounded-lg border border-amber-200"
-                                 >
-                                    <AlertCircle className="w-4 h-4 shrink-0" />
-                                    Não foi possível localizar este endereço. Você poderá informá-lo manualmente na
-                                    próxima etapa.
-                                 </motion.div>
-                              )}
-                           </AnimatePresence>
+                           {formData.tipoEvento !== 'online' && (
+                              <AnimatePresence>
+                                 {isGeocoding && (
+                                    <motion.div
+                                       initial={{ opacity: 0, height: 0 }}
+                                       animate={{ opacity: 1, height: 'auto' }}
+                                       exit={{ opacity: 0, height: 0 }}
+                                       className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border border-border"
+                                    >
+                                       <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                                       Buscando o endereço informado...
+                                    </motion.div>
+                                 )}
+                                 {!isGeocoding && geocodeStatus === 'success' && (
+                                    <motion.div
+                                       initial={{ opacity: 0, height: 0 }}
+                                       animate={{ opacity: 1, height: 'auto' }}
+                                       exit={{ opacity: 0, height: 0 }}
+                                       className="flex items-center gap-2 text-sm text-green-700 p-3 bg-green-50 rounded-lg border border-green-200"
+                                    >
+                                       <Check className="w-4 h-4 shrink-0" />
+                                       Endereço localizado! O link do Google Maps foi gerado automaticamente.
+                                    </motion.div>
+                                 )}
+                                 {!isGeocoding && geocodeStatus === 'error' && (
+                                    <motion.div
+                                       initial={{ opacity: 0, height: 0 }}
+                                       animate={{ opacity: 1, height: 'auto' }}
+                                       exit={{ opacity: 0, height: 0 }}
+                                       className="flex items-center gap-2 text-sm text-amber-700 p-3 bg-amber-50 rounded-lg border border-amber-200"
+                                    >
+                                       <AlertCircle className="w-4 h-4 shrink-0" />
+                                       Não foi possível localizar este endereço. Você poderá informá-lo manualmente na
+                                       próxima etapa.
+                                    </motion.div>
+                                 )}
+                              </AnimatePresence>
+                           )}
 
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div className="space-y-2 md:col-span-2">
-                                 <Label htmlFor="LocalNome">Nome do Local</Label>
-                                 <Input
-                                    id="LocalNome"
-                                    placeholder="Ex: Auditório Central"
-                                    value={formData.LocalNome}
-                                    onChange={(e) => set('LocalNome', e.target.value)}
-                                 />
-                              </div>
+                              {formData.tipoEvento !== 'presencial' && (
+                                 <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="linkOnline">
+                                       Link de transmissão*
+                                       <span className="text-xs text-muted-foreground ml-2">
+                                          (Meet, Zoom, YouTube etc.)
+                                       </span>
+                                    </Label>
+                                    <Input
+                                       id="linkOnline"
+                                       type="url"
+                                       placeholder="https://meet.google.com/abc-defg-hij"
+                                       value={formData.linkOnline}
+                                       onChange={(e) => {
+                                          set('linkOnline', e.target.value)
+                                          if (errors3.linkOnline)
+                                             setErrors3((p) => ({
+                                                ...p,
+                                                linkOnline: undefined,
+                                             }))
+                                       }}
+                                       className={
+                                          errors3.linkOnline ? 'border-red-500 focus-visible:ring-red-500' : ''
+                                       }
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                       O link será exibido aos participantes na página do evento.
+                                    </p>
+                                    <FieldError message={errors3.linkOnline} />
+                                 </div>
+                              )}
+
+                              {formData.tipoEvento !== 'online' && (
+                                 <>
+                                    <div className="space-y-2 md:col-span-2">
+                                       <Label htmlFor="LocalNome">Nome do Local</Label>
+                                       <Input
+                                          id="LocalNome"
+                                          placeholder="Ex: Auditório Central"
+                                          value={formData.LocalNome}
+                                          onChange={(e) => set('LocalNome', e.target.value)}
+                                       />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                       <Label htmlFor="LocalCep">CEP</Label>
+                                       <Input
+                                          id="LocalCep"
+                                          placeholder="12345-678"
+                                          value={formData.LocalCep}
+                                          onChange={(e) => handleCepChange(e.target.value)}
+                                          maxLength={9}
+                                       />
+                                       <p className="text-xs text-muted-foreground">
+                                          Informe o CEP para preencher o endereço automaticamente
+                                       </p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                       <Label htmlFor="LocalEndereco">Endereço</Label>
+                                       <Input
+                                          id="LocalEndereco"
+                                          placeholder="Ex: Rua das Flores"
+                                          value={formData.LocalEndereco}
+                                          onChange={(e) => set('LocalEndereco', e.target.value)}
+                                       />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                       <Label htmlFor="LocalNumero">Número</Label>
+                                       <Input
+                                          id="LocalNumero"
+                                          placeholder="Ex: 123"
+                                          value={formData.LocalNumero}
+                                          onChange={(e) => set('LocalNumero', e.target.value)}
+                                       />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                       <Label htmlFor="LocalComplemento">Complemento</Label>
+                                       <Input
+                                          id="LocalComplemento"
+                                          placeholder="Ex: Bloco A, Sala 101"
+                                          value={formData.LocalComplemento}
+                                          onChange={(e) => set('LocalComplemento', e.target.value)}
+                                       />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                       <Label htmlFor="LocalBairro">Bairro</Label>
+                                       <Input
+                                          id="LocalBairro"
+                                          placeholder="Ex: Jardim"
+                                          value={formData.LocalBairro}
+                                          onChange={(e) => set('LocalBairro', e.target.value)}
+                                       />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                       <Label htmlFor="LocalCidade">Cidade</Label>
+                                       <Input
+                                          id="LocalCidade"
+                                          placeholder="Ex: Cuiabá"
+                                          value={formData.LocalCidade}
+                                          onChange={(e) => set('LocalCidade', e.target.value)}
+                                       />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                       <Label htmlFor="LocalEstado">Estado</Label>
+                                       <Input
+                                          id="LocalEstado"
+                                          placeholder="Ex: MT"
+                                          value={formData.LocalEstado}
+                                          onChange={(e) => set('LocalEstado', e.target.value)}
+                                       />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                       <Label htmlFor="LocalPais">País</Label>
+                                       <Input
+                                          id="LocalPais"
+                                          placeholder="Ex: Brasil"
+                                          value={formData.LocalPais}
+                                          onChange={(e) => set('LocalPais', e.target.value)}
+                                       />
+                                    </div>
+                                 </>
+                              )}
 
                               <div className="space-y-2">
-                                 <Label htmlFor="LocalCep">CEP</Label>
-                                 <Input
-                                    id="LocalCep"
-                                    placeholder="12345-678"
-                                    value={formData.LocalCep}
-                                    onChange={(e) => handleCepChange(e.target.value)}
-                                    maxLength={9}
-                                 />
-                                 <p className="text-xs text-muted-foreground">
-                                    Informe o CEP para preencher o endereço automaticamente
-                                 </p>
-                              </div>
-
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalEndereco">Endereço</Label>
-                                 <Input
-                                    id="LocalEndereco"
-                                    placeholder="Ex: Rua das Flores"
-                                    value={formData.LocalEndereco}
-                                    onChange={(e) => set('LocalEndereco', e.target.value)}
-                                 />
-                              </div>
-
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalNumero">Número</Label>
-                                 <Input
-                                    id="LocalNumero"
-                                    placeholder="Ex: 123"
-                                    value={formData.LocalNumero}
-                                    onChange={(e) => set('LocalNumero', e.target.value)}
-                                 />
-                              </div>
-
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalComplemento">Complemento</Label>
-                                 <Input
-                                    id="LocalComplemento"
-                                    placeholder="Ex: Bloco A, Sala 101"
-                                    value={formData.LocalComplemento}
-                                    onChange={(e) => set('LocalComplemento', e.target.value)}
-                                 />
-                              </div>
-
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalBairro">Bairro</Label>
-                                 <Input
-                                    id="LocalBairro"
-                                    placeholder="Ex: Jardim"
-                                    value={formData.LocalBairro}
-                                    onChange={(e) => set('LocalBairro', e.target.value)}
-                                 />
-                              </div>
-
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalCidade">Cidade</Label>
-                                 <Input
-                                    id="LocalCidade"
-                                    placeholder="Ex: Cuiabá"
-                                    value={formData.LocalCidade}
-                                    onChange={(e) => set('LocalCidade', e.target.value)}
-                                 />
-                              </div>
-
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalEstado">Estado</Label>
-                                 <Input
-                                    id="LocalEstado"
-                                    placeholder="Ex: MT"
-                                    value={formData.LocalEstado}
-                                    onChange={(e) => set('LocalEstado', e.target.value)}
-                                 />
-                              </div>
-
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalPais">País</Label>
-                                 <Input
-                                    id="LocalPais"
-                                    placeholder="Ex: Brasil"
-                                    value={formData.LocalPais}
-                                    onChange={(e) => set('LocalPais', e.target.value)}
-                                 />
-                              </div>
-
-                              <div className="space-y-2">
-                                 <Label htmlFor="LocalCapacidade">Capacidade do Local (pessoas)</Label>
+                                 <Label htmlFor="LocalCapacidade">
+                                    {formData.tipoEvento === 'online'
+                                       ? 'Capacidade de participantes'
+                                       : 'Capacidade do Local (pessoas)'}
+                                 </Label>
                                  <Input
                                     id="LocalCapacidade"
                                     type="number"
@@ -1091,7 +1203,9 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                               </div>
 
                               <div className="space-y-2 md:col-span-2">
-                                 <Label htmlFor="LocalObservacoes">Observações sobre o Local</Label>
+                                 <Label htmlFor="LocalObservacoes">
+                                    {formData.tipoEvento === 'online' ? 'Observações' : 'Observações sobre o Local'}
+                                 </Label>
                                  <Textarea
                                     id="LocalObservacoes"
                                     placeholder="Ex: Estacionamento disponível, acesso para pessoas com deficiência"
@@ -1181,13 +1295,15 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                  />
                               </div>
 
-                              {/* Google Maps — gerado automaticamente */}
-                              <div className="space-y-2">
-                                 <Label className="flex items-center gap-2">
-                                    <LinkIcon className="w-4 h-4" />
-                                    Link do Google Maps
-                                 </Label>
-                                 {formData.LocalLinkGoogleMaps ? (
+                              {/* Localização — apenas para eventos com local físico */}
+                              {formData.tipoEvento !== 'online' && (
+                                 <>
+                                    <div className="space-y-2">
+                                       <Label className="flex items-center gap-2">
+                                          <LinkIcon className="w-4 h-4" />
+                                          Link do Google Maps
+                                       </Label>
+                                       {formData.LocalLinkGoogleMaps ? (
                                     <div className="flex items-center gap-2">
                                        <Input
                                           readOnly
@@ -1264,38 +1380,49 @@ export function EventForm({ onSubmit, onClose, editingEvent, categorias, closeOn
                                           errors4.LocalLongitude ? 'border-red-500 focus-visible:ring-red-500' : ''
                                        }
                                     />
-                                    <FieldError message={errors4.LocalLongitude} />
-                                 </div>
-                              </div>
+                                     <FieldError message={errors4.LocalLongitude} />
+                                  </div>
+                               </div>
+                                 </>
+                              )}
 
                               {/* Resumo completo */}
                               <div className="mt-2 p-4 bg-muted/50 rounded-lg border border-border">
                                  <h4 className="mb-3">Resumo do Evento</h4>
                                  <div className="space-y-2 text-sm">
                                     {(
-                                       [
-                                          ['Nome', formData.titulo],
-                                          ['Categoria', categoriaNome],
-                                          ['Tipo', formData.tipoEvento],
-                                          ['Período', resumoPeriodo],
-                                          ['Horário', resumoHorario],
+                                        [
+                                           ['Nome', formData.titulo],
+                                           ['Categoria', categoriaNome],
+                                           ['Tipo', MODALIDADE_LABEL[formData.tipoEvento]],
+                                           ...(formData.tipoEvento !== 'presencial'
+                                              ? ([['Link de transmissão', formData.linkOnline]] as [string, string][])
+                                              : []),
+                                           ['Período', resumoPeriodo],
+                                           ['Horário', resumoHorario],
                                            [
-                                              'Capacidade do Local (pessoas)',
+                                              formData.tipoEvento === 'online'
+                                                 ? 'Capacidade de participantes'
+                                                 : 'Capacidade do Local (pessoas)',
                                               formData.LocalCapacidade,
                                            ],
-                                          ['Local', resumoLocal],
-                                          [
-                                             'Localização',
-                                             formData.LocalLatitude && formData.LocalLongitude
-                                                ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
-                                                : 'Não informada',
-                                          ],
+                                           ...(formData.tipoEvento !== 'online'
+                                              ? ([
+                                                   ['Local', resumoLocal],
+                                                   [
+                                                      'Localização',
+                                                      formData.LocalLatitude && formData.LocalLongitude
+                                                         ? `${formData.LocalLatitude}, ${formData.LocalLongitude}`
+                                                         : 'Não informada',
+                                                   ],
+                                                ] as [string, string][])
+                                              : []),
                                            ['Financiadores', resumoFinanciadores],
-                                          [
-                                             'Situação',
-                                             statusEnvio.charAt(0).toUpperCase() + statusEnvio.slice(1),
-                                          ],
-                                       ] as [string, string][]
+                                           [
+                                              'Situação',
+                                              statusEnvio.charAt(0).toUpperCase() + statusEnvio.slice(1),
+                                           ],
+                                        ] as [string, string][]
                                     ).map(([label, value]) => (
                                        <div key={label} className="flex justify-between gap-4">
                                           <span className="text-muted-foreground shrink-0">{label}:</span>

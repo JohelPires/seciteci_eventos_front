@@ -14,6 +14,12 @@ import type { Event, Categoria, Local } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
 import { comBase } from '@/lib/caminho-base'
 
+const MODALIDADE_LABEL: Record<Event['tipoEvento'], string> = {
+   presencial: 'Presencial',
+   online: 'Online',
+   hibrido: 'Híbrido',
+}
+
 interface EventCardProps {
    event: Event
    categoria?: Categoria | null
@@ -194,7 +200,9 @@ export function EventCard({
                         <Users className="w-4 h-4 text-foreground/70" />
                      </div>
                      <div>
-                        <p className="text-xs text-muted-foreground">Capacidade do Local</p>
+                        <p className="text-xs text-muted-foreground">
+                           {event.tipoEvento === 'online' ? 'Capacidade de participantes' : 'Capacidade do Local'}
+                        </p>
                         <p className="text-foreground">{event.LocalCapacidade ?? '-'} pessoas</p>
                      </div>
                   </div>
@@ -202,11 +210,19 @@ export function EventCard({
                   <div className="flex items-center gap-3 text-sm">
                      <div className="p-2 rounded-md bg-muted">{getTipoEventoIcon(event.tipoEvento)}</div>
                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Local</p>
+                        <p className="text-xs text-muted-foreground">
+                           {event.tipoEvento === 'presencial' ? 'Local' : 'Modalidade'}
+                        </p>
                         <p className="text-foreground truncate">
-                           {event.LocalNome
-                              ? `${event.LocalNome} - ${event.LocalCidade}, ${event.LocalEstado}`
-                              : 'Local não especificado'}
+                           {event.tipoEvento === 'online'
+                              ? MODALIDADE_LABEL.online
+                              : event.tipoEvento === 'hibrido'
+                                ? event.LocalNome
+                                   ? `${MODALIDADE_LABEL.hibrido} - ${event.LocalNome}`
+                                   : MODALIDADE_LABEL.hibrido
+                                : event.LocalNome
+                                  ? `${event.LocalNome} - ${event.LocalCidade}, ${event.LocalEstado}`
+                                  : 'Local não especificado'}
                         </p>
                      </div>
                   </div>

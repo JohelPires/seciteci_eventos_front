@@ -21,6 +21,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Event, Categoria } from '@/app/page'
 import { useAuth } from '@/context/AuthContext'
 
+const TIPO_EVENTO_LABEL: Record<Event['tipoEvento'], string> = {
+   presencial: 'Presencial',
+   online: 'Online',
+   hibrido: 'Híbrido',
+}
+
 interface EventDetailsProps {
    event: Event
    categoria?: Categoria | null
@@ -176,7 +182,7 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                         <div className="p-2.5 rounded-lg bg-muted">{getTipoEventoIcon(event.tipoEvento)}</div>
                         <div>
                            <p className="text-sm text-muted-foreground">Tipo de Evento</p>
-                           <p className="text-foreground capitalize">{event.tipoEvento}</p>
+                           <p className="text-foreground">{TIPO_EVENTO_LABEL[event.tipoEvento] ?? event.tipoEvento}</p>
                         </div>
                      </div>
 
@@ -185,12 +191,14 @@ export function EventDetails({ event, categoria, onClose, onEdit, onDelete, isOw
                            <Users className="w-5 h-5 text-foreground/70" />
                         </div>
                         <div>
-                           <p className="text-sm text-muted-foreground">Capacidade do Local</p>
+                           <p className="text-sm text-muted-foreground">
+                              {event.tipoEvento === 'online' ? 'Capacidade de participantes' : 'Capacidade do Local'}
+                           </p>
                            <p className="text-foreground">{event.LocalCapacidade ?? '-'} pessoas</p>
                         </div>
                      </div>
 
-                     {event && (
+                     {event && event.tipoEvento !== 'online' && (
                         <div className="flex items-start gap-3 md:col-span-2">
                            <div className="p-2.5 rounded-lg bg-muted">
                               <MapPin className="w-5 h-5 text-foreground/70" />
